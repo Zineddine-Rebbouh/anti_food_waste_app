@@ -1,0 +1,40 @@
+﻿Analyzing anti_food_waste_app...                                
+
+   info - Unnecessary type annotation on a local variable - lib\features\auth\data\sources\google_auth.dart:12:13 - omit_local_variable_types
+   info - Unnecessary type annotation on a local variable - lib\features\auth\data\sources\google_auth.dart:20:13 - omit_local_variable_types
+   info - Use 'const' with the constructor to improve performance - lib\features\auth\presentation\screens\email_verification.dart:30:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\auth\presentation\screens\email_verification.dart:91:35 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\auth\presentation\screens\email_verification.dart:98:36 - prefer_const_constructors
+   info - Unnecessary type annotation on a local variable - lib\features\help\presentation\screens\help_screen.dart:116:11 - omit_local_variable_types
+   info - Use 'const' with the constructor to improve performance - lib\features\home\presentation\screens\home_content.dart:37:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\home\presentation\screens\home_content.dart:39:22 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\home\presentation\screens\home_content.dart:71:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\home\presentation\screens\home_content.dart:73:28 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\onboarding\presentation\screens\welcome_screen.dart:75:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\profile\presentation\screens\profile_screen.dart:80:29 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\profile\presentation\screens\profile_screen.dart:82:38 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\profile\presentation\screens\profile_screen.dart:89:29 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\profile\presentation\screens\profile_screen.dart:103:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\profile\presentation\screens\profile_screen.dart:104:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\profile\presentation\screens\profile_screen.dart:106:42 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\features\profile\presentation\screens\profile_screen.dart:198:19 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\features\profile\presentation\screens\profile_screen.dart:199:19 - prefer_const_literals_to_create_immutables
+   info - Use 'package:' imports for files in the 'lib' directory - lib\shared\data\mock_listings.dart:1:8 - always_use_package_imports
+   info - Local variables should be final - lib\shared\widgets\bottom_navigation.dart:78:5 - prefer_final_locals
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\bottom_navigation.dart:78:5 - omit_local_variable_types
+   info - Local variables should be final - lib\shared\widgets\bottom_navigation.dart:79:5 - prefer_final_locals
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\bottom_navigation.dart:79:5 - omit_local_variable_types
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\confetti_overlay.dart:31:10 - omit_local_variable_types
+   info - Local variables should be final - lib\shared\widgets\language_switcher.dart:14:5 - prefer_final_locals
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\language_switcher.dart:14:5 - omit_local_variable_types
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\listing_card.dart:27:11 - omit_local_variable_types
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\map_view.dart:63:11 - omit_local_variable_types
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\map_view.dart:64:11 - omit_local_variable_types
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\map_view.dart:168:10 - omit_local_variable_types
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\map_view.dart:171:10 - omit_local_variable_types
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\notification_panel.dart:33:11 - omit_local_variable_types
+   info - Local variables should be final - lib\shared\widgets\notification_panel.dart:72:5 - prefer_final_locals
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\notification_panel.dart:72:5 - omit_local_variable_types
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\password_field.dart:77:5 - omit_local_variable_types
+   info - Unnecessary type annotation on a local variable - lib\shared\widgets\password_field.dart:78:5 - omit_local_variable_types
+

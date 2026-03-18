@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/cubits/merchant_cubit.dart';
+import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_map_location_screen.dart';
 
 class MerchantBusinessProfileScreen extends StatefulWidget {
   const MerchantBusinessProfileScreen({super.key});
@@ -17,6 +18,9 @@ class _MerchantBusinessProfileScreenState
   late TextEditingController _phoneCtrl;
   late TextEditingController _addressCtrl;
   late TextEditingController _wilayaCtrl;
+
+  double? _pickedLat;
+  double? _pickedLng;
 
   String _selectedType = 'Bakery';
   bool _isSaving = false;
@@ -57,6 +61,8 @@ class _MerchantBusinessProfileScreenState
     _wilayaCtrl =
         TextEditingController(text: profile?.wilaya ?? '');
     _selectedType = profile?.businessType ?? 'Bakery';
+    _pickedLat = profile?.latitude;
+    _pickedLng = profile?.longitude;
   }
 
   @override
@@ -66,6 +72,24 @@ class _MerchantBusinessProfileScreenState
     _addressCtrl.dispose();
     _wilayaCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _openMapPicker() async {
+    final result = await Navigator.push<MapLocationResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MerchantMapLocationScreen(
+          initialLat: _pickedLat,
+          initialLng: _pickedLng,
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _pickedLat = result.latitude;
+        _pickedLng = result.longitude;
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -191,6 +215,35 @@ class _MerchantBusinessProfileScreenState
                         controller: _wilayaCtrl,
                         label: 'Wilaya',
                         icon: Icons.map_outlined,
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _openMapPicker,
+                          icon: const Icon(
+                            Icons.pin_drop_outlined,
+                            size: 18,
+                            color: Color(0xFF2D8659),
+                          ),
+                          label: Text(
+                            _pickedLat != null
+                                ? 'Location set  (${_pickedLat!.toStringAsFixed(4)}, ${_pickedLng!.toStringAsFixed(4)})'
+                                : 'Set Location on Map',
+                            style: const TextStyle(
+                              color: Color(0xFF2D8659),
+                              fontSize: 14,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF2D8659)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 12),
+                          ),
+                        ),
                       ),
                     ],
                   ),

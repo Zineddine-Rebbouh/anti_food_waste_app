@@ -11,9 +11,8 @@ class AuthRepository {
       : _remote = remote ?? AuthRemoteSource();
 
   /// Logs in and stores tokens.
-  /// Returns `(userType, verificationStatus)` on success or throws.
-  Future<({String userType, String verificationStatus})> login(
-      String email, String password) async {
+  Future<({String userType, String verificationStatus, bool emailVerified})>
+      login(String email, String password) async {
     final resp =
         await _remote.login(LoginRequest(email: email, password: password));
     await TokenStorage.saveTokens(
@@ -21,22 +20,33 @@ class AuthRepository {
       refresh: resp.refresh,
       userType: resp.userType,
       verificationStatus: resp.verificationStatus,
+      emailVerified: resp.emailVerified,
+      email: resp.email,
     );
-    return (userType: resp.userType, verificationStatus: resp.verificationStatus);
+    return (
+      userType: resp.userType,
+      verificationStatus: resp.verificationStatus,
+      emailVerified: resp.emailVerified,
+    );
   }
 
   /// Registers and immediately logs in to obtain tokens.
-  /// Returns `(userType, verificationStatus)` on success or throws.
-  Future<({String userType, String verificationStatus})> register(
-      RegisterRequest request) async {
+  Future<({String userType, String verificationStatus, bool emailVerified})>
+      register(RegisterRequest request) async {
     final resp = await _remote.register(request);
     await TokenStorage.saveTokens(
       access: resp.access,
       refresh: resp.refresh,
       userType: resp.userType,
       verificationStatus: resp.verificationStatus,
+      emailVerified: resp.emailVerified,
+      email: resp.email,
     );
-    return (userType: resp.userType, verificationStatus: resp.verificationStatus);
+    return (
+      userType: resp.userType,
+      verificationStatus: resp.verificationStatus,
+      emailVerified: resp.emailVerified,
+    );
   }
 
   /// Logs out — blacklists token on server and clears local storage.
@@ -46,19 +56,60 @@ class AuthRepository {
       try {
         await _remote.logout(refresh);
       } on DioException {
-        // Server-side logout failed (e.g. token expired) — still clear locally.
+        // Server-side logout failed — still clear locally.
       }
     }
     await TokenStorage.clearTokens();
   }
 
   /// Returns stored session data if it exists, else null.
-  Future<({String userType, String verificationStatus})?> getSavedSession() async {
+  Future<
+      ({
+        String userType,
+        String verificationStatus,
+        bool emailVerified,
+        String email,
+      })?> getSavedSession() async {
     final userType = await TokenStorage.getUserType();
     if (userType == null) return null;
     final verificationStatus =
         await TokenStorage.getVerificationStatus() ?? 'approved';
-    return (userType: userType, verificationStatus: verificationStatus);
+    final emailVerified = await TokenStorage.getEmailVerified();
+    final email = await TokenStorage.getEmail();
+    return (
+      userType: userType,
+      verificationStatus: verificationStatus,
+      emailVerified: emailVerified,
+      email: email,
+    );
+  }
+
+  /// Verifies email using the 6-digit OTP and marks it verified in storage.
+  Future<void> verifyEmail(String token) async {
+    await _remote.verifyEmail(token);
+    await TokenStorage.setEmailVerified();
+  }
+
+  /// Resends the email verification OTP (requires stored access token).
+  Future<void> resendVerificationEmail() async {
+    await _remote.resendVerificationEmail();
+  }
+
+  /// Requests a password-reset OTP email. Always succeeds (anti-enumeration).
+  Future<void> requestPasswordReset(String email) async {
+    await _remote.requestPasswordReset(email);
+  }
+
+  /// Submits the OTP + new password to complete a password reset.
+  Future<void> resetPassword(
+      String token, String newPassword, String newPasswordConfirm) async {
+    await _remote.resetPassword(
+      ResetPasswordRequest(
+        token: token,
+        newPassword: newPassword,
+        newPasswordConfirm: newPasswordConfirm,
+      ),
+    );
   }
 }
 
@@ -67,9 +118,23 @@ String dioErrorMessage(DioException e) {
   if (e.response != null) {
     final data = e.response!.data;
     if (data is Map) {
-      // DRF returns errors as {"field": ["message"]} or {"detail": "message"}
+      // Django standard format: {"error": {"code": "...", "message": "...", "details": ...}}
+      final error = data['error'];
+      if (error is Map) {
+        final details = error['details'];
+        if (details is Map && (details as Map).isNotEmpty) {
+          final msgs = details.values.map((v) {
+            if (v is List) return (v as List).join(' ');
+            return v.toString();
+          });
+          return msgs.join(' ');
+        }
+        final message = error['message'];
+        if (message != null) return message.toString();
+      }
+      // DRF field-level errors: {"field": ["error"]}
       final values = data.values.map((v) {
-        if (v is List) return v.join(' ');
+        if (v is List) return (v as List).join(' ');
         return v.toString();
       });
       return values.join(' ');

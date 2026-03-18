@@ -1,106 +1,78 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# Visual Studio Code related
-.vscode/
-!.vscode/extensions.json
-!.vscode/launch.json
-!.vscode/tasks.json
-!.vscode/settings.json
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
+# Flutter
 .flutter-plugins
 .flutter-plugins-dependencies
+.packages
+.pub-preload-cache/
 .pub-cache/
 .pub/
-/build/
+build/
+.dart_tool/
 
-# Symbolication related
-app.*.symbols
+# Android
+android/app/build/
+android/.gradle/
+android/local.properties
+*.iml
+.gradle/
+.idea/
 
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-
-# Android related
-**/android/local.properties
-**/android/**/generated/
-**/android/*.keystore
-**/android/*.jks
-**/android/*.key
-**/android/*.pub
-**/android/key.properties
-!**/android/key.properties.example
-
-# iOS related
-**/ios/**/*.mode1v3
-**/ios/**/*.mode2v3
-**/ios/**/*.moved-aside
-**/ios/**/*.pbxuser
-**/ios/**/*.perspectivev3
-**/ios/**/*.xccheckout
-**/ios/Flutter/App.framework
-**/ios/Flutter/Flutter.framework
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/flutter_export_environment.sh
-**/ios/ServiceDefinitions.json
-**/ios/Runner/GeneratedPluginRegistrant.[mh]
-**/ios/Pods/
-**/ios/.symlinks/
-**/ios/Flash/xcconfig
-**/ios/Config/config.xcconfig
-
-# macOS related
-**/macos/Flutter/ephemeral/
-**/macos/Flutter/GeneratedPluginRegistrant.swift
-**/macos/Pods/
-**/macos/.symlinks/
-
-# Windows related
-**/windows/flutter/ephemeral/
-**/windows/flutter/generated_plugin_registrant.h
-**/windows/flutter/generated_plugins.cpp
-
-# Linux related
-**/linux/flutter/ephemeral/
-**/linux/flutter/generated_plugin_registrant.h
-**/linux/flutter/generated_plugins.cc
-
-# Web related
-**/web/index.html.bak
-
-# Crashlytics related
+# iOS
 ios/Pods/
-ios/Runner/GoogleService-Info.plist
-android/app/google-services.json
+ios/Runner.xcworkspace/xcuserdata/
+ios/Runner.xcworkspace/xcshareddata/
+ios/Flutter/Flutter-Debug.xcconfig
+ios/Flutter/Flutter-Release.xcconfig
+ios/Flutter/Generated.xcconfig
+*.xcworkspace/xcuserdata/
+.symlinks/
 
-# Coverage
-coverage/
+# macOS
+macos/Flutter/Flutter-Debug.xcconfig
+macos/Flutter/Flutter-Release.xcconfig
+macos/Flutter/Generated.xcconfig
+macos/Pods/
+macos/Runner.xcworkspace/xcuserdata/
+macos/Runner.xcworkspace/xcshareddata/
 
-# Keep localization helper script tracked.
-!/add_l10n.py
+# Windows
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
+windows/flutter/generated_plugins.cmake
+windows/.vs/
+windows/build/
 
-# Ignore sibling backend directory when operating from this app folder.
-../backend/
+# Linux
+linux/flutter/generated_plugin_registrant.cc
+linux/flutter/generated_plugin_registrant.h
+linux/flutter/generated_plugins.cmake
+linux/build/
+
+# Web
+web/build/
+web/.dart_tool/
+
+# Firebase (uncomment if you want to ignore generated files)
+# android/app/google-services.json
+# ios/Runner/GoogleService-Info.plist
+
+# Analysis files (temporary)
+analysis_*.txt
+analyze_out*.txt
+err*.txt
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pubspec lock (optional, uncomment if you want to ignore)
+# pubspec.lock
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo

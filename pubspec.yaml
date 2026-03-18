@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.6
   font_awesome_flutter: 10.7.0
   google_maps_flutter: ^2.9.0
+  google_maps_flutter_android: ^2.14.0
+  google_maps_flutter_platform_interface: ^2.9.0
   another_carousel_pro: ^1.0.2
   custom_info_window: ^1.0.1
   firebase_core: ^4.4.0
@@ -61,6 +63,11 @@ dependencies:
   flutter_animate: ^4.5.0
   dio: ^5.7.0
   flutter_secure_storage: ^9.2.4
+  geolocator: ^13.0.0
+  permission_handler: ^11.3.1
+  geocoding: ^3.0.0
+  mobile_scanner: ^5.2.3
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

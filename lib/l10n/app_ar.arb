@@ -413,5 +413,10 @@
   "bags_rescued": "كيس منقذ",
   "level_gold": "ذهبي",
   "level_platinum": "بلاتيني",
-  "level_bronze": "برونزي"
+  "level_bronze": "برونزي",
+  "save_changes": "حفظ التغييرات",
+  "profile_updated": "تم تحديث الملف الشخصي!",
+  "profile_update_failed": "فشل تحديث الملف الشخصي",
+  "address_notes": "ملاحظات (اختياري)",
+  "uploading": "جارٍ التحميل..."
 }

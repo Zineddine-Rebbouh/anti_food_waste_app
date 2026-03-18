@@ -78,7 +78,7 @@ class _SplashScreenState extends State<SplashScreen>
       context.read<AuthCubit>().checkAuthStatus();
     });
 
-    Timer(const Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 3), () async {
       if (!mounted) return;
       final state = context.read<AuthCubit>().state;
       if (state is AuthAuthenticated) {

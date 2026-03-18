@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
+import 'package:anti_food_waste_app/features/consumer/data/repositories/consumer_repository.dart';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -87,20 +88,41 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.password_changed_success),
-        backgroundColor: AppTheme.primary,
-        behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-    Navigator.of(context).pop();
+    try {
+      await ConsumerRepository().changePassword(
+        oldPassword: _currentCtrl.text,
+        newPassword: _newCtrl.text,
+        newPasswordConfirm: _confirmCtrl.text,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.password_changed_success),
+          backgroundColor: AppTheme.primary,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      Navigator.of(context).pop();
+    } on Object catch (e) {
+      if (!mounted) return;
+      // Try to extract a human-readable message from the error
+      final msg = e.toString().contains('old_password')
+          ? l10n.password_current_incorrect
+          : l10n.passwords_dont_match;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: AppTheme.accent,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────

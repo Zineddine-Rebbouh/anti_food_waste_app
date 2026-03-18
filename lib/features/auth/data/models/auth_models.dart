@@ -74,3 +74,27 @@ class AuthResponse {
     );
   }
 }
+
+class ForgotPasswordRequest {
+  final String email;
+  const ForgotPasswordRequest({required this.email});
+  Map<String, dynamic> toJson() => {'email': email};
+}
+
+class ResetPasswordRequest {
+  final String token;
+  final String newPassword;
+  final String newPasswordConfirm;
+
+  const ResetPasswordRequest({
+    required this.token,
+    required this.newPassword,
+    required this.newPasswordConfirm,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'token': token,
+        'new_password': newPassword,
+        'new_password_confirm': newPasswordConfirm,
+      };
+}

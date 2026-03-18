@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "228125154955",
+    "project_id": "flutter-rental-app-dd592",
+    "storage_bucket": "flutter-rental-app-dd592.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:228125154955:android:2f964470ca071a1f9fbe8e",
+        "android_client_info": {
+          "package_name": "com.example.anti_food_waste_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "228125154955-mleg14idenb1vaqbco5u69if1ggs01fd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGsDmYHx_wFxJ2r122cP5UrshRm6HBPzw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "228125154955-mleg14idenb1vaqbco5u69if1ggs01fd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

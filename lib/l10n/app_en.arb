@@ -414,5 +414,10 @@
   "bags_rescued": "bags rescued",
   "level_gold": "Gold",
   "level_platinum": "Platinum",
-  "level_bronze": "Bronze"
+  "level_bronze": "Bronze",
+  "save_changes": "Save Changes",
+  "profile_updated": "Profile updated!",
+  "profile_update_failed": "Failed to update profile",
+  "address_notes": "Notes (optional)",
+  "uploading": "Uploading..."
 }

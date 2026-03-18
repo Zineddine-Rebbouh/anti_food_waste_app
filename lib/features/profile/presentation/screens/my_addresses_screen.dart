@@ -2,30 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
-
-// ─── Data Model ───────────────────────────────────────────────────────────────
-
-class UserAddress {
-  final String id;
-  final String label;
-  final String street;
-  final String city;
-  final String wilaya;
-  final String postalCode;
-  bool isDefault;
-
-  UserAddress({
-    required this.id,
-    required this.label,
-    required this.street,
-    required this.city,
-    required this.wilaya,
-    required this.postalCode,
-    this.isDefault = false,
-  });
-
-  String get fullAddress => '$street, $city, $wilaya $postalCode';
-}
+import 'package:anti_food_waste_app/features/consumer/data/repositories/consumer_repository.dart';
+import 'package:anti_food_waste_app/features/profile/domain/models/user_address.dart';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -37,26 +15,28 @@ class MyAddressesScreen extends StatefulWidget {
 }
 
 class _MyAddressesScreenState extends State<MyAddressesScreen> {
-  List<UserAddress> _addresses = [
-    UserAddress(
-      id: '1',
-      label: 'Home',
-      street: '12 Rue des Oliviers',
-      city: 'Bab Ezzouar',
-      wilaya: 'Alger',
-      postalCode: '16111',
-      isDefault: true,
-    ),
-    UserAddress(
-      id: '2',
-      label: 'Work',
-      street: 'Tour A, Cité El Djamaâ',
-      city: 'El Mohammadia',
-      wilaya: 'Alger',
-      postalCode: '16301',
-      isDefault: false,
-    ),
-  ];
+  final _repo = ConsumerRepository();
+  List<UserAddress> _addresses = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAddresses();
+  }
+
+  // ── Data loading ──────────────────────────────────────────────────────────
+
+  Future<void> _loadAddresses() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final list = await _repo.fetchAddresses();
+      if (mounted) setState(() { _addresses = list; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -84,16 +64,40 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  void _setDefaultAddress(String id) {
-    setState(() {
-      for (final a in _addresses) {
-        a.isDefault = a.id == id;
+  Future<void> _setDefaultAddress(String id) async {
+    try {
+      await _repo.updateAddress(id, {'is_default': true});
+      // Refresh list so the old default gets cleared as well
+      final list = await _repo.fetchAddresses();
+      if (mounted) setState(() => _addresses = list);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.profile_update_failed),
+            backgroundColor: AppTheme.accent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
-    });
+    }
   }
 
-  void _deleteAddress(String id) {
-    setState(() => _addresses.removeWhere((a) => a.id == id));
+  Future<void> _deleteAddress(String id) async {
+    try {
+      await _repo.deleteAddress(id);
+      if (mounted) setState(() => _addresses.removeWhere((a) => a.id == id));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.profile_update_failed),
+            backgroundColor: AppTheme.accent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _showAddressSheet(UserAddress? existing) {
@@ -106,8 +110,11 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
         TextEditingController(text: existing?.wilaya ?? '');
     final postalCtrl =
         TextEditingController(text: existing?.postalCode ?? '');
+    final notesCtrl =
+        TextEditingController(text: existing?.notes ?? '');
     String selectedLabel = existing?.label ?? 'Home';
     bool isDefault = existing?.isDefault ?? false;
+    bool saving = false;
 
     showModalBottomSheet(
       context: context,
@@ -318,6 +325,31 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Notes (optional)
+                      TextFormField(
+                        controller: notesCtrl,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          labelText: l10n.address_notes,
+                          filled: true,
+                          fillColor: AppTheme.inputBackground,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                                color: AppTheme.primary, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
                       // Set as default switch
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -352,73 +384,86 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
                             ),
                             elevation: 0,
                           ),
-                          onPressed: () {
-                            if (formKey.currentState!.validate()) {
-                              setState(() {
-                                if (existing != null) {
-                                  // Edit existing
-                                  if (isDefault) {
-                                    for (final a in _addresses) {
-                                      if (a.id != existing.id) {
-                                        a.isDefault = false;
-                                      }
+                          onPressed: saving
+                              ? null
+                              : () async {
+                                  if (!formKey.currentState!.validate()) {
+                                    return;
+                                  }
+                                  setSheetState(() => saving = true);
+                                  try {
+                                    final data = {
+                                      'label': selectedLabel,
+                                      'street': streetCtrl.text.trim(),
+                                      'city': cityCtrl.text.trim(),
+                                      'wilaya': wilayaCtrl.text.trim(),
+                                      'postal_code': postalCtrl.text.trim(),
+                                      'notes': notesCtrl.text.trim(),
+                                      'is_default': isDefault,
+                                    };
+                                    if (existing != null) {
+                                      await _repo.updateAddress(existing.id, data);
+                                    } else {
+                                      await _repo.createAddress(
+                                        label: selectedLabel,
+                                        street: streetCtrl.text.trim(),
+                                        city: cityCtrl.text.trim(),
+                                        wilaya: wilayaCtrl.text.trim(),
+                                        postalCode: postalCtrl.text.trim(),
+                                        notes: notesCtrl.text.trim(),
+                                        isDefault: isDefault,
+                                      );
+                                    }
+                                    // Reload full list so is_default is consistent
+                                    final list = await _repo.fetchAddresses();
+                                    if (mounted) {
+                                      setState(() => _addresses = list);
+                                    }
+                                    if (ctx.mounted) Navigator.of(ctx).pop();
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(existing == null
+                                              ? l10n.add_address
+                                              : l10n.edit_address),
+                                          backgroundColor: AppTheme.primary,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12)),
+                                        ),
+                                      );
+                                    }
+                                  } catch (_) {
+                                    setSheetState(() => saving = false);
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              l10n.profile_update_failed),
+                                          backgroundColor: AppTheme.accent,
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
                                     }
                                   }
-                                  final idx = _addresses.indexWhere(
-                                      (a) => a.id == existing.id);
-                                  if (idx != -1) {
-                                    _addresses[idx] = UserAddress(
-                                      id: existing.id,
-                                      label: selectedLabel,
-                                      street: streetCtrl.text.trim(),
-                                      city: cityCtrl.text.trim(),
-                                      wilaya: wilayaCtrl.text.trim(),
-                                      postalCode: postalCtrl.text.trim(),
-                                      isDefault: isDefault,
-                                    );
-                                  }
-                                } else {
-                                  // Add new
-                                  if (isDefault) {
-                                    for (final a in _addresses) {
-                                      a.isDefault = false;
-                                    }
-                                  }
-                                  _addresses.add(UserAddress(
-                                    id: DateTime.now()
-                                        .millisecondsSinceEpoch
-                                        .toString(),
-                                    label: selectedLabel,
-                                    street: streetCtrl.text.trim(),
-                                    city: cityCtrl.text.trim(),
-                                    wilaya: wilayaCtrl.text.trim(),
-                                    postalCode: postalCtrl.text.trim(),
-                                    isDefault: isDefault,
-                                  ));
-                                }
-                              });
-                              Navigator.of(ctx).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(existing == null
-                                      ? l10n.add_address
-                                      : l10n.edit_address),
-                                  backgroundColor: AppTheme.primary,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(12)),
+                                },
+                          child: saving
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  l10n.save_address,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              );
-                            }
-                          },
-                          child: Text(
-                            l10n.save_address,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                         ),
                       ),
                     ],
@@ -463,20 +508,24 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
           ),
         ],
       ),
-      body: _addresses.isEmpty
-          ? _buildEmptyState(l10n)
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-              itemCount: _addresses.length,
-              itemBuilder: (context, index) {
-                final address = _addresses[index];
-                return FadeInUp(
-                  delay: Duration(milliseconds: index * 80),
-                  duration: const Duration(milliseconds: 400),
-                  child: _buildAddressTile(context, address, l10n),
-                );
-              },
-            ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _buildErrorState(l10n)
+              : _addresses.isEmpty
+                  ? _buildEmptyState(l10n)
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                      itemCount: _addresses.length,
+                      itemBuilder: (context, index) {
+                        final address = _addresses[index];
+                        return FadeInUp(
+                          delay: Duration(milliseconds: index * 80),
+                          duration: const Duration(milliseconds: 400),
+                          child: _buildAddressTile(context, address, l10n),
+                        );
+                      },
+                    ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddressSheet(null),
         backgroundColor: AppTheme.primary,
@@ -510,6 +559,39 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
             onPressed: () => _showAddressSheet(null),
             icon: const Icon(Icons.add_rounded),
             label: Text(l10n.add_address),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+              elevation: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(AppLocalizations l10n) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.cloud_off_rounded,
+              size: 64, color: AppTheme.mutedForeground),
+          const SizedBox(height: 16),
+          Text(
+            l10n.profile_update_failed,
+            style: const TextStyle(
+              color: AppTheme.mutedForeground,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _loadAddresses,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,

@@ -7,6 +7,7 @@ import 'package:anti_food_waste_app/features/auth/data/models/auth_models.dart';
 import 'package:anti_food_waste_app/features/auth/domain/models/user_role.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/cubits/auth_state.dart';
+import 'package:anti_food_waste_app/features/auth/presentation/screens/email_verification.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/widgets/role_selection_overlay.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/widgets/consumer_sign_up_form.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/widgets/merchant_sign_up_form.dart';
@@ -127,9 +128,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
           (_) => false,
         );
       default:
-        // Consumer — account is immediately usable.
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil(AppRoutes.consumer, (_) => false);
+        // Consumer — must verify email before accessing the app.
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => EmailVerificationScreen(
+              email: _emailController.text.trim(),
+            ),
+          ),
+          (_) => false,
+        );
     }
   }
 

@@ -7,12 +7,14 @@ class ListingCard extends StatefulWidget {
   final FoodListing listing;
   final VoidCallback onTap;
   final bool isFavorite;
+  final ValueChanged<bool>? onFavoriteToggle;
 
   const ListingCard({
     super.key,
     required this.listing,
     required this.onTap,
     this.isFavorite = false,
+    this.onFavoriteToggle,
   });
 
   @override
@@ -26,6 +28,14 @@ class _ListingCardState extends State<ListingCard> {
   void initState() {
     super.initState();
     isFavorite = widget.isFavorite;
+  }
+
+  @override
+  void didUpdateWidget(covariant ListingCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isFavorite != widget.isFavorite) {
+      isFavorite = widget.isFavorite;
+    }
   }
 
   @override
@@ -57,10 +67,20 @@ class _ListingCardState extends State<ListingCard> {
                 children: [
                   AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: Image.network(
-                      widget.listing.imageUrl,
-                      fit: BoxFit.cover,
-                    ),
+                    child: widget.listing.imageUrl.isNotEmpty
+                        ? Image.network(
+                            widget.listing.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  color: Colors.grey[200],
+                                  child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                ),
+                          )
+                        : Container(
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                          ),
                   ),
                   // Monochromatic Badges
                   Positioned(
@@ -115,7 +135,11 @@ class _ListingCardState extends State<ListingCard> {
                     right: isRtl ? null : 10,
                     left: isRtl ? 10 : null,
                     child: GestureDetector(
-                      onTap: () => setState(() => isFavorite = !isFavorite),
+                      onTap: () {
+                        final next = !isFavorite;
+                        setState(() => isFavorite = next);
+                        widget.onFavoriteToggle?.call(next);
+                      },
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: const BoxDecoration(

@@ -1,10 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
+import 'package:anti_food_waste_app/core/providers/favorites_provider.dart';
+import 'package:anti_food_waste_app/features/consumer/data/repositories/consumer_repository.dart';
 import 'package:anti_food_waste_app/shared/models/food_listing.dart';
 import 'package:anti_food_waste_app/shared/models/listing_extra_details.dart';
-import 'package:anti_food_waste_app/shared/data/mock_listing_details.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ListingDetailScreen extends StatefulWidget {
@@ -18,17 +22,80 @@ class ListingDetailScreen extends StatefulWidget {
 
 class _ListingDetailScreenState extends State<ListingDetailScreen> {
   int _currentImageIndex = 0;
-  bool _isFavorite = false;
   int _quantity = 1;
   int? _expandedFaqIndex;
   final int _viewingCount = 12;
+  Timer? _countdownTimer;
 
   ListingExtraDetails? _details;
+  bool _isLoadingDetail = true;
+  bool _isReserving = false;
+  bool _isNotFound = false;
+  String? _detailErrorMessage;
+
+  final _repository = ConsumerRepository();
+
+  String get _listingId => widget.listing.id.trim();
 
   @override
   void initState() {
     super.initState();
-    _details = mockListingExtraDetails[widget.listing.id];
+    _loadDetail();
+    _countdownTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadDetail() async {
+    if (_listingId.isEmpty) {
+      setState(() {
+        _isLoadingDetail = false;
+        _isNotFound = false;
+        _detailErrorMessage =
+            'Could not load this offer right now. Please try again.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingDetail = true;
+      _isNotFound = false;
+      _detailErrorMessage = null;
+    });
+
+    try {
+        final details = await _repository.fetchListingExtraDetails(_listingId);
+      if (mounted) {
+        setState(() {
+          _details = details;
+          _isLoadingDetail = false;
+        });
+      }
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final status = e.response?.statusCode;
+      setState(() {
+        _isLoadingDetail = false;
+        _isNotFound = status == 404;
+        _detailErrorMessage = status == 404
+            ? null
+            : 'Could not load this offer right now. Please try again.';
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoadingDetail = false;
+          _isNotFound = false;
+          _detailErrorMessage =
+              'Could not load this offer right now. Please try again.';
+        });
+      }
+    }
   }
 
   void _handleShare() {
@@ -53,18 +120,59 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     }
   }
 
-  void _handleReserve() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.added_to_cart)),
-    );
+  Future<void> _handleReserve() async {
+    if (_isReserving) return;
+    setState(() => _isReserving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      await _repository.createOrder(
+        listingId: _listingId,
+        quantity: _quantity,
+      );
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.added_to_cart),
+            backgroundColor: AppTheme.primary,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        final msg = e.toString().contains('409')
+            ? 'Not enough stock available.'
+            : 'Could not place order. Please try again.';
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isReserving = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final favorites = context.watch<FavoritesProvider>();
+    final isFavorite = favorites.isFavorite(_listingId);
     final isRtl = Directionality.of(context) == TextDirection.rtl;
 
-    if (_details == null) {
+    // Show spinner while loading from API
+    if (_isLoadingDetail) {
+      return Scaffold(
+        appBar: AppBar(backgroundColor: Colors.white, elevation: 0),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_details == null && _isNotFound) {
       return Scaffold(
         appBar: AppBar(),
         body: Center(
@@ -89,13 +197,42 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       );
     }
 
+    if (_details == null && _detailErrorMessage != null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.cloud_off_outlined,
+                    size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  _detailErrorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _loadDetail,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: Stack(
         children: [
           CustomScrollView(
             slivers: [
-              _buildSliverAppBar(l10n, isRtl),
+              _buildSliverAppBar(l10n, isRtl, favorites, isFavorite),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -122,9 +259,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       const SizedBox(height: 16),
                       _buildAvailabilityCard(l10n),
                       const SizedBox(height: 16),
-                      _buildReviewsCard(l10n),
-                      const SizedBox(height: 16),
-                      _buildFaqCard(l10n),
+                       if (_details!.reviews.isNotEmpty) ...[
+                  _buildReviewsCard(l10n),
+                  const SizedBox(height: 16),
+                ],
+                if (_details!.faqs.isNotEmpty) ...[
+                  _buildFaqCard(l10n),
+                ],
                       const SizedBox(height: 100), // Bottom padding for footer
                     ],
                   ),
@@ -138,7 +279,12 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
-  Widget _buildSliverAppBar(AppLocalizations l10n, bool isRtl) {
+  Widget _buildSliverAppBar(
+    AppLocalizations l10n,
+    bool isRtl,
+    FavoritesProvider favorites,
+    bool isFavorite,
+  ) {
     return SliverAppBar(
       expandedHeight: 300,
       pinned: true,
@@ -160,17 +306,32 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             backgroundColor: Colors.white.withOpacity(0.9),
             child: IconButton(
               icon: Icon(
-                _isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: _isFavorite ? Colors.red : Colors.black,
+                isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: isFavorite ? Colors.red : Colors.black,
               ),
-              onPressed: () {
-                setState(() => _isFavorite = !_isFavorite);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text(_isFavorite
+              onPressed: () async {
+                final target = !isFavorite;
+                try {
+                  await favorites.toggleFavorite(
+                    _listingId,
+                    desiredState: target,
+                  );
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(target
                           ? l10n.added_to_favorites
-                          : l10n.removed_from_favorites)),
-                );
+                          : l10n.removed_from_favorites),
+                    ),
+                  );
+                } catch (_) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Could not update favorites. Please try again.'),
+                    ),
+                  );
+                }
               },
             ),
           ),
@@ -196,9 +357,21 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               onPageChanged: (index) =>
                   setState(() => _currentImageIndex = index),
               itemBuilder: (context, index) {
+                final imageUrl = _details!.images[index];
+                if (imageUrl.isEmpty) {
+                  return Container(
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                  );
+                }
                 return Image.network(
-                  _details!.images[index],
+                  imageUrl,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                      ),
                 );
               },
             ),
@@ -355,6 +528,28 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
+  String _getCountdownText(AppLocalizations l10n) {
+    if (widget.listing.pickupEnd.isEmpty) return ' 2h 15m';
+    try {
+      final parts = widget.listing.pickupEnd.split(':');
+      if (parts.length < 2) return '';
+      final hour = int.parse(parts[0]);
+      final min = int.parse(parts[1]);
+      final now = DateTime.now();
+      var target = DateTime(now.year, now.month, now.day, hour, min);
+      if (now.isAfter(target)) {
+        return 'Pickup ended';
+      }
+      final diff = target.difference(now);
+      if (diff.inHours > 0) {
+        return ' h m';
+      } else {
+        return ' m';
+      }
+    } catch (_) {
+      return '';
+    }
+  }
   Widget _buildPickupWindowCard(AppLocalizations l10n) {
     return Card(
       elevation: 0,
@@ -387,7 +582,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                   Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  '${l10n.closes_in} 2h 15m', // Mocked remaining time
+                  _getCountdownText(l10n),
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
               ],
@@ -529,10 +724,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 shape: BoxShape.circle,
               ),
               child: Center(
-                child: _details!.merchant.logoUrl != null
+                child: _details!.merchant.logoUrl != null && _details!.merchant.logoUrl!.isNotEmpty
                     ? ClipOval(
                         child: Image.network(_details!.merchant.logoUrl!,
-                            fit: BoxFit.cover))
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.store, color: Colors.green),
+                            ))
                     : Text(
                         _details!.merchant.name.substring(0, 1),
                         style: const TextStyle(
@@ -923,7 +1121,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: canReserve ? _handleReserve : null,
+                onPressed: (canReserve && !_isReserving) ? _handleReserve : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2D8659),
                   foregroundColor: Colors.white,
@@ -932,13 +1130,20 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       borderRadius: BorderRadius.circular(12)),
                   disabledBackgroundColor: Colors.grey[300],
                 ),
-                child: Text(
-                  canReserve
-                      ? '${l10n.reserve_for} ${totalPrice.toInt()} ${l10n.dzd}'
-                      : l10n.sold_out,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                child: _isReserving
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2),
+                      )
+                    : Text(
+                        canReserve
+                            ? '${l10n.reserve_for} ${totalPrice.toInt()} ${l10n.dzd}'
+                            : l10n.sold_out,
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
               ),
               const SizedBox(height: 8),
               Row(
@@ -1046,3 +1251,5 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     }
   }
 }
+
+

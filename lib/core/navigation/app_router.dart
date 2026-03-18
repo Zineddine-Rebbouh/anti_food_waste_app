@@ -8,12 +8,16 @@ import 'package:anti_food_waste_app/features/role_selector/presentation/screens/
 import 'package:anti_food_waste_app/features/auth/presentation/screens/sign_up_screen.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/screens/email_verification.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:anti_food_waste_app/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:anti_food_waste_app/features/verification/presentation/screens/merchant_pending.dart';
 import 'package:anti_food_waste_app/features/verification/presentation/screens/charity_document_comfirmation.dart';
 import 'package:anti_food_waste_app/features/home/presentation/screens/main_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/cubits/merchant_cubit.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_main_screen.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_main_screen.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_cubit.dart';
+import 'package:anti_food_waste_app/features/charity/domain/repositories/charity_repository.dart';
+import 'package:anti_food_waste_app/features/charity/data/sources/charity_remote_source.dart';
 import 'package:anti_food_waste_app/shared/widgets/not_found_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -31,6 +35,7 @@ abstract final class AppRoutes {
   static const String login = '/login';
   static const String signUp = '/sign-up';
   static const String emailVerification = '/email-verification';
+  static const String forgotPassword = '/forgot-password';
   static const String merchantPending = '/merchant-pending';
   static const String charityDocuments = '/charity-documents';
 
@@ -68,8 +73,13 @@ abstract final class AppRouter {
         return MaterialPageRoute(builder: (_) => const SignUpScreen());
 
       case AppRoutes.emailVerification:
+        final email = settings.arguments as String? ?? '';
         return MaterialPageRoute(
-            builder: (_) => const EmailVerificationScreen());
+            builder: (_) => EmailVerificationScreen(email: email));
+
+      case AppRoutes.forgotPassword:
+        return MaterialPageRoute(
+            builder: (_) => const ForgotPasswordScreen());
 
       case AppRoutes.merchantPending:
         return MaterialPageRoute(builder: (_) => const MerchantPendingScreen());
@@ -91,7 +101,14 @@ abstract final class AppRouter {
         );
 
       case AppRoutes.charity:
-        return MaterialPageRoute(builder: (_) => const CharityMainScreen());
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (ctx) => CharityCubit(
+              repository: CharityRepository(remoteSource: CharityRemoteSource()),
+            )..fetchCharityData(),
+            child: const CharityMainScreen(),
+          ),
+        );
 
       // ── Fallback ────────────────────────────────────────────────────────────
       default:

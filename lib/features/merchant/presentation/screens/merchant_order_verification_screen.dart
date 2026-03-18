@@ -7,8 +7,15 @@ import 'package:anti_food_waste_app/shared/widgets/confetti_overlay.dart';
 
 class MerchantOrderVerificationScreen extends StatefulWidget {
   final MerchantOrder order;
+  /// HMAC-SHA256 hash extracted from the consumer's QR code.
+  /// When present, used to verify pickup on the backend.
+  final String? qrHash;
 
-  const MerchantOrderVerificationScreen({super.key, required this.order});
+  const MerchantOrderVerificationScreen({
+    super.key,
+    required this.order,
+    this.qrHash,
+  });
 
   @override
   State<MerchantOrderVerificationScreen> createState() =>
@@ -51,13 +58,31 @@ class _MerchantOrderVerificationScreenState
 
   Future<void> _confirmHandover() async {
     setState(() => _isConfirming = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    context.read<MerchantCubit>().completedOrder(widget.order.id);
-    setState(() {
-      _isConfirming = false;
-      _showCompleted = true;
-    });
+    try {
+      if (widget.qrHash != null && widget.qrHash!.isNotEmpty) {
+        await context.read<MerchantCubit>().fulfillOrderAsync(
+          widget.order.id,
+          widget.qrHash!,
+        );
+      } else {
+        // Preloaded-order path (no QR hash) — local optimistic update only.
+        context.read<MerchantCubit>().completedOrder(widget.order.id);
+      }
+      if (!mounted) return;
+      setState(() {
+        _isConfirming = false;
+        _showCompleted = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isConfirming = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Handover failed: $e'),
+          backgroundColor: const Color(0xFFEF4444),
+        ),
+      );
+    }
   }
 
   @override

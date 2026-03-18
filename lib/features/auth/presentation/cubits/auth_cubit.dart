@@ -15,7 +15,11 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> checkAuthStatus() async {
     final session = await _repository.getSavedSession();
     if (session != null) {
-      emit(AuthAuthenticated(session.userType, session.verificationStatus));
+      emit(AuthAuthenticated(
+        session.userType,
+        session.verificationStatus,
+        emailVerified: session.emailVerified,
+      ));
     } else {
       emit(const AuthUnauthenticated());
     }
@@ -26,7 +30,11 @@ class AuthCubit extends Cubit<AuthState> {
     emit(const AuthLoading());
     try {
       final session = await _repository.login(email, password);
-      emit(AuthAuthenticated(session.userType, session.verificationStatus));
+      emit(AuthAuthenticated(
+        session.userType,
+        session.verificationStatus,
+        emailVerified: session.emailVerified,
+      ));
     } on DioException catch (e) {
       emit(AuthError(dioErrorMessage(e)));
     } catch (e) {
@@ -39,7 +47,11 @@ class AuthCubit extends Cubit<AuthState> {
     emit(const AuthLoading());
     try {
       final session = await _repository.register(request);
-      emit(AuthAuthenticated(session.userType, session.verificationStatus));
+      emit(AuthAuthenticated(
+        session.userType,
+        session.verificationStatus,
+        emailVerified: session.emailVerified,
+      ));
     } on DioException catch (e) {
       emit(AuthError(dioErrorMessage(e)));
     } catch (e) {
@@ -52,5 +64,73 @@ class AuthCubit extends Cubit<AuthState> {
     emit(const AuthLoading());
     await _repository.logout();
     emit(const AuthUnauthenticated());
+  }
+
+  // ── Email Verification ─────────────────────────────────────────────────────
+
+  /// Submits the 6-digit OTP to verify email. On success re-emits
+  /// [AuthAuthenticated] with [emailVerified] = true.
+  Future<void> verifyEmail(String token) async {
+    emit(const AuthLoading());
+    try {
+      await _repository.verifyEmail(token);
+      final session = await _repository.getSavedSession();
+      if (session != null) {
+        emit(AuthAuthenticated(
+          session.userType,
+          session.verificationStatus,
+          emailVerified: true,
+        ));
+      } else {
+        emit(const AuthUnauthenticated());
+      }
+    } on DioException catch (e) {
+      emit(AuthError(dioErrorMessage(e)));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  /// Requests a new verification OTP to be emailed to the user.
+  Future<void> resendVerificationEmail() async {
+    emit(const AuthLoading());
+    try {
+      await _repository.resendVerificationEmail();
+      emit(const AuthEmailVerificationSent());
+    } on DioException catch (e) {
+      emit(AuthError(dioErrorMessage(e)));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  // ── Password Reset ─────────────────────────────────────────────────────────
+
+  /// Sends a password-reset OTP to [email]. Always navigates to the reset
+  /// screen regardless (prevents email enumeration on the backend).
+  Future<void> requestPasswordReset(String email) async {
+    emit(const AuthLoading());
+    try {
+      await _repository.requestPasswordReset(email);
+      emit(const AuthPasswordResetSent());
+    } on DioException catch (e) {
+      emit(AuthError(dioErrorMessage(e)));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
+  /// Submits [token] + new password pair to complete the reset.
+  Future<void> resetPassword(
+      String token, String newPassword, String newPasswordConfirm) async {
+    emit(const AuthLoading());
+    try {
+      await _repository.resetPassword(token, newPassword, newPasswordConfirm);
+      emit(const AuthPasswordResetSuccess());
+    } on DioException catch (e) {
+      emit(AuthError(dioErrorMessage(e)));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
   }
 }

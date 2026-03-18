@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -113,35 +114,56 @@ class _MerchantCreateListingScreenState
 
   Future<void> _publish() async {
     setState(() => _isPublishing = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
     final now = DateTime.now();
-    final listing = MerchantListing(
-      id: 'listing_${DateTime.now().millisecondsSinceEpoch}',
-      title: _form.title,
-      description: _form.description,
-      imageUrl: '',
-      category: _form.category,
-      dietaryTags: _form.dietaryTags,
-      originalPrice: _form.originalPrice,
-      discountedPrice: _form.discountedPrice,
-      totalQuantity: _form.quantity,
-      reservedQuantity: 0,
-      pickupStart: DateTime(
-          now.year, now.month, now.day, _form.pickupStart.hour,
-          _form.pickupStart.minute),
-      pickupEnd: DateTime(
-          now.year, now.month, now.day, _form.pickupEnd.hour,
-          _form.pickupEnd.minute),
-      status: ListingStatus.active,
-      grade: _form.grade,
-      views: 0,
-      createdAt: now,
-    );
-    context.read<MerchantCubit>().addListing(listing);
-    setState(() {
-      _isPublishing = false;
-      _showSuccess = true;
-    });
+
+    // Build a DateTime from a TimeOfDay on today's date.
+    // If the result is already in the past (or within 5 min), push to tomorrow
+    // so Django's "pickup_start must be in the future" validation passes.
+    DateTime _toFutureDateTime(TimeOfDay tod, {DateTime? mustBeAfter}) {
+      var dt = DateTime(now.year, now.month, now.day, tod.hour, tod.minute);
+      if (!dt.isAfter(now.add(const Duration(minutes: 5)))) {
+        dt = dt.add(const Duration(days: 1));
+      }
+      if (mustBeAfter != null && !dt.isAfter(mustBeAfter)) {
+        dt = dt.add(const Duration(days: 1));
+      }
+      return dt;
+    }
+
+    final pickupStart = _toFutureDateTime(_form.pickupStart);
+    final pickupEnd = _toFutureDateTime(_form.pickupEnd, mustBeAfter: pickupStart);
+
+    try {
+      await context.read<MerchantCubit>().createListingAsync(
+            category: _form.category,
+            title: _form.title,
+            description: _form.description,
+            originalPrice: _form.originalPrice,
+            discountedPrice: _form.discountedPrice,
+            quantity: _form.quantity,
+            grade: _form.grade,
+            dietaryTags: _form.dietaryTags,
+            pickupStart: pickupStart,
+            pickupEnd: pickupEnd,
+            imagePath: _form.imagePath.isNotEmpty ? _form.imagePath : null,
+          );
+      setState(() {
+        _isPublishing = false;
+        _showSuccess = true;
+      });
+    } catch (e) {
+      setState(() => _isPublishing = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.toString().replaceFirst('Exception: ', ''),
+            ),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    }
   }
 
   void _saveDraft() {
@@ -378,15 +400,11 @@ class _Step1PhotoState extends State<_Step1Photo> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
-                          child: Container(
+                          child: Image.file(
+                            File(widget.form.imagePath),
                             width: double.infinity,
                             height: double.infinity,
-                            color: const Color(0xFFE5E7EB),
-                            child: const Icon(
-                              Icons.image_outlined,
-                              size: 80,
-                              color: Color(0xFF9CA3AF),
-                            ),
+                            fit: BoxFit.cover,
                           ),
                         ),
                         // Grade badge
@@ -510,12 +528,14 @@ class _Step1PhotoState extends State<_Step1Photo> {
                 children: [
                   Icon(Icons.check_circle, color: Color(0xFF059669), size: 18),
                   SizedBox(width: 8),
-                  Text(
-                    'Photo Approved! Freshness Grade: A • Confidence: 92%',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF059669),
-                        fontWeight: FontWeight.w500),
+                  Flexible(
+                    child: Text(
+                      'Photo Approved! Freshness Grade: A • Confidence: 92%',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF059669),
+                          fontWeight: FontWeight.w500),
+                    ),
                   ),
                 ],
               ),
@@ -1596,15 +1616,21 @@ class _Step5PreviewState extends State<_Step5Preview> {
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(12)),
-                      child: Container(
+                      child: SizedBox(
                         width: double.infinity,
                         height: 160,
-                        color: const Color(0xFFE5E7EB),
                         child: form.imagePath.isNotEmpty
-                            ? const Icon(Icons.image_outlined,
-                                size: 60, color: Color(0xFF9CA3AF))
-                            : const Icon(Icons.fastfood_outlined,
-                                size: 60, color: Color(0xFF9CA3AF)),
+                            ? Image.file(
+                                File(form.imagePath),
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: 160,
+                              )
+                            : Container(
+                                color: const Color(0xFFE5E7EB),
+                                child: const Icon(Icons.fastfood_outlined,
+                                    size: 60, color: Color(0xFF9CA3AF)),
+                              ),
                       ),
                     ),
                     Positioned(

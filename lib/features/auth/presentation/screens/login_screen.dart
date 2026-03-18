@@ -4,6 +4,7 @@ import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/core/navigation/app_router.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/cubits/auth_state.dart';
+import 'package:anti_food_waste_app/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:anti_food_waste_app/features/verification/presentation/screens/merchant_pending.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -183,7 +184,28 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 8),
+
+                  // ── Forgot password link ───────────────────────────────────
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ForgotPasswordScreen(),
+                        ),
+                      ),
+                      child: const Text(
+                        'Forgot password?',
+                        style: TextStyle(
+                          color: AppTheme.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
                   // ── Submit button ─────────────────────────────────────────
                   BlocBuilder<AuthCubit, AuthState>(

@@ -1,35 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:anti_food_waste_app/features/orders/presentation/cubits/orders_cubit.dart';
 
-enum OrderStatus { reserved, paid, collected, canceled }
-
-class Order {
-  final String id;
-  final String merchantName;
-  final String merchantImage;
-  final String items;
-  final double price;
-  final String pickupTime;
-  final String pickupDate;
-  final OrderStatus status;
-  final String orderNumber;
-  final String address;
-
-  Order({
-    required this.id,
-    required this.merchantName,
-    required this.merchantImage,
-    required this.items,
-    required this.price,
-    required this.pickupTime,
-    required this.pickupDate,
-    required this.status,
-    required this.orderNumber,
-    required this.address,
-  });
-}
+export 'package:anti_food_waste_app/features/orders/presentation/cubits/orders_cubit.dart'
+    show Order, OrderStatus;
 
 class MyOrdersScreen extends StatefulWidget {
   const MyOrdersScreen({super.key});
@@ -41,127 +20,80 @@ class MyOrdersScreen extends StatefulWidget {
 class _MyOrdersScreenState extends State<MyOrdersScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final List<Order> _currentOrders = [
-    Order(
-      id: '1',
-      merchantName: 'Boulangerie El Khobz',
-      merchantImage:
-          'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&h=200&fit=crop',
-      items: 'Fresh Baguettes & Pastries',
-      price: 250,
-      pickupTime: '18:00 - 20:00',
-      pickupDate: 'Today',
-      status: OrderStatus.reserved,
-      orderNumber: '#SF-2026-123',
-      address: 'Rue Didouche Mourad, Alger Centre',
-    ),
-    Order(
-      id: '2',
-      merchantName: 'Restaurant El Bahia',
-      merchantImage:
-          'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&h=200&fit=crop',
-      items: 'Mixed Grill Surprise Box',
-      price: 500,
-      pickupTime: '19:00 - 21:00',
-      pickupDate: 'Today',
-      status: OrderStatus.paid,
-      orderNumber: '#SF-2026-124',
-      address: 'Boulevard Mohamed V, Oran',
-    ),
-    Order(
-      id: '3',
-      merchantName: 'Pizzeria Napoli',
-      merchantImage:
-          'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200&h=200&fit=crop',
-      items: '2 Pizza Margherita (Surplus)',
-      price: 400,
-      pickupTime: '21:30 - 22:30',
-      pickupDate: 'Today',
-      status: OrderStatus.paid,
-      orderNumber: '#SF-2026-125',
-      address: 'Sidi Yahia, Hydra',
-    ),
-  ];
-
-  final List<Order> _pastOrders = [
-    Order(
-      id: '4',
-      merchantName: 'Café de la Poste',
-      merchantImage:
-          'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=200&h=200&fit=crop',
-      items: 'Viennoiseries assorties',
-      price: 150,
-      pickupTime: '16:00 - 17:00',
-      pickupDate: '24 Feb 2026',
-      status: OrderStatus.collected,
-      orderNumber: '#SF-2026-089',
-      address: 'Place Audin, Alger',
-    ),
-    Order(
-      id: '5',
-      merchantName: 'Superéette Benali',
-      merchantImage:
-          'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=200&h=200&fit=crop',
-      items: 'Mélange de fruits (près de la date limite)',
-      price: 350,
-      pickupTime: '20:00 - 21:00',
-      pickupDate: '23 Feb 2026',
-      status: OrderStatus.collected,
-      orderNumber: '#SF-2026-072',
-      address: 'Bir Mourad Raïs',
-    ),
-    Order(
-      id: '6',
-      merchantName: 'Fast Food Le Régal',
-      merchantImage:
-          'https://images.unsplash.com/photo-1550547660-d9450f859349?w=200&h=200&fit=crop',
-      items: 'Burgers invendus',
-      price: 450,
-      pickupTime: '22:00 - 23:30',
-      pickupDate: '20 Feb 2026',
-      status: OrderStatus.canceled,
-      orderNumber: '#SF-2026-054',
-      address: 'Kouba',
-    ),
-  ];
+  late final OrdersCubit _ordersCubit;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _ordersCubit = OrdersCubit();
+    _ordersCubit.loadOrders();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _ordersCubit.close();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      appBar: AppBar(
-        title: Text(l10n.my_orders,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppTheme.primary,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppTheme.primary,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          indicatorWeight: 3,
-          tabs: [
-            Tab(text: l10n.current),
-            Tab(text: l10n.past),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildOrderList(l10n, _currentOrders),
-          _buildOrderList(l10n, _pastOrders),
-        ],
+    return BlocProvider.value(
+      value: _ordersCubit,
+      child: BlocBuilder<OrdersCubit, OrdersState>(
+        builder: (context, state) {
+          final List<Order> currentOrders;
+          final List<Order> pastOrders;
+          final bool isLoading;
+
+          if (state is OrdersLoaded) {
+            currentOrders = state.activeOrders;
+            pastOrders = state.pastOrders;
+            isLoading = false;
+          } else {
+            currentOrders = [];
+            pastOrders = [];
+            isLoading = state is OrdersLoading || state is OrdersInitial;
+          }
+
+          return Scaffold(
+            backgroundColor: const Color(0xFFF9FAFB),
+            appBar: AppBar(
+              title: Text(l10n.my_orders,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              backgroundColor: Colors.white,
+              elevation: 0,
+              centerTitle: true,
+              bottom: TabBar(
+                controller: _tabController,
+                labelColor: AppTheme.primary,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: AppTheme.primary,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                indicatorWeight: 3,
+                tabs: [
+                  Tab(text: l10n.current),
+                  Tab(text: l10n.past),
+                ],
+              ),
+            ),
+            body: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: () => _ordersCubit.loadOrders(),
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildOrderList(l10n, currentOrders),
+                        _buildOrderList(l10n, pastOrders),
+                      ],
+                    ),
+                  ),
+          );
+        },
       ),
     );
   }
@@ -219,8 +151,26 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(order.merchantImage,
-                        width: 64, height: 64, fit: BoxFit.cover),
+                    child: order.merchantImage.isNotEmpty
+                        ? Image.network(
+                            order.merchantImage,
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  width: 64,
+                                  height: 64,
+                                  color: Colors.grey[200],
+                                  child: const Icon(Icons.broken_image, color: Colors.grey),
+                                ),
+                          )
+                        : Container(
+                            width: 64,
+                            height: 64,
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                          ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -298,8 +248,123 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                   ],
                 ),
               ),
+              if (order.status == OrderStatus.reserved) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () =>
+                        _showQrBottomSheet(context, order),
+                    icon: const Icon(Icons.qr_code, size: 18),
+                    label: const Text('Show QR Code'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showQrBottomSheet(
+      BuildContext context, Order order) async {
+    // Fetch QR data from backend
+    Map<String, dynamic>? qrData;
+    try {
+      qrData =
+          await context.read<OrdersCubit>().fetchOrderQr(order.id);
+    } catch (_) {}
+
+    if (!context.mounted) return;
+
+    final String qrContent = qrData != null
+        ? jsonEncode({
+            'order_id': qrData['order_id'] ?? order.id,
+            'qr_hash': qrData['qr_hash'] ?? '',
+            'pickup_code': qrData['pickup_code'] ?? '',
+          })
+        : jsonEncode({'order_id': order.id});
+
+    final pickupCode =
+        qrData?['pickup_code'] as String? ?? '------';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Show this QR at pickup',
+              style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              order.merchantName,
+              style: TextStyle(
+                  fontSize: 14, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 20),
+            QrImageView(
+              data: qrContent,
+              size: 220,
+              errorCorrectionLevel: QrErrorCorrectLevel.H,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  const Text('Pickup Code',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  Text(
+                    pickupCode,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 6,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              order.orderNumber,
+              style: TextStyle(
+                  fontSize: 13, color: Colors.grey.shade500),
+            ),
+          ],
         ),
       ),
     );

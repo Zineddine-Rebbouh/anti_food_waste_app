@@ -25,16 +25,21 @@ class OnboardingSlideView extends StatelessWidget {
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.5,
               width: double.infinity,
-              child: Image.network(
-                slide.image,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppTheme.muted,
-                    child: const Icon(Icons.image_not_supported, size: 50),
-                  );
-                },
-              ),
+              child: slide.image.isNotEmpty
+                  ? Image.network(
+                      slide.image,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: AppTheme.muted,
+                          child: const Icon(Icons.image_not_supported, size: 50),
+                        );
+                      },
+                    )
+                  : Container(
+                      color: AppTheme.muted,
+                      child: const Icon(Icons.image_not_supported, size: 50),
+                    ),
             ),
             Container(
               height: MediaQuery.of(context).size.height * 0.5,

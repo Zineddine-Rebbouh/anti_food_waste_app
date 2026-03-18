@@ -317,6 +317,45 @@ class MerchantOrderDetailScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (isExpired) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              _showNoShowDialog(context, order),
+                          icon: const Icon(Icons.person_off_outlined,
+                              size: 18),
+                          label: const Text('Mark No-Show'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFF97316),
+                            side: const BorderSide(
+                                color: Color(0xFFF97316)),
+                            minimumSize: const Size(double.infinity, 44),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 44,
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            _showCancelDialog(context, order),
+                        icon: const Icon(Icons.cancel_outlined, size: 18),
+                        label: const Text('Cancel Order'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFEF4444),
+                          side: const BorderSide(
+                              color: Color(0xFFEF4444)),
+                          minimumSize: const Size(double.infinity, 44),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -350,6 +389,89 @@ class MerchantOrderDetailScreen extends StatelessWidget {
     final uri = Uri(scheme: 'tel', path: phone);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
+    }
+  }
+
+  Future<void> _showCancelDialog(
+      BuildContext context, MerchantOrder order) async {
+    final reasonCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Cancel Order'),
+        content: TextField(
+          controller: reasonCtrl,
+          decoration: const InputDecoration(
+              hintText: 'Reason (optional)'),
+          maxLines: 2,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(_, false),
+            child: const Text('Keep Order'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(_, true),
+            style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFEF4444)),
+            child: const Text('Cancel Order'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await context
+          .read<MerchantCubit>()
+          .cancelOrderAsync(order.id, reason: reasonCtrl.text.trim());
+      if (context.mounted) Navigator.pop(context);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to cancel: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showNoShowDialog(
+      BuildContext context, MerchantOrder order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Mark No-Show'),
+        content: const Text(
+            'Mark this customer as a no-show? The order will be closed and the listing slot released.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(_, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(_, true),
+            style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFF97316)),
+            child: const Text('Mark No-Show'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await context.read<MerchantCubit>().markNoShowAsync(order.id);
+      if (context.mounted) Navigator.pop(context);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
     }
   }
 }

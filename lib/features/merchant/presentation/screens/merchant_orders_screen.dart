@@ -35,6 +35,38 @@ class _MerchantOrdersScreenState extends State<MerchantOrdersScreen>
   Widget build(BuildContext context) {
     return BlocBuilder<MerchantCubit, MerchantState>(
       builder: (context, state) {
+        if (state is MerchantLoading) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (state is MerchantError) {
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () => context.read<MerchantCubit>().load(),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
         if (state is! MerchantLoaded) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),

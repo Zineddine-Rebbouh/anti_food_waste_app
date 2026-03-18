@@ -413,5 +413,10 @@
   "bags_rescued": "paniers sauves",
   "level_gold": "Or",
   "level_platinum": "Platine",
-  "level_bronze": "Bronze"
+  "level_bronze": "Bronze",
+  "save_changes": "Enregistrer les modifications",
+  "profile_updated": "Profil mis à jour !",
+  "profile_update_failed": "Échec de la mise à jour",
+  "address_notes": "Notes (optionnel)",
+  "uploading": "Envoi en cours..."
 }

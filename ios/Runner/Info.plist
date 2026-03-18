@@ -45,6 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>SaveFood DZ needs your location to show nearby food listings.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>SaveFood DZ needs your location to show nearby food listings.</string>
 	<key>CFBundleURLTypes</key>
 <array>
   <dict>

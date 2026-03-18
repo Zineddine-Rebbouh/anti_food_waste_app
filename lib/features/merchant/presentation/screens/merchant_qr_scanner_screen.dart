@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_order.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/cubits/merchant_cubit.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_order_verification_screen.dart';
@@ -20,13 +22,19 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
   late final Animation<double> _laserAnim;
 
   bool _isValidating = false;
+  bool _isScanned = false;
+  bool _torchOn = false;
   bool _showManualEntry = false;
   final _manualCtrl = TextEditingController();
   String? _errorMsg;
+  late final MobileScannerController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
+    );
     _laserCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -44,9 +52,88 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
 
   @override
   void dispose() {
+    _controller.dispose();
     _laserCtrl.dispose();
     _manualCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _onQrDetected(BarcodeCapture capture) async {
+    if (_isScanned || _isValidating) return;
+    final raw = capture.barcodes.firstOrNull?.rawValue;
+    if (raw == null) return;
+
+    setState(() {
+      _isScanned = true;
+      _isValidating = true;
+      _errorMsg = null;
+    });
+    _controller.stop();
+
+    try {
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      final orderId = data['order_id'] as String?;
+      final qrHash = data['qr_hash'] as String?;
+
+      if (orderId == null || qrHash == null) {
+        setState(() {
+          _isScanned = false;
+          _isValidating = false;
+          _errorMsg = 'Invalid QR code format';
+        });
+        _controller.start();
+        return;
+      }
+
+      final cubitState = context.read<MerchantCubit>().state;
+      if (cubitState is! MerchantLoaded) {
+        setState(() { _isScanned = false; _isValidating = false; });
+        _controller.start();
+        return;
+      }
+
+      final match = cubitState.pendingOrders
+          .where((o) => o.id == orderId)
+          .firstOrNull;
+
+      if (match == null) {
+        setState(() {
+          _isScanned = false;
+          _isValidating = false;
+          _errorMsg = 'Order not found or already completed';
+        });
+        _controller.start();
+        return;
+      }
+
+      setState(() => _isValidating = false);
+      await Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BlocProvider.value(
+            value: context.read<MerchantCubit>(),
+            child: MerchantOrderVerificationScreen(
+              order: match,
+              qrHash: qrHash,
+            ),
+          ),
+        ),
+      );
+    } on FormatException {
+      setState(() {
+        _isScanned = false;
+        _isValidating = false;
+        _errorMsg = 'Cannot read QR code';
+      });
+      _controller.start();
+    } catch (e) {
+      setState(() {
+        _isScanned = false;
+        _isValidating = false;
+        _errorMsg = e.toString();
+      });
+      _controller.start();
+    }
   }
 
   Future<void> _simulateScan(MerchantOrder order) async {
@@ -62,7 +149,7 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
       MaterialPageRoute(
         builder: (_) => BlocProvider.value(
           value: context.read<MerchantCubit>(),
-          child: MerchantOrderVerificationScreen(order: order),
+      child: MerchantOrderVerificationScreen(order: order),
         ),
       ),
     );
@@ -70,41 +157,24 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
 
   Future<void> _verifyManual(String input) async {
     final code = input.trim().toUpperCase();
-    final state = context.read<MerchantCubit>().state;
-    if (state is! MerchantLoaded) return;
+    if (code.length < 4) return;
 
     setState(() {
       _isValidating = true;
       _errorMsg = null;
     });
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    if (!mounted) return;
-
-    final match = state.pendingOrders.where(
-      (o) => o.orderNumber.toUpperCase() == code ||
-          o.orderNumber.toUpperCase().replaceAll('-', '') ==
-              code.replaceAll('-', ''),
-    ).toList();
-
-    if (match.isEmpty) {
+    try {
+      await context.read<MerchantCubit>().fulfillByPickupCodeAsync(code);
+      if (!mounted) return;
+      setState(() => _isValidating = false);
+      Navigator.pop(context); // order fulfilled — return to orders list.
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isValidating = false;
-        _errorMsg = 'Order not found or already completed';
+        _errorMsg = 'Invalid or already used pickup code';
       });
-      return;
     }
-
-    setState(() => _isValidating = false);
-    await Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BlocProvider.value(
-          value: context.read<MerchantCubit>(),
-          child: MerchantOrderVerificationScreen(order: match.first),
-        ),
-      ),
-    );
   }
 
   @override
@@ -133,21 +203,15 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Camera preview simulation
-          Container(
-            color: const Color(0xFF1A1A1A),
-            child: const Center(
-              child: Icon(
-                Icons.camera_alt_outlined,
-                color: Colors.white24,
-                size: 100,
-              ),
-            ),
+          // Real camera feed via mobile_scanner
+          MobileScanner(
+            controller: _controller,
+            onDetect: _onQrDetected,
           ),
 
-          // Dark overlay
+          // Subtle dark overlay to improve frame readability
           Container(
-            color: Colors.black45,
+            color: Colors.black26,
           ),
 
           // UI Overlay
@@ -175,9 +239,17 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.flash_on_outlined,
-                            color: Colors.white, size: 24),
-                        onPressed: () {},
+                        icon: Icon(
+                          _torchOn
+                              ? Icons.flash_off_outlined
+                              : Icons.flash_on_outlined,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        onPressed: () {
+                          _controller.toggleTorch();
+                          setState(() => _torchOn = !_torchOn);
+                        },
                       ),
                     ],
                   ),
@@ -285,63 +357,14 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
 
                 const SizedBox(height: 16),
 
-                // Demo: select from pending orders
-                BlocBuilder<MerchantCubit, MerchantState>(
-                  builder: (context, state) {
-                    if (state is! MerchantLoaded ||
-                        state.pendingOrders.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    return Column(
-                      children: [
-                        const Text(
-                          '── Demo: Tap order to simulate scan ──',
-                          style: TextStyle(
-                              color: Colors.white54, fontSize: 11),
-                        ),
-                        const SizedBox(height: 8),
-                        ...state.pendingOrders.map((o) => GestureDetector(
-                              onTap: () => _simulateScan(o),
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 24, vertical: 4),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                      color: Colors.white30),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.qr_code,
-                                        color: Colors.white, size: 16),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      '${o.customerName} — #${o.orderNumber}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )),
-                      ],
-                    );
-                  },
-                ),
-
                 const SizedBox(height: 12),
 
-                // Manual entry
+                // Manual entry (pickup code fallback)
                 GestureDetector(
                   onTap: () => setState(
                       () => _showManualEntry = !_showManualEntry),
                   child: const Text(
-                    "Can't scan? Enter order number manually",
+                    "Can't scan? Enter pickup code manually",
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 13,
@@ -384,7 +407,7 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
           ),
           const SizedBox(height: 16),
           const Text(
-            'Enter Order Number',
+            'Enter Pickup Code',
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -396,7 +419,7 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
             autofocus: true,
             textCapitalization: TextCapitalization.characters,
             decoration: InputDecoration(
-              hintText: 'SF-XXXXXX',
+              hintText: 'e.g. AB12CD',
               prefixText: '',
               filled: true,
               fillColor: const Color(0xFFF3F3F5),

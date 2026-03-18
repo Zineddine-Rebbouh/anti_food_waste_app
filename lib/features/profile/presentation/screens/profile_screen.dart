@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -21,8 +21,10 @@ import 'package:anti_food_waste_app/features/profile/presentation/screens/settin
 import 'package:anti_food_waste_app/features/profile/presentation/screens/about_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/terms_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/privacy_policy_screen.dart';
+import 'package:anti_food_waste_app/features/profile/presentation/screens/edit_profile_screen.dart';
 import 'package:anti_food_waste_app/features/help/presentation/screens/help_screen.dart';
 import 'package:anti_food_waste_app/shared/widgets/notification_panel.dart';
+import 'package:anti_food_waste_app/shared/widgets/notification_bell_button.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -252,33 +254,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     AppLocalizations l10n,
   ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 2, 20, 12),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Edit button aligned to trailing edge
-          Align(
-            alignment: AlignmentDirectional.topEnd,
-            child: Material(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-              child: InkWell(
-                onTap: () {
-                  // TODO: Navigate to edit-profile screen when built.
-                },
-                borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.all(6),
-                  child: Icon(
-                    CupertinoIcons.pencil,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -645,11 +624,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isRTL = Directionality.of(context) == TextDirection.rtl;
     return _menuCard(children: [
       _menuTile(
+        icon: CupertinoIcons.person_crop_circle,
+        iconColor: AppTheme.primary,
+        title: l10n.edit_profile,
+        isRTL: isRTL,
+        isFirst: true,
+        onTap: () {
+          final cubit = context.read<ProfileCubit>();
+          final loaded = cubit.state;
+          if (loaded is ProfileLoaded) {
+            Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => BlocProvider.value(
+                  value: cubit,
+                  child: EditProfileScreen(user: loaded.user),
+                ),
+              ),
+            );
+          }
+        },
+      ),
+      _divider(),
+      _menuTile(
         icon: Icons.bar_chart_rounded,
         iconColor: AppTheme.primary,
         title: l10n.impact_dashboard,
         isRTL: isRTL,
-        isFirst: true,
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute<void>(
@@ -705,22 +706,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isRTL = Directionality.of(context) == TextDirection.rtl;
     return _menuCard(children: [
       _menuTile(
-        icon: Icons.language_rounded,
-        iconColor: const Color(0xFFF57C00), // amber 700 equivalent
-        title: l10n.language,
+        icon: Icons.settings_outlined,
+        iconColor: const Color(0xFF5C6BC0), // indigo
+        title: l10n.settings,
         isRTL: isRTL,
         isFirst: true,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
-        ),
-      ),
-      _divider(),
-      _menuTile(
-        icon: CupertinoIcons.bell,
-        iconColor: Colors.teal,
-        title: l10n.notifications,
-        isRTL: isRTL,
         isLast: true,
         onTap: () => Navigator.push(
           context,
@@ -976,3 +966,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+

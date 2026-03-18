@@ -1,11 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
 import 'package:anti_food_waste_app/features/charity/data/mock_charity_data.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/widgets/charity_donation_card.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/widgets/charity_status_badge.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_donation_detail_screen.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_cubit.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_state.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -114,54 +117,59 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
   }
 
   // ── Derived data ────────────────────────────────────────────────────────────
-  int get _availableCount =>
-      mockDonations.where((d) => d.status == DonationStatus.available).length;
-
-  int get _urgentCount => mockDonations
+  // We'll pass the state into these helper methods now.
+  int _availableCount(List<CharityDonation> donations) =>
+      donations.where((d) => d.status == DonationStatus.available).length;
+  int _urgentCount(List<CharityDonation> donations) => donations
       .where((d) =>
           d.urgency == UrgencyLevel.critical ||
           d.urgency == UrgencyLevel.urgent)
       .length;
-
-  int get _pendingPickupsCount => mockPickupRequests
+  int _pendingPickupsCount(List<CharityPickupRequest> requests) => requests
       .where((r) =>
           r.status == PickupRequestStatus.pending ||
           r.status == PickupRequestStatus.approved)
       .length;
-
   int get _totalMeals =>
       mockImpactReports.fold(0, (sum, r) => sum + r.mealsServed);
-
   int get _totalBeneficiaries =>
       mockImpactReports.fold(0, (sum, r) => sum + r.beneficiaries);
-
   double get _totalKg =>
       mockImpactReports.fold(0.0, (sum, r) => sum + r.actualWeightKg);
-
-  List<CharityDonation> get _urgentDonations =>
-      mockDonations.where((d) => d.urgency != UrgencyLevel.normal).toList();
-
-  List<CharityDonation> get _availableDonations => mockDonations
+  List<CharityDonation> _urgentDonations(List<CharityDonation> donations) =>
+      donations.where((d) => d.urgency != UrgencyLevel.normal).toList();
+  List<CharityDonation> _availableDonations(List<CharityDonation> donations) => donations
       .where((d) => d.status == DonationStatus.available)
       .take(3)
       .toList();
-
-  List<CharityPickupRequest> get _recentRequests =>
-      mockPickupRequests.take(3).toList();
+  List<CharityPickupRequest> _recentRequests(List<CharityPickupRequest> requests) =>
+      requests.take(3).toList();
 
   // ── Build ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final bool collapsed = _isCollapsed;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: collapsed
           ? SystemUiOverlayStyle.dark
           : SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: const Color(0xFFF7F8FA),
-        body: CustomScrollView(
-          controller: _scrollController,
+        body: BlocBuilder<CharityCubit, CharityState>(
+          builder: (context, state) {
+            List<CharityDonation> parsedDonations = [];
+            List<CharityPickupRequest> parsedRequests = [];
+            if (state is CharityLoading) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (state is CharityLoaded) {
+              parsedDonations = state.donations;
+              parsedRequests = state.myRequests;
+            } else {
+              parsedDonations = mockDonations;
+              parsedRequests = mockPickupRequests;
+            }
+            return CustomScrollView(
+              controller: _scrollController,
           slivers: [
             // ── SliverAppBar ──────────────────────────────────────────────────
             SliverAppBar(
@@ -273,9 +281,9 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
                   // ── Section 1: Stats Row ────────────────────────────────────
                   const SizedBox(height: 16),
                   _StatsRow(
-                    availableCount: _availableCount,
-                    urgentCount: _urgentCount,
-                    pendingPickupsCount: _pendingPickupsCount,
+                    availableCount: _availableCount(parsedDonations),
+                    urgentCount: _urgentCount(parsedDonations),
+                    pendingPickupsCount: _pendingPickupsCount(parsedRequests),
                     totalMeals: _totalMeals,
                   ),
 
@@ -323,7 +331,7 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
                   const SizedBox(height: 10),
                   SizedBox(
                     height: 175,
-                    child: _urgentDonations.isEmpty
+                    child: _urgentDonations(parsedDonations).isEmpty
                         ? const Center(
                             child: Text(
                               'No urgent donations right now.',
@@ -335,9 +343,9 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
                             scrollDirection: Axis.horizontal,
                             padding:
                                 const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _urgentDonations.length,
+                            itemCount: _urgentDonations(parsedDonations).length,
                             itemBuilder: (_, i) => _ExpiringSoonCard(
-                              donation: _urgentDonations[i],
+                              donation: _urgentDonations(parsedDonations)[i],
                             ),
                           ),
                   ),
@@ -369,13 +377,13 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 6),
-                      itemCount: _recentRequests.length,
+                      itemCount: _recentRequests(parsedRequests).length,
                       separatorBuilder: (_, __) => Divider(
                         height: 1,
                         color: Colors.grey.shade100,
                       ),
                       itemBuilder: (_, i) =>
-                          _ActivityItem(request: _recentRequests[i]),
+                          _ActivityItem(request: _recentRequests(parsedRequests)[i]),
                     ),
                   ),
 
@@ -411,7 +419,7 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  ..._availableDonations.map(
+                  ..._availableDonations(parsedDonations).map(
                     (d) => CharityDonationCard(
                       donation: d,
                       onTap: () {
@@ -441,6 +449,8 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
               ),
             ),
           ],
+        );
+        },
         ),
       ),
     );
@@ -892,3 +902,7 @@ class _ImpactStat extends StatelessWidget {
     );
   }
 }
+
+
+
+

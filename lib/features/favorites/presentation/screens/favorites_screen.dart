@@ -1,88 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:provider/provider.dart';
+import 'package:anti_food_waste_app/core/providers/favorites_provider.dart';
 import 'package:anti_food_waste_app/shared/models/food_listing.dart';
 import 'package:anti_food_waste_app/shared/widgets/listing_card.dart';
 import 'package:anti_food_waste_app/features/home/presentation/screens/listing_detail_screen.dart';
 
-class FavoritesScreen extends StatelessWidget {
+class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
+
+  @override
+  State<FavoritesScreen> createState() => _FavoritesScreenState();
+}
+
+class _FavoritesScreenState extends State<FavoritesScreen> {
+  late Future<List<FoodListing>> _favoritesFuture;
+  String _favoriteIdsKey = '';
+  bool _isReloading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _favoritesFuture = _fetchFavoriteListings();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = Provider.of<FavoritesProvider>(context);
+    final nextKey = provider.favoriteIdsKey;
+
+    if (_isReloading || nextKey == _favoriteIdsKey) {
+      return;
+    }
+
+    setState(() {
+      _favoritesFuture = _fetchFavoriteListings();
+    });
+  }
+
+  Future<List<FoodListing>> _fetchFavoriteListings() async {
+    _isReloading = true;
+    final provider = context.read<FavoritesProvider>();
+    try {
+      final listings = await provider.fetchFavoriteListings();
+      _favoriteIdsKey = provider.favoriteIdsKey;
+      return listings;
+    } finally {
+      _isReloading = false;
+    }
+  }
+
+  Future<void> _reload() async {
+    final future = _fetchFavoriteListings();
+    setState(() => _favoritesFuture = future);
+    await future;
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-
-    final List<FoodListing> _mockFavorites = [
-      FoodListing(
-        id: '1',
-        title: 'Surplus Bakery Box',
-        merchantName: 'Boulangerie El Khobz',
-        merchantId: 'm1',
-        originalPrice: 500,
-        discountedPrice: 200,
-        discountPercent: 60,
-        imageUrl:
-            'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=300&fit=crop',
-        rating: 4.8,
-        reviewCount: 124,
-        distance: 1.2,
-        freshness: FreshnessGrade.A,
-        category: FoodCategory.bakery,
-        pickupStart: '18:00',
-        pickupEnd: '20:00',
-        quantityLeft: 3,
-        dietary: ['Vegetarian'],
-        lat: 36.7525,
-        lng: 3.04197,
-        postedMinutesAgo: 15,
-      ),
-      FoodListing(
-        id: '2',
-        title: 'Market Fruit Basket',
-        merchantName: 'Superéette Benali',
-        merchantId: 'm2',
-        originalPrice: 1200,
-        discountedPrice: 500,
-        discountPercent: 58,
-        imageUrl:
-            'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=400&h=300&fit=crop',
-        rating: 4.7,
-        reviewCount: 89,
-        distance: 2.5,
-        freshness: FreshnessGrade.B,
-        category: FoodCategory.supermarket,
-        pickupStart: '20:00',
-        pickupEnd: '21:00',
-        quantityLeft: 5,
-        dietary: ['Vegan', 'Gluten-Free'],
-        lat: 36.7525,
-        lng: 3.04197,
-        postedMinutesAgo: 120,
-      ),
-      FoodListing(
-        id: '3',
-        title: 'Margherita Pizza Pack',
-        merchantName: 'Pizzeria Napoli',
-        merchantId: 'm3',
-        originalPrice: 800,
-        discountedPrice: 350,
-        discountPercent: 56,
-        imageUrl:
-            'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&h=300&fit=crop',
-        rating: 4.9,
-        reviewCount: 302,
-        distance: 0.8,
-        freshness: FreshnessGrade.A,
-        category: FoodCategory.restaurant,
-        pickupStart: '21:30',
-        pickupEnd: '22:30',
-        quantityLeft: 1,
-        dietary: ['Vegetarian'],
-        lat: 36.7525,
-        lng: 3.04197,
-        postedMinutesAgo: 5,
-      ),
-    ];
+    final favoritesProvider = context.watch<FavoritesProvider>();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -98,21 +77,74 @@ class FavoritesScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.only(top: 8, bottom: 24),
-        itemCount: _mockFavorites.length,
-        itemBuilder: (context, index) {
-          return FadeInUp(
-            duration: Duration(milliseconds: 300 + (index * 100)),
-            child: ListingCard(
-              listing: _mockFavorites[index],
-              isFavorite: true,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        ListingDetailScreen(listing: _mockFavorites[index]),
+      body: FutureBuilder<List<FoodListing>>(
+        future: _favoritesFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.cloud_off_outlined, size: 56, color: Colors.grey),
+                  const SizedBox(height: 12),
+                  const Text('Could not load favorites.'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: _reload, child: const Text('Retry')),
+                ],
+              ),
+            );
+          }
+
+          final favorites = snapshot.data ?? const <FoodListing>[];
+          if (favorites.isEmpty) {
+            return Center(
+              child: const Text(
+                'No favorites yet.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: _reload,
+            child: ListView.builder(
+              padding: const EdgeInsets.only(top: 8, bottom: 24),
+              itemCount: favorites.length,
+              itemBuilder: (context, index) {
+                final listing = favorites[index];
+                return FadeInUp(
+                  duration: Duration(milliseconds: 300 + (index * 80)),
+                  child: ListingCard(
+                    listing: listing,
+                    isFavorite: true,
+                    onFavoriteToggle: (next) async {
+                      try {
+                        await favoritesProvider.toggleFavorite(
+                          listing.id,
+                          desiredState: next,
+                        );
+                        await _reload();
+                      } catch (_) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Could not update favorites. Please try again.'),
+                          ),
+                        );
+                      }
+                    },
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ListingDetailScreen(listing: listing),
+                        ),
+                      ).then((_) => _reload());
+                    },
                   ),
                 );
               },

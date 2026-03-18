@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:anti_food_waste_app/features/consumer/data/repositories/consumer_repository.dart';
 import 'package:anti_food_waste_app/features/profile/domain/models/app_user.dart';
 
 // ─── States ────────────────────────────────────────────────────────────────
@@ -20,6 +21,15 @@ class ProfileInitial extends ProfileState {
 /// Emitted while the profile data is being fetched.
 class ProfileLoading extends ProfileState {
   const ProfileLoading();
+}
+
+/// Emitted while an update operation is in flight.
+class ProfileUpdating extends ProfileState {
+  final AppUser user;
+  const ProfileUpdating(this.user);
+
+  @override
+  List<Object?> get props => [user];
 }
 
 /// Emitted when the profile has been successfully loaded.
@@ -48,43 +58,67 @@ class ProfileError extends ProfileState {
 // ─── Cubit ─────────────────────────────────────────────────────────────────
 
 /// Manages profile-related state.
-///
-/// Currently backed by [AppUser.mock]. Replace the data layer calls with
-/// real repository methods when integrating with a backend.
 class ProfileCubit extends Cubit<ProfileState> {
   ProfileCubit() : super(const ProfileInitial());
 
+  final _repo = ConsumerRepository();
+
   // ── Actions ──────────────────────────────────────────────────────────────
 
-  /// Loads the user profile.
+  /// Loads the user profile from the backend API.
   ///
   /// Emits [ProfileLoading] → [ProfileLoaded] (or [ProfileError] on failure).
   Future<void> loadProfile() async {
     emit(const ProfileLoading());
     try {
-      // Simulate network latency; replace with a real repository call.
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      emit(const ProfileLoaded(AppUser.mock));
+      final user = await _repo.fetchProfile();
+      emit(ProfileLoaded(user));
     } catch (e) {
       emit(ProfileError(e.toString()));
     }
   }
 
+  /// Updates the user's profile fields and refreshes state.
+  Future<void> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? phone,
+    String? avatarUrl,
+  }) async {
+    final current = state;
+    if (current is! ProfileLoaded) return;
+
+    emit(ProfileUpdating(current.user));
+    try {
+      final updated = await _repo.updateProfile(
+        firstName: firstName,
+        lastName: lastName,
+        phone: phone,
+        avatarUrl: avatarUrl,
+      );
+      emit(ProfileLoaded(updated));
+    } catch (e) {
+      // Restore previous loaded state so the UI still shows data
+      emit(current);
+      rethrow;
+    }
+  }
+
   /// Updates the user's avatar with the image at [path].
   ///
-  /// In production this should upload the file and refresh the profile URL.
+  /// Uploads the file to the backend and updates avatar_url.
   Future<void> updateAvatar(String path) async {
     final current = state;
     if (current is! ProfileLoaded) return;
 
+    emit(ProfileUpdating(current.user));
     try {
-      // TODO: Upload file to storage and obtain the remote URL.
-      // For now, optimistically keep the current user data.
-      emit(current.copyWith(user: current.user));
+      final avatarUrl = await _repo.uploadAvatar(path);
+      final updated = current.user.copyWith(avatarUrl: avatarUrl);
+      emit(ProfileLoaded(updated));
     } catch (e) {
-      emit(ProfileError(e.toString()));
-      // Restore previous state so the UI can recover.
       emit(current);
+      rethrow;
     }
   }
 

@@ -1,150 +1,374 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
+import 'package:anti_food_waste_app/core/navigation/app_router.dart';
+import 'package:anti_food_waste_app/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:anti_food_waste_app/features/auth/presentation/cubits/auth_state.dart';
+import 'package:anti_food_waste_app/features/verification/presentation/screens/merchant_pending.dart';
 
-class EmailVerificationScreen extends StatelessWidget {
-  const EmailVerificationScreen({super.key});
+class EmailVerificationScreen extends StatefulWidget {
+  /// The email address the code was sent to — displayed as a hint.
+  final String email;
+
+  const EmailVerificationScreen({super.key, required this.email});
+
+  @override
+  State<EmailVerificationScreen> createState() =>
+      _EmailVerificationScreenState();
+}
+
+class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
+  // ── OTP fields ─────────────────────────────────────────────────────────────
+  final List<TextEditingController> _controllers =
+      List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+
+  // ── Resend countdown ───────────────────────────────────────────────────────
+  static const _countdownSeconds = 60;
+  int _secondsLeft = _countdownSeconds;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startCountdown();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    for (final f in _focusNodes) {
+      f.dispose();
+    }
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  // ── Countdown helpers ──────────────────────────────────────────────────────
+  void _startCountdown() {
+    _timer?.cancel();
+    setState(() => _secondsLeft = _countdownSeconds);
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_secondsLeft == 0) {
+        t.cancel();
+      } else {
+        setState(() => _secondsLeft--);
+      }
+    });
+  }
+
+  // ── OTP helpers ────────────────────────────────────────────────────────────
+  String get _otpCode =>
+      _controllers.map((c) => c.text).join();
+
+  bool get _isOtpComplete => _otpCode.length == 6;
+
+  void _onDigitChanged(int index, String value) {
+    if (value.length == 1 && index < 5) {
+      _focusNodes[index + 1].requestFocus();
+    }
+    setState(() {}); // rebuild to update button state
+  }
+
+  void _onKeyEvent(int index, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.backspace &&
+        _controllers[index].text.isEmpty &&
+        index > 0) {
+      _focusNodes[index - 1].requestFocus();
+    }
+  }
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
+  void _submit() {
+    if (!_isOtpComplete) return;
+    context.read<AuthCubit>().verifyEmail(_otpCode);
+  }
+
+  void _resend() {
+    context.read<AuthCubit>().resendVerificationEmail();
+    _startCountdown();
+  }
+
+  // ── Navigation after verify ────────────────────────────────────────────────
+  void _navigateAfterVerification(AuthAuthenticated state) {
+    if (!state.isApproved &&
+        (state.userType == 'merchant' || state.userType == 'charity')) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MerchantPendingScreen()),
+        (_) => false,
+      );
+      return;
+    }
+    final route = switch (state.userType) {
+      'merchant' => AppRoutes.merchant,
+      'charity' => AppRoutes.charity,
+      _ => AppRoutes.consumer,
+    };
+    Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F6F1),
-      body: SafeArea(
-        child: Center(
+    return BlocListener<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state is AuthAuthenticated && !state.needsEmailVerification) {
+          _navigateAfterVerification(state);
+        } else if (state is AuthEmailVerificationSent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Verification code resent. Check your inbox.'),
+              backgroundColor: AppTheme.primary,
+            ),
+          );
+        } else if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppTheme.destructive,
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          backgroundColor: AppTheme.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppTheme.foreground),
+            onPressed: () =>
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                    AppRoutes.login, (_) => false),
+          ),
+          title: const Text(
+            'Verify Email',
+            style: TextStyle(color: AppTheme.foreground, fontSize: 20),
+          ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Container(
+              height: 1,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppTheme.primary, Colors.white, AppTheme.accent],
+                ),
+              ),
+            ),
+          ),
+        ),
+        body: SafeArea(
           child: SingleChildScrollView(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+            padding: const EdgeInsets.all(24),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Icon
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    FontAwesomeIcons.envelope,
-                    size: 64,
-                    color: AppTheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
-                // Content
-                Text(
-                  l10n.check_email,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                // ── Icon ────────────────────────────────────────────────────
+                Center(
+                  child: Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primary.withOpacity(0.15),
+                          AppTheme.primary.withOpacity(0.05),
+                        ],
                       ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.verification_sent,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.grey[700],
-                        fontSize: 16,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-
-                // Card with Resend Button
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        l10n.didnt_receive_email,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            // TODO: Implement resend logic
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            side: BorderSide(color: AppTheme.primary, width: 2),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(100),
-                            ),
-                          ),
-                          child: Text(
-                            l10n.resend_verification,
-                            style: TextStyle(
-                              color: AppTheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Back to Login Button
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  label: Text(
-                    l10n.back_to_login,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.mark_email_unread_outlined,
+                      size: 44,
+                      color: AppTheme.primary,
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    elevation: 0,
-                  ),
                 ),
+                const SizedBox(height: 24),
 
-                const SizedBox(height: 40),
-
-                // Footer
-                Text(
-                  l10n.footer_text,
+                // ── Heading ──────────────────────────────────────────────────
+                const Text(
+                  'Check your email',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 12,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.foreground,
                   ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'We sent a 6-digit code to\n${widget.email}',
                   textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: AppTheme.mutedForeground,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 36),
+
+                // ── OTP boxes ────────────────────────────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(
+                    6,
+                    (i) => _OtpBox(
+                      controller: _controllers[i],
+                      focusNode: _focusNodes[i],
+                      onChanged: (v) => _onDigitChanged(i, v),
+                      onKeyEvent: (e) => _onKeyEvent(i, e),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 36),
+
+                // ── Verify button ────────────────────────────────────────────
+                BlocBuilder<AuthCubit, AuthState>(
+                  builder: (context, state) {
+                    final isLoading = state is AuthLoading;
+                    return ElevatedButton(
+                      onPressed: (_isOtpComplete && !isLoading) ? _submit : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor:
+                            AppTheme.primary.withOpacity(0.4),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Verify Email',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // ── Resend ───────────────────────────────────────────────────
+                BlocBuilder<AuthCubit, AuthState>(
+                  builder: (context, state) {
+                    final isLoading = state is AuthLoading;
+                    final canResend = _secondsLeft == 0 && !isLoading;
+
+                    return Column(
+                      children: [
+                        const Text(
+                          "Didn't receive a code?",
+                          style: TextStyle(
+                            color: AppTheme.mutedForeground,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        canResend
+                            ? GestureDetector(
+                                onTap: _resend,
+                                child: const Text(
+                                  'Resend code',
+                                  style: TextStyle(
+                                    color: AppTheme.primary,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                'Resend in ${_secondsLeft}s',
+                                style: const TextStyle(
+                                  color: AppTheme.mutedForeground,
+                                  fontSize: 14,
+                                ),
+                              ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Single OTP digit box ───────────────────────────────────────────────────
+class _OtpBox extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<KeyEvent> onKeyEvent;
+
+  const _OtpBox({
+    required this.controller,
+    required this.focusNode,
+    required this.onChanged,
+    required this.onKeyEvent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyboardListener(
+      focusNode: FocusNode(),
+      onKeyEvent: onKeyEvent,
+      child: SizedBox(
+        width: 46,
+        child: TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          maxLength: 1,
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.foreground,
+          ),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(
+            counterText: '',
+            filled: true,
+            fillColor: AppTheme.inputBackground,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: AppTheme.primary,
+                width: 2,
+              ),
+            ),
+          ),
+          onChanged: onChanged,
         ),
       ),
     );

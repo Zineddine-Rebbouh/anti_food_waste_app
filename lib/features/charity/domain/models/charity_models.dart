@@ -1,4 +1,4 @@
-// ─── Charity Module: Domain Models ───────────────────────────────────────────
+﻿// ─── Charity Module: Domain Models ───────────────────────────────────────────
 
 enum DonationStatus { available, claimed, collected, expired }
 
@@ -50,6 +50,64 @@ class CharityDonation {
     required this.postedAt,
   });
 
+  factory CharityDonation.fromJson(Map<String, dynamic> json) {
+    // Basic mapping from backend DonationListSerializer
+    final statusStr = json['status'] as String? ?? 'available';
+    DonationStatus parsedStatus = DonationStatus.available;
+    if (statusStr == 'assigned') parsedStatus = DonationStatus.claimed;
+    if (statusStr == 'collected') parsedStatus = DonationStatus.collected;
+    DateTime? colStart;
+    DateTime? colEnd;
+    try {
+      if (json['collection_start'] != null) colStart = DateTime.parse(json['collection_start']);
+      if (json['collection_end'] != null) colEnd = DateTime.parse(json['collection_end']);
+    } catch (_) {}
+    final now = DateTime.now();
+    colStart ??= now;
+    colEnd ??= now.add(const Duration(hours: 2));
+    return CharityDonation(
+      id: json['id']?.toString() ?? '',
+      title: json['listing_title']?.toString() ?? 'Donation',
+      description: '', 
+      merchantName: json['merchant_name']?.toString() ?? 'Unknown Merchant',
+      merchantAddress: 'Address Not Provided',
+      imageUrl: json['listing_photo']?.toString(),
+      category: DonationCategory.grocery,
+      quantityKg: 0.0,
+      estimatedServings: 0,
+      dietaryTags: const [],
+      expiresAt: colEnd,
+      pickupWindowStart: '00:00',
+      pickupWindowEnd: '00:00',
+      distanceKm: 0.0,
+      status: parsedStatus,
+      urgency: UrgencyLevel.normal,
+      postedAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
+    );
+  }
+  factory CharityDonation.fromJsonDetail(Map<String, dynamic> json) {
+    final parent = CharityDonation.fromJson(json); // Get basics
+    final listing = json['listing'] as Map<String, dynamic>? ?? {};
+    return CharityDonation(
+      id: parent.id,
+      title: listing['title']?.toString() ?? parent.title,
+      description: listing['description']?.toString() ?? parent.description,
+      merchantName: parent.merchantName,
+      merchantAddress: listing['merchant_address']?.toString() ?? parent.merchantAddress, 
+      imageUrl: listing['primary_photo_url']?.toString() ?? parent.imageUrl,
+      category: parent.category, 
+      quantityKg: double.tryParse(listing['quantity']?.toString() ?? '0') ?? 0.0,
+      estimatedServings: parent.estimatedServings,
+      dietaryTags: const [],
+      expiresAt: parent.expiresAt,
+      pickupWindowStart: parent.pickupWindowStart,
+      pickupWindowEnd: parent.pickupWindowEnd,
+      distanceKm: double.tryParse(listing['distance_km']?.toString() ?? '0') ?? parent.distanceKm,
+      status: parent.status,
+      urgency: parent.urgency,
+      postedAt: parent.postedAt,
+    );
+  }
   bool get isExpiringSoon =>
       expiresAt.difference(DateTime.now()).inHours < 3 &&
       status == DonationStatus.available;
@@ -121,6 +179,25 @@ class CharityPickupRequest {
     this.merchantNote,
   });
 
+  factory CharityPickupRequest.fromJson(Map<String, dynamic> json) {
+    return CharityPickupRequest(
+      id: json['id']?.toString() ?? '',
+      donationId: json['donation']?.toString() ?? '',
+      donationTitle: 'Requested Donation', 
+      merchantName: 'Merchant',
+      merchantAddress: 'Address',
+      charityName: json['charity_name']?.toString() ?? 'Charity',
+      contactPerson: '',
+      contactPhone: '',
+      vehicleType: 'Car',
+      requestedAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
+      scheduledPickupTime: DateTime.now().add(const Duration(hours: 1)),
+      status: PickupRequestStatus.pending,
+      quantityKg: 0.0,
+      estimatedServings: 0,
+      notes: json['message']?.toString(),
+    );
+  }
   String get statusLabel {
     switch (status) {
       case PickupRequestStatus.pending:
@@ -161,3 +238,5 @@ class CharityImpactReport {
     required this.reportedAt,
   });
 }
+
+

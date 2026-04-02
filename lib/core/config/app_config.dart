@@ -20,6 +20,6 @@ class AppConfig {
   /// • Production:                      set ENV=prod and BASE_URL accordingly.
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://192.168.51.30:8080/api/v1/',
+    defaultValue: 'http://192.168.1.10:8080/api/v1/',
   );
 }

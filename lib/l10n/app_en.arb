@@ -261,7 +261,7 @@
   "removed_from_favorites": "Removed from favorites",
   "added_to_favorites": "Added to favorites",
   "link_copied": "Link copied to clipboard",
-  "added_to_cart": "Added to cart",
+  "added_to_cart": "Reservation completed! Check My Orders.",
   "pricing": "Pricing",
   "dzd": "DZD",
   "you_save": "You save",
@@ -275,6 +275,7 @@
   "what_you_get": "What You'll Get",
   "halal": "Halal",
   "vegan": "Vegan",
+  "vegetarian": "Vegetarian",
   "about_merchant": "About Merchant",
   "meals_saved_count": "{count} meals saved",
   "@meals_saved_count": {
@@ -292,7 +293,14 @@
   "left": "left",
   "reserve_now": "Reserve now",
   "bags_available": "bags available",
-  "people_viewing": "people viewing",
+  "people_viewing": "{count} people viewing",
+  "@people_viewing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "recommended_percent": "{percent}% recommended",
   "@recommended_percent": {
     "placeholders": {
@@ -341,7 +349,7 @@
   "account_section": "Account",
   "preferences_section": "Preferences",
   "information_section": "Information",
-  "about_app": "About SaveFood DZ",
+  "about_app": "About Tawfir",
   "logout_confirm_title": "Sign Out?",
   "logout_confirm_message": "Are you sure you want to sign out?",
   "sign_out": "Sign Out",
@@ -402,7 +410,7 @@
   "contact_us_label": "Contact Us",
   "follow_us": "Follow Us",
   "made_in_algeria": "Made with love for a greener Algeria",
-  "app_about_desc": "SaveFood DZ connects consumers with merchants to rescue surplus food, reducing waste one meal at a time.",
+  "app_about_desc": "Tawfir connects consumers with merchants to rescue surplus food, reducing waste one meal at a time.",
   "app_version_label": "App Version",
   "photo_changed": "Profile photo updated",
   "orders_label": "Orders",
@@ -419,5 +427,243 @@
   "profile_updated": "Profile updated!",
   "profile_update_failed": "Failed to update profile",
   "address_notes": "Notes (optional)",
-  "uploading": "Uploading..."
+  "uploading": "Uploading...",
+  "welcome_back_simple": "Welcome back",
+  "sign_in_to_tawfir": "Sign in to your Tawfir account",
+  "email_address": "Email address",
+  "forgot_password_question": "Forgot password?",
+  "dont_have_account": "Don't have an account?",
+  "email_required": "Email is required",
+  "invalid_email": "Enter a valid email",
+  "password_required": "Password is required",
+  "select_role_desc": "Select how you want to use Tawfir",
+  "already_reserved": "Reserved already",
+  "merchant_overview": "Today's Overview",
+  "merchant_revenue": "Revenue",
+  "merchant_food_saved": "Food Saved",
+  "add_listing": "Add New Listing",
+  "add_listing_desc": "List surplus food in under 2 minutes",
+  "scan_qr": "Scan QR Code",
+  "scan_qr_desc": "Fulfill customer pickup",
+  "recent_activity": "Recent Activity",
+  "no_activity_today": "No activity yet today",
+  "orders_appear_here": "Your orders will appear here",
+  "retake": "Retake",
+  "step_photo": "Photo",
+  "step_details": "Details",
+  "step_price": "Price",
+  "step_pickup": "Pickup",
+  "step_preview": "Preview",
+  "discard_listing": "Discard Listing?",
+  "discard_listing_desc": "Your progress will be saved as a draft.",
+  "keep_editing": "Keep Editing",
+  "save_draft": "Save Draft",
+  "add_photo": "Add Photo",
+  "add_photo_desc": "Take a clear photo of your food",
+  "item_details_desc": "Describe your food item",
+  "item_title": "Item Title *",
+  "item_title_hint": "e.g., Fresh Baguettes, Croissants Mix",
+  "item_category": "Category *",
+  "item_description": "Description (Optional)",
+  "item_description_hint": "e.g., Baked fresh this morning, perfect for dinner or breakfast",
+  "dietary_tags": "Dietary Tags (Optional)",
+  "pending_orders": "Pending",
+  "completed_orders": "Completed",
+  "history_orders": "History",
+  "orders_count": "{count} orders",
+  "@orders_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "urgent_count_label": "{count} urgent",
+  "@urgent_count_label": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "earned_label": "{amount} DZD earned",
+  "@earned_label": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "no_pending_orders": "No Pending Orders",
+  "no_completed_orders": "No Completed Orders Today",
+  "no_history_orders": "No Order History",
+  "customer_label": "Customer",
+  "fulfill_order": "Fulfill Order",
+  "call_customer": "Call Customer",
+  "back_to_orders": "Back to Orders",
+  "charity_donations_title": "Available Donations",
+  "filter_donations": "Filter Donations",
+  "show_only_urgent": "Show only urgent",
+  "urgent_desc": "Only show donations expiring in under 3 hours",
+  "search_donations": "Search donations...",
+  "urgent_filter": "⚡ Urgent",
+  "donations_available_now": "{count} donation(s) available",
+  "@donations_available_now": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "no_matching_donations": "No matching donations",
+  "donation_category": "Category",
+  "donation_urgency": "Urgency",
+  "vs_yesterday": "vs yesterday",
+  "net_label": "net",
+  "today_overview": "Today's Overview",
+  "set_prices": "Set Your Prices",
+  "pricing_desc": "Original and discounted pricing",
+  "regular_price": "Regular selling price",
+  "discounted_price_label": "Discounted Price *",
+  "discount_label": "{percent}% discount",
+  "@discount_label": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "ai_suggestion": "AI Price Suggestion",
+  "ai_suggestion_desc": "Based on similar items, we suggest:",
+  "use_this_price": "Use This Price",
+  "sell_out_fast": "This price typically sells out fast!",
+  "your_earnings": "Your Earnings (88% commission)",
+  "net_earnings": "Net per bag",
+  "platform_fee": "Platform fee",
+  "set_quantity": "Set Quantity",
+  "how_many_available": "How many bags are available?",
+  "potential_total": "Potential Total Revenue",
+  "pickup_settings": "Pickup Settings",
+  "when_can_pick": "When should customers pick up?",
+  "pickup_time": "Pickup Time",
+  "from_label": "From",
+  "to_label": "To",
+
+  "nav_home": "Home",
+  "nav_listings": "Listings",
+  "nav_orders": "Orders",
+  "nav_profile": "Profile",
+  "nav_donations": "Donations",
+  "nav_pickups": "Pickups",
+
+  "my_listings": "My Listings",
+  "tab_active": "Active",
+  "tab_sold_out": "Sold Out",
+  "tab_expired": "Expired",
+  "tab_drafts": "Drafts",
+  "no_active_listings": "No Active Listings",
+  "no_active_listings_sub": "Create your first listing to start selling surplus food!",
+  "no_sold_out_listings": "No Sold Out Listings",
+  "no_sold_out_listings_sub": "All items are still available.",
+  "no_expired_listings": "No Expired Listings",
+  "no_expired_listings_sub": "Any expired listings will appear here.",
+  "no_drafts": "No Drafts",
+  "no_drafts_sub": "Unfinished listings will be saved here.",
+  "edit_listing": "Edit Listing",
+  "pause_listing": "Pause Listing",
+  "mark_as_donation": "Mark as Donation",
+  "duplicate_listing": "Duplicate Listing",
+  "relist": "Relist",
+  "delete_listing": "Delete Listing",
+  "delete_listing_confirm": "Delete Listing?",
+  "listing_paused": "Listing paused",
+  "listing_duplicated": "Listing duplicated as draft",
+  "listing_deleted": "Listing deleted",
+  "charities_notified": "Charities notified of your donation!",
+  "mark_as_donation_confirm": "Mark as Donation?",
+  "mark_as_donation_desc": "Mark {count} remaining items of \"{title}\" as donation? Nearby charities will be notified.",
+  "@mark_as_donation_desc": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "title": {"type": "String"}
+    }
+  },
+  "retry": "Retry",
+
+  "order_details": "Order Details",
+  "items_label": "Items",
+  "total_label": "Total",
+  "free_donation": "Free (Donation)",
+  "payment_label": "Payment",
+  "donation_label": "Donation",
+  "paid_online": "Paid Online ✓",
+  "cash_on_pickup": "Cash on Pickup",
+  "status_label": "Status",
+  "pickup_window": "Pickup Window",
+  "time_label": "Time",
+  "expired_label": "Expired",
+  "special_instructions": "Special Instructions",
+  "timeline_label": "Timeline",
+  "order_placed": "Order Placed",
+  "payment_confirmed": "Payment Confirmed",
+  "to_be_collected": "To be collected",
+  "scan_qr_code": "Scan QR Code",
+  "call_customer": "Call Customer",
+  "mark_no_show": "Mark No-Show",
+  "no_show_desc": "Mark this customer as a no-show? The order will be closed and the listing slot released.",
+  "cancel_order": "Cancel Order",
+  "keep_order": "Keep Order",
+  "reason_optional": "Reason (optional)",
+  "eco_score": "Eco-Score",
+  "closes_in_label": "Closes in",
+  "failed_to_cancel": "Failed to cancel",
+
+  "expiring_soon": "Expiring Soon",
+  "view_all": "View all",
+  "no_urgent_donations": "No urgent donations right now.",
+  "recent_activity": "Recent Activity",
+  "available_now": "Available Now",
+  "see_all": "See all",
+  "total_impact_this_week": "Total Impact This Week",
+  "stat_available": "Available",
+  "stat_urgent": "Urgent",
+  "stat_pending_pickup": "Pending Pickup",
+  "stat_this_week": "This Week",
+  "good_morning": "Good morning,",
+  "verified_charity": "Verified Charity",
+  "saa_dashboard": "SAA Dashboard",
+
+  "my_pickups": "My Pickups",
+  "tab_active_pickups": "Active",
+  "tab_completed_pickups": "Completed",
+  "no_requests_here": "No requests here",
+  "awaiting_approval": "Awaiting merchant approval",
+  "in_transit": "In Transit",
+  "completed_label": "Completed",
+  "view_impact": "View Impact",
+  "cancelled_label": "Cancelled",
+  "mark_collected": "Mark as Collected",
+  "request_sent": "Request Sent",
+  "merchant_approved": "Merchant Approved",
+  "en_route": "En Route",
+  "collected_label": "Collected",
+  "servings_label": "{count} servings",
+  "@servings_label": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "org_profile": "Organisation Profile",
+  "about_us": "About Us",
+  "contact_label": "Contact",
+  "activity_overview": "Activity Overview",
+  "completed_pickups": "Completed pickups",
+  "beneficiaries_reached": "Beneficiaries reached",
+  "food_rescued": "Food rescued",
+  "avg_merchant_rating": "Avg. merchant rating",
+  "notifications_label": "Notifications",
+  "change_password": "Change Password",
+  "help_support": "Help & Support",
+  "sign_out": "Sign Out"
 }

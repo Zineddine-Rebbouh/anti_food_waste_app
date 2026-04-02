@@ -189,10 +189,11 @@ class _SplashScreenState extends State<SplashScreen>
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            const Icon(
-                              Icons.eco,
-                              size: 70,
-                              color: Colors.white,
+                            Image.asset(
+                              'assets/images/logo.png',
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.contain,
                             ),
                             RotationTransition(
                               turns: _rotateController,
@@ -226,7 +227,7 @@ class _SplashScreenState extends State<SplashScreen>
                           child: Column(
                             children: [
                               const Text(
-                                'SaveFood DZ',
+                                'Tawfir',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 36,

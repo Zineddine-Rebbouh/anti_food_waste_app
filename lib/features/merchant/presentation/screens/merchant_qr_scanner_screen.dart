@@ -41,13 +41,9 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
     )..repeat(reverse: true);
     _laserAnim = CurvedAnimation(parent: _laserCtrl, curve: Curves.easeInOut);
 
-    // If a preloaded order is passed (e.g., from Scan button in order card),
-    // jump directly to verification after a short delay
-    if (widget.preloadedOrder != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _simulateScan(widget.preloadedOrder!);
-      });
-    }
+    // If a preloaded order is passed (e.g., from a Scan button in order card),
+    // we still require an actual QR scan (or manual pickup code) so we can
+    // obtain the `qr_hash` and call the backend fulfilment endpoint.
   }
 
   @override
@@ -106,6 +102,18 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
         return;
       }
 
+      // If the merchant opened the scanner from a specific order card, we
+      // should only accept QR codes for that order.
+      if (widget.preloadedOrder != null && match.id != widget.preloadedOrder!.id) {
+        setState(() {
+          _isScanned = false;
+          _isValidating = false;
+          _errorMsg = 'Scanned QR does not match the selected order.';
+        });
+        _controller.start();
+        return;
+      }
+
       setState(() => _isValidating = false);
       await Navigator.pushReplacement(
         context,
@@ -136,24 +144,8 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
     }
   }
 
-  Future<void> _simulateScan(MerchantOrder order) async {
-    setState(() {
-      _isValidating = true;
-      _errorMsg = null;
-    });
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    setState(() => _isValidating = false);
-    await Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BlocProvider.value(
-          value: context.read<MerchantCubit>(),
-      child: MerchantOrderVerificationScreen(order: order),
-        ),
-      ),
-    );
-  }
+  // NOTE: We intentionally do not auto-navigate to verification without a
+  // QR scan because backend fulfilment requires `qr_hash` verification.
 
   Future<void> _verifyManual(String input) async {
     final code = input.trim().toUpperCase();
@@ -179,26 +171,6 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (widget.preloadedOrder != null) {
-      // Show loading while jumping to verification screen
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(color: Colors.white),
-              const SizedBox(height: 20),
-              Text(
-                'Loading order #${widget.preloadedOrder!.orderNumber}...',
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(

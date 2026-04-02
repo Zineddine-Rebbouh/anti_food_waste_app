@@ -22,7 +22,10 @@ class AppNotification extends Equatable {
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? 'No Title',
       body: json['body'] as String? ?? 'No Body',
-      type: json['type'] as String? ?? 'info',
+      // Backend uses `notification_type`; keep `type` as a fallback for older payloads.
+      type: json['type'] as String? ??
+          json['notification_type'] as String? ??
+          'info',
       isRead: json['is_read'] as bool? ?? false,
       createdAt: json['created_at'] != null 
           ? DateTime.tryParse(json['created_at']) ?? DateTime.now() 

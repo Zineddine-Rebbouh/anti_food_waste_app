@@ -1,7 +1,9 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/core/services/location_service.dart';
+import 'package:anti_food_waste_app/core/utils/error_handler.dart';
 import 'package:anti_food_waste_app/features/consumer/data/repositories/consumer_repository.dart';
 import 'package:anti_food_waste_app/shared/models/food_listing.dart';
 
@@ -39,7 +41,6 @@ class _MapViewState extends State<MapView> {
   final _repository = ConsumerRepository();
 
   Set<Marker> _markers = {};
-  List<FoodListing> _listings = [];
 
   bool _isSearching = false;
   bool _isLocating = false;
@@ -78,10 +79,26 @@ class _MapViewState extends State<MapView> {
     }
   }
 
+  double _degToRad(double deg) => deg * (math.pi / 180.0);
+
+  double _distanceMeters(LatLng a, LatLng b) {
+    const earthRadiusM = 6371000.0;
+    final dLat = _degToRad(b.latitude - a.latitude);
+    final dLng = _degToRad(b.longitude - a.longitude);
+    final lat1 = _degToRad(a.latitude);
+    final lat2 = _degToRad(b.latitude);
+
+    final sinDLat = math.sin(dLat / 2);
+    final sinDLng = math.sin(dLng / 2);
+    final h = sinDLat * sinDLat +
+        math.cos(lat1) * math.cos(lat2) * sinDLng * sinDLng;
+    final c = 2 * math.atan2(math.sqrt(h), math.sqrt(1 - h));
+    return earthRadiusM * c;
+  }
+
   bool _hasMoved(LatLng c) {
-    const t = 0.005;
-    return (c.latitude - _lastSearchCenter.latitude).abs() > t ||
-        (c.longitude - _lastSearchCenter.longitude).abs() > t;
+    const thresholdM = 500;
+    return _distanceMeters(_lastSearchCenter, c) > thresholdM;
   }
 
   // ── GPS ──────────────────────────────────────────────────────────────────
@@ -149,7 +166,6 @@ class _MapViewState extends State<MapView> {
       _lastSearchCenter = mid;
 
       setState(() {
-        _listings = listings;
         _markers = listings.map(_buildMarker).toSet();
         _resultLabel =
             'Found ${listings.length} listing${listings.length == 1 ? '' : 's'}';
@@ -158,10 +174,10 @@ class _MapViewState extends State<MapView> {
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) setState(() => _resultLabel = null);
       });
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Search failed. Please try again.'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppErrorHandler.getMessage(e)),
           behavior: SnackBarBehavior.floating,
         ));
       }
@@ -232,7 +248,7 @@ class _MapViewState extends State<MapView> {
           rotateGesturesEnabled: false,
           zoomControlsEnabled: false,
           myLocationButtonEnabled: false,
-          myLocationEnabled: false,
+          myLocationEnabled: true,
           compassEnabled: true,
           mapToolbarEnabled: false,
         ),

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Anti Food Waste App</string>
+	<string>Tawfir</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>anti_food_waste_app</string>
+	<string>Tawfir</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -46,9 +46,9 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>SaveFood DZ needs your location to show nearby food listings.</string>
+	<string>Tawfir needs your location to show nearby food listings.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>SaveFood DZ needs your location to show nearby food listings.</string>
+	<string>Tawfir needs your location to show nearby food listings.</string>
 	<key>CFBundleURLTypes</key>
 <array>
   <dict>

@@ -6,12 +6,14 @@ import 'package:anti_food_waste_app/features/merchant/presentation/screens/creat
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_qr_scanner_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_order_detail_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/widgets/merchant_metric_card.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class MerchantHomeScreen extends StatelessWidget {
   const MerchantHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return BlocBuilder<MerchantCubit, MerchantState>(
       builder: (context, state) {
         if (state is MerchantLoading) {
@@ -38,7 +40,7 @@ class MerchantHomeScreen extends StatelessWidget {
                     ElevatedButton.icon(
                       onPressed: () => context.read<MerchantCubit>().load(),
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
+                      label: Text(l10n.retry),
                     ),
                   ],
                 ),
@@ -55,13 +57,13 @@ class MerchantHomeScreen extends StatelessWidget {
         return Scaffold(
           body: CustomScrollView(
             slivers: [
-              _buildHeader(context, state),
+              _buildHeader(context, state, l10n),
               SliverToBoxAdapter(
                 child: Column(
                   children: [
-                    _buildMetricCards(context, state),
-                    _buildQuickActions(context),
-                    _buildActivityFeed(context, state),
+                    _buildMetricCards(context, state, l10n),
+                    _buildQuickActions(context, l10n),
+                    _buildActivityFeed(context, state, l10n),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -75,9 +77,9 @@ class MerchantHomeScreen extends StatelessWidget {
 
   // ── Header ──────────────────────────────────────────────────────────────────
 
-  Widget _buildHeader(BuildContext context, MerchantLoaded state) {
+  Widget _buildHeader(BuildContext context, MerchantLoaded state, AppLocalizations l10n) {
     final now = DateTime.now();
-    final dateStr = _formatDate(now);
+    final dateStr = _formatDate(now, l10n);
 
     return SliverAppBar(
       expandedHeight: 90,
@@ -175,17 +177,17 @@ class MerchantHomeScreen extends StatelessWidget {
 
   // ── Metric Cards ─────────────────────────────────────────────────────────────
 
-  Widget _buildMetricCards(BuildContext context, MerchantLoaded state) {
+  Widget _buildMetricCards(BuildContext context, MerchantLoaded state, AppLocalizations l10n) {
     final stats = state.profile.dailyStats;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
           child: Text(
-            "Today's Overview",
-            style: TextStyle(
+            l10n.merchant_overview,
+            style: const TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
               color: Color(0xFF111827),
@@ -201,19 +203,19 @@ class MerchantHomeScreen extends StatelessWidget {
               MerchantMetricCard(
                 icon: Icons.inventory_2_outlined,
                 number: '${stats.ordersToday}',
-                label: 'Orders',
+                label: l10n.orders_label,
                 sublabel:
-                    '${stats.ordersDelta >= 0 ? '+' : ''}${stats.ordersDelta} vs yesterday',
+                    '${stats.ordersDelta >= 0 ? '+' : ''}${stats.ordersDelta} ${l10n.vs_yesterday}',
                 gradientColors: const [Color(0xFF2D8659), Color(0xFF1A5E3C)],
                 onTap: () {},
               ),
               const SizedBox(width: 12),
               MerchantMetricCard(
                 icon: Icons.monetization_on_outlined,
-                number: '${stats.revenueToday.toStringAsFixed(0)} DZD',
-                label: 'Revenue',
+                number: '${stats.revenueToday.toStringAsFixed(0)} ${l10n.dzd}',
+                label: l10n.merchant_revenue,
                 sublabel:
-                    '${stats.netRevenueToday.toStringAsFixed(0)} DZD net',
+                    '${stats.netRevenueToday.toStringAsFixed(0)} ${l10n.dzd} ${l10n.net_label}',
                 gradientColors: const [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
                 onTap: () {},
               ),
@@ -221,9 +223,9 @@ class MerchantHomeScreen extends StatelessWidget {
               MerchantMetricCard(
                 icon: Icons.eco_outlined,
                 number: '${stats.foodSavedKgToday.toStringAsFixed(0)} kg',
-                label: 'Food Saved',
+                label: l10n.merchant_food_saved,
                 sublabel:
-                    '${stats.co2AvoidedKgToday.toStringAsFixed(0)} kg CO₂ avoided',
+                    '${stats.co2AvoidedKgToday.toStringAsFixed(0)} kg ${l10n.co2_avoided}',
                 gradientColors: const [Color(0xFF059669), Color(0xFF047857)],
                 onTap: () {},
               ),
@@ -237,7 +239,7 @@ class MerchantHomeScreen extends StatelessWidget {
 
   // ── Quick Actions ─────────────────────────────────────────────────────────────
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildQuickActions(BuildContext context, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Column(
@@ -245,8 +247,8 @@ class MerchantHomeScreen extends StatelessWidget {
           // Add New Listing — primary CTA
           _PrimaryActionButton(
             icon: Icons.add_circle_outline,
-            title: 'Add New Listing',
-            subtitle: 'List surplus food in under 2 minutes',
+            title: l10n.add_listing,
+            subtitle: l10n.add_listing_desc,
             backgroundColor: const Color(0xFF2D8659),
             textColor: Colors.white,
             onTap: () {
@@ -265,8 +267,8 @@ class MerchantHomeScreen extends StatelessWidget {
           // Scan QR Code — secondary CTA
           _PrimaryActionButton(
             icon: Icons.qr_code_scanner,
-            title: 'Scan QR Code',
-            subtitle: 'Fulfill customer pickup',
+            title: l10n.scan_qr,
+            subtitle: l10n.scan_qr_desc,
             backgroundColor: Colors.white,
             textColor: const Color(0xFF374151),
             border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
@@ -289,17 +291,17 @@ class MerchantHomeScreen extends StatelessWidget {
 
   // ── Activity Feed ─────────────────────────────────────────────────────────────
 
-  Widget _buildActivityFeed(BuildContext context, MerchantLoaded state) {
+  Widget _buildActivityFeed(BuildContext context, MerchantLoaded state, AppLocalizations l10n) {
     final feed = state.activityFeed;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 24, 16, 12),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
           child: Text(
-            'Recent Activity',
-            style: TextStyle(
+            l10n.recent_activity,
+            style: const TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
               color: Color(0xFF111827),
@@ -307,21 +309,21 @@ class MerchantHomeScreen extends StatelessWidget {
           ),
         ),
         if (feed.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(32),
+          Padding(
+            padding: const EdgeInsets.all(32),
             child: Center(
               child: Column(
                 children: [
-                  Icon(Icons.inbox_outlined, size: 56, color: Color(0xFFD1D5DB)),
-                  SizedBox(height: 12),
+                  const Icon(Icons.inbox_outlined, size: 56, color: Color(0xFFD1D5DB)),
+                  const SizedBox(height: 12),
                   Text(
-                    'No activity yet today',
-                    style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
+                    l10n.no_activity_today,
+                    style: const TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Your orders will appear here',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+                    l10n.orders_appear_here,
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
                   ),
                 ],
               ),
@@ -338,6 +340,7 @@ class MerchantHomeScreen extends StatelessWidget {
               final item = feed[i];
               return _ActivityCard(
                 item: item,
+                l10n: l10n,
                 onTap: item.orderId != null
                     ? () {
                         // Find order by id from pending or completed
@@ -371,16 +374,39 @@ class MerchantHomeScreen extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime dt) {
-    const days = [
-      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
-      'Sunday'
-    ];
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct',
-      'Nov', 'Dec'
-    ];
-    return '${days[dt.weekday - 1]}, ${months[dt.month - 1]} ${dt.day}';
+  String _formatDate(DateTime dt, AppLocalizations l10n) {
+    return '${_getWeekday(dt.weekday, l10n)}, ${_getMonth(dt.month, l10n)} ${dt.day}';
+  }
+
+  String _getWeekday(int weekday, AppLocalizations l10n) {
+    switch (weekday) {
+      case 1: return 'Monday';
+      case 2: return 'Tuesday';
+      case 3: return 'Wednesday';
+      case 4: return 'Thursday';
+      case 5: return 'Friday';
+      case 6: return 'Saturday';
+      case 7: return 'Sunday';
+      default: return '';
+    }
+  }
+
+  String _getMonth(int month, AppLocalizations l10n) {
+    switch (month) {
+      case 1: return 'Jan';
+      case 2: return 'Feb';
+      case 3: return 'Mar';
+      case 4: return 'Apr';
+      case 5: return 'May';
+      case 6: return 'Jun';
+      case 7: return 'Jul';
+      case 8: return 'Aug';
+      case 9: return 'Sep';
+      case 10: return 'Oct';
+      case 11: return 'Nov';
+      case 12: return 'Dec';
+      default: return '';
+    }
   }
 }
 
@@ -465,8 +491,9 @@ class _PrimaryActionButton extends StatelessWidget {
 class _ActivityCard extends StatelessWidget {
   final ActivityItem item;
   final VoidCallback? onTap;
+  final AppLocalizations l10n;
 
-  const _ActivityCard({required this.item, this.onTap});
+  const _ActivityCard({required this.item, required this.l10n, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -539,7 +566,7 @@ class _ActivityCard extends StatelessWidget {
               ),
             ),
             Text(
-              _timeAgo(item.timestamp),
+              _timeAgo(item.timestamp, l10n),
               style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
             ),
           ],
@@ -548,11 +575,11 @@ class _ActivityCard extends StatelessWidget {
     );
   }
 
-  String _timeAgo(DateTime dt) {
+  String _timeAgo(DateTime dt, AppLocalizations l10n) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inMinutes < 1) return l10n.just_now;
+    if (diff.inMinutes < 60) return l10n.minutes_ago(diff.inMinutes);
+    if (diff.inHours < 24) return l10n.hours_ago(diff.inHours);
     return '${diff.inDays}d ago';
   }
 }

@@ -7,6 +7,7 @@ import 'package:anti_food_waste_app/features/merchant/presentation/screens/merch
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_qr_scanner_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/widgets/merchant_order_card.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/widgets/merchant_status_badge.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class MerchantOrdersScreen extends StatefulWidget {
   const MerchantOrdersScreen({super.key});
@@ -78,9 +79,9 @@ class _MerchantOrdersScreenState extends State<MerchantOrdersScreen>
           appBar: AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
-            title: const Text(
-              'Orders',
-              style: TextStyle(
+            title: Text(
+              AppLocalizations.of(context)!.orders_label,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF111827),
@@ -104,11 +105,11 @@ class _MerchantOrdersScreenState extends State<MerchantOrdersScreen>
               tabs: [
                 Tab(
                   text: state.pendingOrders.isNotEmpty
-                      ? 'Pending (${state.pendingOrders.length})'
-                      : 'Pending',
+                      ? '${AppLocalizations.of(context)!.pending_orders} (${state.pendingOrders.length})'
+                      : AppLocalizations.of(context)!.pending_orders,
                 ),
-                const Tab(text: 'Completed'),
-                const Tab(text: 'History'),
+                Tab(text: AppLocalizations.of(context)!.completed_orders),
+                Tab(text: AppLocalizations.of(context)!.history_orders),
               ],
             ),
           ),
@@ -233,24 +234,24 @@ class _PendingOrdersTabState extends State<_PendingOrdersTab> {
   @override
   Widget build(BuildContext context) {
     if (widget.orders.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined,
+            const Icon(Icons.receipt_long_outlined,
                 size: 72, color: Color(0xFFD1D5DB)),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'No Pending Orders',
-              style: TextStyle(
+              AppLocalizations.of(context)!.no_pending_orders,
+              style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF374151)),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'New orders will appear here.',
-              style: TextStyle(fontSize: 14, color: Color(0xFF9CA3AF)),
+              AppLocalizations.of(context)!.orders_appear_here,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF9CA3AF)),
             ),
           ],
         ),
@@ -269,13 +270,13 @@ class _PendingOrdersTabState extends State<_PendingOrdersTab> {
             children: [
               _SummaryChip(
                 icon: Icons.receipt_long,
-                label: '${widget.orders.length} orders',
+                label: '${widget.orders.length} ${AppLocalizations.of(context)!.orders_label}',
                 color: const Color(0xFF2D8659),
               ),
               const SizedBox(width: 10),
               _SummaryChip(
                 icon: Icons.attach_money,
-                label: '${_pendingRevenue.toStringAsFixed(0)} DZD',
+                label: '${_pendingRevenue.toStringAsFixed(0)} ${AppLocalizations.of(context)!.dzd}',
                 color: const Color(0xFF10B981),
               ),
               if (_urgentCount > 0) ...[
@@ -299,14 +300,14 @@ class _PendingOrdersTabState extends State<_PendingOrdersTab> {
             child: Row(
               children: [
                 _FilterChip(
-                  label: 'All',
+                  label: AppLocalizations.of(context)!.clear_all,
                   isActive: _activeFilter == _PendingFilter.all,
                   onTap: () =>
                       setState(() => _activeFilter = _PendingFilter.all),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Urgent',
+                  label: AppLocalizations.of(context)!.urgent_filter,
                   isActive: _activeFilter == _PendingFilter.urgent,
                   onTap: () =>
                       setState(() => _activeFilter = _PendingFilter.urgent),
@@ -314,7 +315,7 @@ class _PendingOrdersTabState extends State<_PendingOrdersTab> {
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Donations',
+                  label: AppLocalizations.of(context)!.charity,
                   isActive: _activeFilter == _PendingFilter.donation,
                   onTap: () =>
                       setState(() => _activeFilter = _PendingFilter.donation),
@@ -347,11 +348,11 @@ class _PendingOrdersTabState extends State<_PendingOrdersTab> {
                           size: 56, color: const Color(0xFFD1D5DB)),
                       const SizedBox(height: 12),
                       Text(
-                        'No orders match this filter',
-                        style: TextStyle(
+                        AppLocalizations.of(context)!.no_results_filters,
+                        style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6B7280)),
+                            color: Color(0xFF6B7280)),
                       ),
                     ],
                   ),
@@ -477,16 +478,16 @@ class _CompletedOrdersTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (orders.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline,
+            const Icon(Icons.check_circle_outline,
                 size: 72, color: Color(0xFFD1D5DB)),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'No Completed Orders Today',
-              style: TextStyle(
+              AppLocalizations.of(context)!.no_completed_orders,
+              style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF374151)),
@@ -648,20 +649,22 @@ class _HistoryTab extends StatelessWidget {
       ..sort((a, b) => b.orderedAt.compareTo(a.orderedAt));
 
     if (all.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history_outlined, size: 72, color: Color(0xFFD1D5DB)),
-            SizedBox(height: 16),
-            Text('No Order History',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF374151))),
-            SizedBox(height: 8),
-            Text('All your orders will appear here.',
-                style: TextStyle(fontSize: 14, color: Color(0xFF9CA3AF))),
+            const Icon(Icons.history_outlined, size: 72, color: Color(0xFFD1D5DB)),
+            const SizedBox(height: 16),
+            Text(
+              AppLocalizations.of(context)!.no_history_orders,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF374151))),
+            const SizedBox(height: 8),
+            Text(
+              AppLocalizations.of(context)!.orders_appear_here,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF9CA3AF))),
           ],
         ),
       );

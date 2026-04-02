@@ -253,7 +253,7 @@ class MerchantPendingScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _contactItem(
             icon: Icons.mail_outline,
-            label: "support@savefood.dz",
+            label: "support@tawfir.dz",
             onTap: () {},
           ),
           const SizedBox(height: 12),

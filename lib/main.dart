@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -51,21 +51,21 @@ void main() async {
             },
           ),
         ],
-        child: const SaveFoodApp(),
+        child: const TawfirApp(),
       ),
     ),
   );
 }
 
-class SaveFoodApp extends StatelessWidget {
-  const SaveFoodApp({super.key});
+class TawfirApp extends StatelessWidget {
+  const TawfirApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
 
     return MaterialApp(
-      title: 'SaveFood DZ',
+      title: 'Tawfir',
       debugShowCheckedModeBanner: false,
 
       // ── Theme ────────────────────────────────────────────────────────────────

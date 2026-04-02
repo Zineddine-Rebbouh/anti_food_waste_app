@@ -8,7 +8,7 @@ class AppAssets {
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'SaveFood DZ';
+  static const String appName = 'Tawfir';
   
   // Design system constants
   static const double horizontalPadding = 24.0;

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
-import 'package:anti_food_waste_app/features/charity/data/mock_charity_data.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_cubit.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_state.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/widgets/charity_donation_card.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_donation_detail_screen.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CharityDonationsScreen
@@ -24,8 +27,8 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   // ── Computed filtered list ────────────────────────────────────────────────
-  List<CharityDonation> get _filteredDonations {
-    return mockDonations.where((d) {
+  List<CharityDonation> _getFilteredDonations(List<CharityDonation> donations) {
+    return donations.where((d) {
       final matchesSearch = _searchQuery.isEmpty ||
           d.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           d.merchantName.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -78,16 +81,16 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
                 ),
 
                 // Title
-                const Text(
-                  'Filter Donations',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                Text(
+                  AppLocalizations.of(context)!.filter_donations,
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
 
                 // ── Category section ────────────────────────────────────────
-                const Text(
-                  'Category',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.donation_category,
+                  style: const TextStyle(
                       fontSize: 14, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 10),
@@ -96,12 +99,12 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
                   runSpacing: 8,
                   children: [
                     _FilterChip(
-                      label: 'All',
+                      label: AppLocalizations.of(context)!.clear_all,
                       selected: tempCategory == null,
                       onTap: () =>
                           setSheetState(() => tempCategory = null),
                     ),
-                    ..._categoryChipData.map(
+                    ..._buildCategoryChips(AppLocalizations.of(ctx)!).map(
                       (data) => _FilterChip(
                         label: data.label,
                         selected: tempCategory == data.category,
@@ -114,9 +117,9 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
                 const SizedBox(height: 20),
 
                 // ── Urgency section ─────────────────────────────────────────
-                const Text(
-                  'Show only urgent',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.show_only_urgent,
+                  style: const TextStyle(
                       fontSize: 14, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 2),
@@ -124,7 +127,7 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Only show donations expiring in under 3 hours',
+                        AppLocalizations.of(context)!.urgent_desc,
                         style: const TextStyle(
                             fontSize: 12,
                             color: AppTheme.mutedForeground),
@@ -159,9 +162,9 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
                           borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      'Apply',
-                      style: TextStyle(
+                    child: Text(
+                      AppLocalizations.of(ctx)!.apply_filters,
+                      style: const TextStyle(
                           fontSize: 15, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -177,17 +180,26 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final donations = _filteredDonations;
+    return BlocBuilder<CharityCubit, CharityState>(
+      builder: (context, state) {
+        if (state is CharityLoading) {
+          return const Scaffold(
+            backgroundColor: Color(0xFFF6F6F8),
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final List<CharityDonation> rawDonations = state is CharityLoaded ? state.donations : [];
+        final donations = _getFilteredDonations(rawDonations);
 
-    return Scaffold(
+        return Scaffold(
       backgroundColor: const Color(0xFFF6F6F8),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Available Donations',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.charity_donations_title,
+          style: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.bold,
             color: Color(0xFF1A1A2E),
@@ -210,7 +222,7 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
               controller: _searchController,
               onChanged: (v) => setState(() => _searchQuery = v),
               decoration: InputDecoration(
-                hintText: 'Search donations...',
+                hintText: AppLocalizations.of(context)!.search_donations,
                 filled: true,
                 fillColor: AppTheme.inputBackground,
                 prefixIcon: const Icon(Icons.search,
@@ -253,7 +265,7 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
               child: Row(
                 children: [
                   _FilterChip(
-                    label: 'All',
+                    label: AppLocalizations.of(context)!.clear_all,
                     selected:
                         !_showUrgentOnly && _selectedCategory == null,
                     onTap: () => setState(() {
@@ -263,13 +275,13 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
                   ),
                   const SizedBox(width: 8),
                   _FilterChip(
-                    label: '⚡ Urgent',
+                    label: AppLocalizations.of(context)!.urgent_filter,
                     selected: _showUrgentOnly,
                     onTap: () =>
                         setState(() => _showUrgentOnly = !_showUrgentOnly),
                   ),
                   const SizedBox(width: 8),
-                  ..._categoryChipData.map(
+                  ..._buildCategoryChips(AppLocalizations.of(context)!).map(
                     (data) => Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: _FilterChip(
@@ -294,7 +306,7 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
-              '${donations.length} donation(s) available today',
+              '${donations.length} ${AppLocalizations.of(context)!.charity_donations_title.toLowerCase()}',
               style: const TextStyle(
                   fontSize: 12, color: AppTheme.mutedForeground),
             ),
@@ -311,7 +323,7 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
                             size: 48, color: Colors.grey.shade400),
                         const SizedBox(height: 12),
                         Text(
-                          'No matching donations',
+                          AppLocalizations.of(context)!.no_matching_donations,
                           style: TextStyle(
                             fontSize: 15,
                             color: Colors.grey.shade600,
@@ -344,6 +356,8 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
         ],
       ),
     );
+      },
+    );
   }
 }
 
@@ -354,12 +368,12 @@ class _CategoryData {
   const _CategoryData(this.label, this.category);
 }
 
-const List<_CategoryData> _categoryChipData = [
-  _CategoryData('Bakery', DonationCategory.bakery),
-  _CategoryData('Restaurant', DonationCategory.restaurant),
+List<_CategoryData> _buildCategoryChips(AppLocalizations l10n) => [
+  _CategoryData(l10n.bakery, DonationCategory.bakery),
+  _CategoryData(l10n.restaurant, DonationCategory.restaurant),
   _CategoryData('Grocery', DonationCategory.grocery),
-  _CategoryData('Café', DonationCategory.cafe),
-  _CategoryData('Hotel', DonationCategory.hotel),
+  _CategoryData(l10n.cafe, DonationCategory.cafe),
+  _CategoryData(l10n.hotel, DonationCategory.hotel),
 ];
 
 // ─── Reusable filter chip ─────────────────────────────────────────────────────

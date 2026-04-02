@@ -1,4 +1,6 @@
-﻿class ListingReview {
+import 'package:anti_food_waste_app/core/config/app_config.dart';
+
+class ListingReview {
   final String id;
   final String userName;
   final double rating;
@@ -58,6 +60,7 @@ class ListingExtraDetails {
   final MerchantDetails merchant;
   final List<ListingReview> reviews;
   final List<ListingFAQ> faqs;
+  final bool userHasReserved;
 
   ListingExtraDetails({
     required this.id,
@@ -69,11 +72,32 @@ class ListingExtraDetails {
     required this.merchant,
     required this.reviews,
     required this.faqs,
+    this.userHasReserved = false,
   });
 
   /// Builds a [ListingExtraDetails] from a backend [ListingDetailSerializer] response.
   factory ListingExtraDetails.fromDetailJson(Map<String, dynamic> json) {
     final merchantInfo = json['merchant_info'] as Map<String, dynamic>? ?? {};
+    final userHasReserved = json['user_has_reserved'] as bool? ?? false;
+
+
+    String normalizeUrl(String url) {
+      if (url.isEmpty) return '';
+      final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
+
+      if (url.startsWith('http')) {
+        // If it's a localhost/127.0.0.1 URL from the backend, 
+        // replace it with our configured baseAppUrl to ensure it works on emulators/devices.
+        if (url.contains('://127.0.0.1') || url.contains('://localhost')) {
+          final path = Uri.parse(url).path;
+          return '$baseAppUrl$path';
+        }
+        return url;
+      }
+
+      final cleanUrl = url.startsWith('/') ? url : '/$url';
+      return '$baseAppUrl$cleanUrl';
+    }
 
     List<String> extractDietaryLabels(dynamic value) {
       if (value is List) {
@@ -101,10 +125,13 @@ class ListingExtraDetails {
     List<String> images = photosRaw
         .map((p) => (p as Map<String, dynamic>)['photo_url'] as String? ?? '')
         .where((url) => url.isNotEmpty)
+        .map(normalizeUrl)
         .toList();
     if (images.isEmpty) {
       final fallback = json['primary_photo_url'] as String?;
-      if (fallback != null && fallback.isNotEmpty) images = [fallback];
+      if (fallback != null && fallback.isNotEmpty) {
+        images = [normalizeUrl(fallback)];
+      }
     }
 
     // ── Description ───────────────────────────────────────────────────────
@@ -148,6 +175,7 @@ class ListingExtraDetails {
         answer: fMap['answer']?.toString() ?? '',
       );
     }).toList();
+    
     return ListingExtraDetails(
       id: json['id']?.toString() ?? '',
       description: description,
@@ -157,7 +185,7 @@ class ListingExtraDetails {
       whatYouGet: whatYouGet,
       merchant: MerchantDetails(
         name: merchantInfo['business_name']?.toString() ?? '',
-        logoUrl: merchantInfo['logo_url']?.toString(),
+        logoUrl: normalizeUrl(merchantInfo['logo_url']?.toString() ?? ''),
         badges: badges,
         bio: merchantInfo['business_type']?.toString() ?? '',
         mealsSaved: 0,
@@ -166,7 +194,7 @@ class ListingExtraDetails {
       ),
       reviews: reviews,
       faqs: faqs,
+      userHasReserved: userHasReserved,
     );
   }
 }
-

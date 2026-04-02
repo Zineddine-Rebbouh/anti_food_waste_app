@@ -30,7 +30,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final String currentLocale = localeProvider.locale.languageCode;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[50],
       body: CustomScrollView(
         slivers: [
           // ─── Sliver App Bar ────────────────────────────────────────────
@@ -42,7 +42,6 @@ class _SettingsPageState extends State<SettingsPage> {
             backgroundColor: Colors.white,
             surfaceTintColor: Colors.white,
             foregroundColor: AppTheme.foreground,
-            expandedHeight: 140,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new_rounded),
               onPressed: () => Navigator.pop(context),
@@ -55,47 +54,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 color: AppTheme.foreground,
               ),
             ),
-            flexibleSpace: FlexibleSpaceBar(
-              collapseMode: CollapseMode.pin,
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF2D8659), Color(0xFF1B5E38)],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 56, 20, 16),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.settings,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Customize your experience',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ),
-
           // ─── Settings Sections ─────────────────────────────────────────
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -152,8 +111,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       label: 'English',
                       langCode: 'en',
                       currentCode: currentLocale,
-                      onTap: () =>
-                          localeProvider.setLocale(const Locale('en')),
+                      onTap: () => localeProvider.setLocale(const Locale('en')),
                     ),
                     const SizedBox(height: 8),
                     _LanguageTile(
@@ -161,8 +119,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       label: 'العربية',
                       langCode: 'ar',
                       currentCode: currentLocale,
-                      onTap: () =>
-                          localeProvider.setLocale(const Locale('ar')),
+                      onTap: () => localeProvider.setLocale(const Locale('ar')),
                     ),
                     const SizedBox(height: 8),
                     _LanguageTile(
@@ -170,8 +127,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       label: 'Français',
                       langCode: 'fr',
                       currentCode: currentLocale,
-                      onTap: () =>
-                          localeProvider.setLocale(const Locale('fr')),
+                      onTap: () => localeProvider.setLocale(const Locale('fr')),
                     ),
                   ],
                 ),
@@ -425,8 +381,7 @@ class _SettingsPageState extends State<SettingsPage> {
               backgroundColor: Colors.red.shade700,
               foregroundColor: Colors.white,
               minimumSize: Size.zero,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -700,11 +655,9 @@ class _LanguageTile extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 15,
-                  fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected
-                      ? AppTheme.primary
-                      : const Color(0xFF1A1A2E),
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color:
+                      isSelected ? AppTheme.primary : const Color(0xFF1A1A2E),
                 ),
               ),
             ),

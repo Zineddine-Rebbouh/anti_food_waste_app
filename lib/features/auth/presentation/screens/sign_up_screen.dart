@@ -159,14 +159,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          backgroundColor: AppTheme.background,
+          backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
             icon: Icon(isRTL ? Icons.arrow_forward : Icons.arrow_back,
-                color: AppTheme.foreground),
-            onPressed: () => Navigator.of(context).pop(),
+                color: const Color(0xFF212121)),
+            onPressed: () {
+              if (_selectedRole != null) {
+                setState(() {
+                  _selectedRole = null;
+                  _showRoleSelection = true;
+                });
+              } else {
+                Navigator.of(context).pop();
+              }
+            },
           ),
           title: Text(
             _selectedRole == UserRole.merchant
@@ -174,17 +183,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 : _selectedRole == UserRole.charity
                     ? l10n.charity_signup
                     : l10n.create_account,
-            style: const TextStyle(color: AppTheme.foreground, fontSize: 20),
+            style: const TextStyle(
+              color: Color(0xFF212121), 
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(1),
-            child: Container(
-              height: 1,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppTheme.primary, Colors.white, AppTheme.accent],
-                ),
-              ),
+            preferredSize: const Size.fromHeight(4),
+            child: Row(
+              children: [
+                Expanded(child: Container(color: AppTheme.primary, height: 4)),
+                Expanded(child: Container(color: Colors.white, height: 4)),
+                Expanded(child: Container(color: AppTheme.accent, height: 4)),
+              ],
             ),
           ),
         ),
@@ -240,11 +252,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           onTermsChanged: (val) =>
                               setState(() => _agreedToTerms = val),
                         ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
                       _buildSubmitButton(l10n),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       _buildLoginLink(l10n),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 48),
                     ],
                   ),
                 ),
@@ -268,15 +280,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.primary,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 0,
           ),
           child: isLoading
               ? const SizedBox(
-                  height: 22,
-                  width: 22,
+                  height: 24,
+                  width: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: Colors.white,
@@ -297,20 +308,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Widget _buildLoginLink(AppLocalizations l10n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(l10n.already_have_account,
-            style: const TextStyle(
-                color: AppTheme.mutedForeground, fontSize: 14)),
-        TextButton(
-          onPressed: () =>
-              Navigator.of(context).pushNamed(AppRoutes.login),
-          child: Text(l10n.login,
-              style: const TextStyle(
-                  color: AppTheme.primary, fontWeight: FontWeight.bold)),
+    return Center(
+      child: GestureDetector(
+        onTap: () => Navigator.of(context).pushNamed(AppRoutes.login),
+        child: RichText(
+          text: TextSpan(
+            style: const TextStyle(color: Color(0xFF757575), fontSize: 14),
+            children: [
+              TextSpan(text: l10n.already_have_account + " "),
+              TextSpan(
+                text: l10n.login,
+                style: const TextStyle(
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 }

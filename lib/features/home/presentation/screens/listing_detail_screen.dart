@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
@@ -138,12 +138,20 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        final msg = e.toString().contains('409')
-            ? 'Not enough stock available.'
-            : 'Could not place order. Please try again.';
+        String msg = 'Could not place order. Please try again.';
+        if (e is DioException && e.response?.data != null) {
+          try {
+            msg = e.response!.data['error']['message'] as String;
+          } catch (_) {
+            if (e.response?.statusCode == 409) msg = 'Not enough stock available.';
+          }
+        } else if (e.toString().contains('409')) {
+          msg = 'Not enough stock available.';
+        }
         messenger.showSnackBar(
           SnackBar(
             content: Text(msg),
@@ -227,46 +235,47 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           CustomScrollView(
+            physics: const BouncingScrollPhysics(),
             slivers: [
               _buildSliverAppBar(l10n, isRtl, favorites, isFavorite),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 24),
                       _buildHeaderSection(l10n),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 32),
                       _buildPricingCard(l10n),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 32),
                       _buildPickupWindowCard(l10n),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       _buildLocationCard(l10n),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       _buildWhatYouGetCard(l10n),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 32),
+                      const Divider(height: 1, thickness: 1, color: Color(0xFFF1F1F1)),
+                      const SizedBox(height: 32),
                       _buildMerchantCard(l10n),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 32),
+                      const Divider(height: 1, thickness: 1, color: Color(0xFFF1F1F1)),
+                      const SizedBox(height: 32),
                       _buildAvailabilityCard(l10n),
-                      const SizedBox(height: 16),
-                       if (_details!.reviews.isNotEmpty) ...[
-                  _buildReviewsCard(l10n),
-                  const SizedBox(height: 16),
-                ],
-                if (_details!.faqs.isNotEmpty) ...[
-                  _buildFaqCard(l10n),
-                ],
-                      const SizedBox(height: 100), // Bottom padding for footer
+                      const SizedBox(height: 32),
+                      if (_details!.reviews.isNotEmpty) ...[
+                        _buildReviewsCard(l10n),
+                        const SizedBox(height: 32),
+                      ],
+                      if (_details!.faqs.isNotEmpty) ...[
+                        _buildFaqCard(l10n),
+                        const SizedBox(height: 32),
+                      ],
+                      const SizedBox(height: 140), // More bottom padding for footer
                     ],
                   ),
                 ),
@@ -364,14 +373,33 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
                   );
                 }
-                return Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Container(
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(
+                            color: const Color(0xFFF5F5F7),
+                            child: const Icon(Icons.broken_image_outlined, size: 50, color: Color(0xFFC7C7CC)),
+                          ),
+                    ),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black26,
+                            Colors.transparent,
+                            Colors.black38,
+                          ],
+                          stops: [0.0, 0.4, 1.0],
+                        ),
                       ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -395,17 +423,17 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_getFreshnessEmoji(widget.listing.freshness)),
-                      const SizedBox(width: 4),
-                      Text(
-                        _getFreshnessLabel(widget.listing.freshness, l10n),
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12),
-                      ),
-                    ],
+                      children: [
+                        _getFreshnessIndicator(widget.listing.freshness),
+                        const SizedBox(width: 6),
+                        Text(
+                          _getFreshnessLabel(widget.listing.freshness, l10n),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11),
+                        ),
+                      ],
                   ),
                 ),
               ),
@@ -440,33 +468,74 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
+  Widget _buildSectionHeader(String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              _getSectionIcon(label),
+              size: 14,
+              color: const Color(0xFF8E8E93),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF8E8E93),
+                letterSpacing: 1.1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+      ],
+    );
+  }
+
   Widget _buildHeaderSection(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(_getCategoryEmoji(widget.listing.category),
-                style: const TextStyle(fontSize: 20)),
+            Icon(
+              _getCategoryIcon(widget.listing.category),
+              size: 16,
+              color: AppTheme.primary,
+            ),
             const SizedBox(width: 8),
             Text(
-              _getCategoryLabel(widget.listing.category, l10n),
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              _getCategoryLabel(widget.listing.category, l10n).toUpperCase(),
+              style: const TextStyle(
+                color: AppTheme.primary,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.0,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Text(
           widget.listing.title,
           style: const TextStyle(
               fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.foreground),
+              fontWeight: FontWeight.w800,
+              color: AppTheme.foreground,
+              height: 1.2),
         ),
         const SizedBox(height: 8),
         Text(
           _details!.description,
-          style: TextStyle(fontSize: 15, color: Colors.grey[700], height: 1.5),
+          style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF636366),
+              height: 1.5,
+              fontWeight: FontWeight.w400),
         ),
       ],
     );
@@ -474,54 +543,63 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   Widget _buildPricingCard(AppLocalizations l10n) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.green[50]!, Colors.green[100]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green[100]!),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E5EA)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Text('💰', style: TextStyle(fontSize: 18)),
-              const SizedBox(width: 8),
-              Text(l10n.pricing,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 12),
+          _buildSectionHeader(l10n.pricing),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                '${widget.listing.originalPrice.toInt()} ${l10n.dzd}',
-                style: TextStyle(
-                    color: Colors.grey[400],
-                    decoration: TextDecoration.lineThrough,
-                    fontSize: 16),
-              ),
-              const SizedBox(width: 12),
-              Text(
                 '${widget.listing.discountedPrice.toInt()} ${l10n.dzd}',
                 style: const TextStyle(
-                    color: Color(0xFF2D8659),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 32),
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 28,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '${widget.listing.originalPrice.toInt()} ${l10n.dzd}',
+                style: const TextStyle(
+                  color: Color(0xFFC7C7CC),
+                  decoration: TextDecoration.lineThrough,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${l10n.you_save}: ${widget.listing.savings.toInt()} ${l10n.dzd} (${widget.listing.discountPercent}% ${l10n.off})',
-            style: const TextStyle(
-                color: Color(0xFF2D8659), fontWeight: FontWeight.w500),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${l10n.you_save}: ${widget.listing.savings.toInt()} ${l10n.dzd} (${widget.listing.discountPercent}% ${l10n.off})',
+              style: const TextStyle(
+                color: Color(0xFF2D8659),
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
           ),
         ],
       ),
@@ -551,153 +629,170 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     }
   }
   Widget _buildPickupWindowCard(AppLocalizations l10n) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey[200]!)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.access_time, color: Color(0xFF2D8659)),
-                const SizedBox(width: 8),
-                Text(l10n.pickup_window,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '${l10n.today}, ${widget.listing.pickupStart} - ${widget.listing.pickupEnd}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                if (widget.listing.pickupEnd
-                    .contains(':')) // Simple check for time
-                  Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  _getCountdownText(l10n),
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                ),
-              ],
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(l10n.pickup_window),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9F9F9),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE5E5EA).withOpacity(0.5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${l10n.today}, ${widget.listing.pickupStart} - ${widget.listing.pickupEnd}',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1C1C1E)),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 16, color: Color(0xFF8E8E93)),
+                  const SizedBox(width: 6),
+                  Text(
+                    _getCountdownText(l10n),
+                    style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
   Widget _buildLocationCard(AppLocalizations l10n) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey[200]!)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.location_on_outlined,
-                    color: Color(0xFF2D8659)),
-                const SizedBox(width: 8),
-                Text(l10n.pickup_location,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(_details!.address, style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 4),
-            Text(
-              '${widget.listing.distance} km ${l10n.from_you}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.map_outlined, size: 18),
-                    label: Text(l10n.view_map),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(l10n.pickup_location),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9F9F9),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _details!.address,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, height: 1.4),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${widget.listing.distance} km ${l10n.from_you}',
+                style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.map_outlined, size: 16),
+                      label: Text(l10n.view_map),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppTheme.primary,
+                        minimumSize: const Size(0, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        side: BorderSide(color: AppTheme.primary.withOpacity(0.2)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _handleGetDirections,
-                    icon: const Icon(Icons.navigation_outlined, size: 18),
-                    label: Text(l10n.get_directions),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _handleGetDirections,
+                      icon: const Icon(Icons.navigation_outlined, size: 16),
+                      label: Text(l10n.get_directions),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
   Widget _buildWhatYouGetCard(AppLocalizations l10n) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey[200]!)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text('📦', style: TextStyle(fontSize: 18)),
-                const SizedBox(width: 8),
-                Text(l10n.what_you_get,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ..._details!.whatYouGet.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('•',
-                          style: TextStyle(
-                              color: Color(0xFF2D8659),
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                          child: Text(item,
-                              style: TextStyle(color: Colors.grey[700]))),
-                    ],
-                  ),
-                )),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: widget.listing.dietary.map((diet) {
-                return Chip(
-                  label: Text(_getDietaryLabel(diet, l10n),
-                      style: const TextStyle(fontSize: 12)),
-                  backgroundColor: Colors.grey[100],
-                  padding: EdgeInsets.zero,
-                  avatar: Text(_getDietaryEmoji(diet)),
-                );
-              }).toList(),
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(l10n.what_you_get),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFF1F1F1)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ..._details!.whatYouGet.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Icon(Icons.check_circle_outline, size: 16, color: AppTheme.primary),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                            child: Text(item,
+                                style: const TextStyle(color: Color(0xFF3A3A3C), fontSize: 15, height: 1.4))),
+                      ],
+                    ),
+                  )),
+              const SizedBox(height: 8),
+              if (widget.listing.dietary.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: widget.listing.dietary.map((diet) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2F2F7),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_getDietaryIcon(diet), size: 14, color: const Color(0xFF48484A)),
+                          const SizedBox(width: 6),
+                          Text(_getDietaryLabel(diet, l10n),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF48484A))),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -705,38 +800,31 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.storefront, color: Color(0xFF2D8659)),
-            const SizedBox(width: 8),
-            Text(l10n.about_merchant,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        const SizedBox(height: 16),
+        _buildSectionHeader(l10n.about_merchant),
         Row(
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
-                color: const Color(0xFF2D8659).withOpacity(0.1),
-                shape: BoxShape.circle,
+                color: const Color(0xFFF2F2F7),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Center(
                 child: _details!.merchant.logoUrl != null && _details!.merchant.logoUrl!.isNotEmpty
-                    ? ClipOval(
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
                         child: Image.network(_details!.merchant.logoUrl!,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.store, color: Colors.green),
+                                const Icon(Icons.store, color: Color(0xFF8E8E93), size: 32),
                             ))
                     : Text(
                         _details!.merchant.name.substring(0, 1),
                         style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D8659)),
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.primary),
                       ),
               ),
             ),
@@ -747,17 +835,18 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 children: [
                   Text(_details!.merchant.name,
                       style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
+                          fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1C1C1E))),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 16),
+                      const Icon(Icons.star_rounded, color: Color(0xFFFFCC00), size: 20),
                       const SizedBox(width: 4),
                       Text(widget.listing.rating.toString(),
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                      Text(' (${widget.listing.reviewCount} ${l10n.results})',
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                      const SizedBox(width: 4),
+                      Text('(${widget.listing.reviewCount} ${l10n.results})',
                           style: const TextStyle(
-                              color: Colors.grey, fontSize: 12)),
+                              color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ],
@@ -765,36 +854,57 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Text(_details!.merchant.bio, style: TextStyle(color: Colors.grey[700])),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        Text(
+          _details!.merchant.bio,
+          style: const TextStyle(color: Color(0xFF48484A), fontSize: 15, height: 1.5),
+        ),
+        const SizedBox(height: 24),
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-              color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+              color: const Color(0xFFF9F9F9), borderRadius: BorderRadius.circular(16)),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildMerchantStat(
                   _details!.merchant.mealsSaved.toString(), l10n.repas),
+              Container(width: 1, height: 30, color: const Color(0xFFE5E5EA)),
               _buildMerchantStat('${_details!.merchant.fulfillmentRate}%',
                   l10n.fulfillment_rate),
+              Container(width: 1, height: 30, color: const Color(0xFFE5E5EA)),
               _buildMerchantStat('2023', l10n.member_since),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         Row(
           children: [
             Expanded(
-                child: OutlinedButton.icon(
+                child: ElevatedButton.icon(
                     onPressed: _handleCall,
-                    icon: const Icon(Icons.phone_outlined, size: 18),
-                    label: Text(l10n.call))),
+                    icon: const Icon(Icons.phone_rounded, size: 16),
+                    label: Text(l10n.call),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppTheme.primary,
+                      elevation: 0,
+                      side: BorderSide(color: AppTheme.primary.withOpacity(0.3), width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      minimumSize: const Size(0, 48),
+                    ))),
             const SizedBox(width: 12),
             Expanded(
-                child: OutlinedButton(
-                    onPressed: () {}, child: Text(l10n.view_profile))),
+                child: ElevatedButton(
+                    onPressed: () {}, 
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1C1C1E),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      minimumSize: const Size(0, 48),
+                    ),
+                    child: Text(l10n.view_profile))),
           ],
         ),
       ],
@@ -806,57 +916,64 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       children: [
         Text(value,
             style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2D8659),
-                fontSize: 18)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                fontWeight: FontWeight.w800,
+                color: AppTheme.primary,
+                fontSize: 20)),
+        const SizedBox(height: 4),
+        Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, color: Color(0xFF8E8E93), fontWeight: FontWeight.w600, letterSpacing: 0.5)),
       ],
     );
   }
 
   Widget _buildAvailabilityCard(AppLocalizations l10n) {
     final isLowStock = widget.listing.quantityLeft < 5;
-    return Card(
-      elevation: 0,
-      color: isLowStock ? Colors.red[50] : Colors.green[50],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-            color: isLowStock ? Colors.red[100]! : Colors.green[100]!),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text('📊', style: TextStyle(fontSize: 18)),
-                const SizedBox(width: 8),
-                Text(l10n.availability,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (isLowStock)
-              Text(
-                '⚠️ ${l10n.only} ${widget.listing.quantityLeft} ${l10n.left} — ${l10n.reserve_now}!',
-                style: TextStyle(
-                    color: Colors.red[700], fontWeight: FontWeight.bold),
-              )
-            else
-              Text(
-                '🟢 ${widget.listing.quantityLeft} ${l10n.bags_available}',
-                style: TextStyle(
-                    color: Colors.green[700], fontWeight: FontWeight.bold),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(l10n.availability),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isLowStock ? const Color(0xFFFFF2F2) : const Color(0xFFF2F9F2),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isLowStock ? const Color(0xFFFFD6D6) : const Color(0xFFD6EBD6)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                   Icon(
+                    isLowStock ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
+                    color: isLowStock ? const Color(0xFFFF3B30) : const Color(0xFF34C759),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isLowStock
+                        ? '${l10n.only} ${widget.listing.quantityLeft} ${l10n.left}'
+                        : '${widget.listing.quantityLeft} ${l10n.bags_available}',
+                    style: TextStyle(
+                        color: isLowStock ? const Color(0xFFFF3B30) : const Color(0xFF248A3D),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16),
+                  ),
+                ],
               ),
-            const SizedBox(height: 4),
-            Text('👥 $_viewingCount ${l10n.people_viewing}',
-                style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-          ],
+              const SizedBox(height: 8),
+                  Text(
+                    l10n.people_viewing(_viewingCount),
+                    style: TextStyle(
+                      color: isLowStock ? const Color(0xFFB03129) : const Color(0xFF3E7A4A),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -864,52 +981,50 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.star, color: Colors.amber),
-                const SizedBox(width: 8),
-                Text('${l10n.reviews} (${widget.listing.reviewCount})',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
+        _buildSectionHeader(l10n.reviews),
         Row(
           children: [
             Text(widget.listing.rating.toString(),
                 style:
-                    const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-            const SizedBox(width: 8),
-            Text('/ 5.0',
-                style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                    const TextStyle(fontSize: 48, fontWeight: FontWeight.w800, color: Color(0xFF1C1C1E))),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: List.generate(
+                      5,
+                      (index) => Icon(
+                            Icons.star_rounded,
+                            size: 20,
+                            color: index < widget.listing.rating.floor()
+                                ? const Color(0xFFFFCC00)
+                                : const Color(0xFFE5E5EA),
+                          )),
+                ),
+                const SizedBox(height: 4),
+                Text('${widget.listing.reviewCount} ${l10n.results}',
+                    style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.w500)),
+              ],
+            ),
           ],
         ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: widget.listing.rating / 5,
-            backgroundColor: Colors.grey[200],
-            color: const Color(0xFF2D8659),
-            minHeight: 8,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(l10n.recommended_percent(96),
-            style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         ..._details!.reviews
             .take(2)
             .map((review) => _buildReviewItem(review, l10n)),
         const SizedBox(height: 8),
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton(
+          child: ElevatedButton(
               onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF2F2F7),
+                foregroundColor: const Color(0xFF1C1C1E),
+                elevation: 0,
+                minimumSize: const Size(0, 48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               child: Text(
                   '${l10n.see_all_reviews} (${widget.listing.reviewCount})')),
         ),
@@ -918,89 +1033,67 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 
   Widget _buildReviewItem(ListingReview review, AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9F9F9),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: List.generate(
-                    5,
-                    (index) => Icon(
-                          Icons.star,
-                          size: 14,
-                          color: index < review.rating
-                              ? Colors.amber
-                              : Colors.grey[300],
-                        )),
-              ),
-              const SizedBox(width: 8),
               Text(review.userName,
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 13)),
-              const SizedBox(width: 4),
-              Text('• ${review.date}',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                      fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF1C1C1E))),
+              Text(review.date,
+                  style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12)),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(
+                5,
+                (index) => Icon(
+                      Icons.star_rounded,
+                      size: 14,
+                      color: index < review.rating
+                          ? const Color(0xFFFFCC00)
+                          : const Color(0xFFE5E5EA),
+                    )),
+          ),
+          const SizedBox(height: 12),
           Text(review.comment,
-              style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+              style: const TextStyle(color: Color(0xFF48484A), fontSize: 14, height: 1.4)),
           if (review.merchantReply != null)
             Container(
-              margin: const EdgeInsets.only(top: 8, left: 16),
-              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8)),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E5EA))),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${l10n.merchant_replied}:',
-                      style: const TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.reply_all_rounded, size: 14, color: AppTheme.primary),
+                      const SizedBox(width: 8),
+                      Text(l10n.merchant_replied.toUpperCase(),
+                          style: const TextStyle(
+                              fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.primary, letterSpacing: 0.5)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   Text(review.merchantReply!,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF48484A), height: 1.4)),
                 ],
               ),
             ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              InkWell(
-                onTap: () {},
-                child: Row(
-                  children: [
-                    const Icon(Icons.thumb_up_outlined,
-                        size: 14, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text('${l10n.helpful} (${review.helpfulCount})',
-                        style:
-                            const TextStyle(color: Colors.grey, fontSize: 12)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              InkWell(
-                onTap: () {},
-                child: Row(
-                  children: [
-                    const Icon(Icons.mode_comment_outlined,
-                        size: 14, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(l10n.reply,
-                        style:
-                            const TextStyle(color: Colors.grey, fontSize: 12)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Divider(),
         ],
       ),
     );
@@ -1010,34 +1103,30 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Text('❓', style: TextStyle(fontSize: 18)),
-            const SizedBox(width: 8),
-            Text(l10n.faqs,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        const SizedBox(height: 16),
+        _buildSectionHeader(l10n.faqs),
         ..._details!.faqs.asMap().entries.map((entry) {
           final index = entry.key;
           final faq = entry.value;
           final isExpanded = _expandedFaqIndex == index;
           return Container(
-            margin: const EdgeInsets.only(bottom: 8),
+            margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey[200]!),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFF1F1F1)),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               children: [
                 ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   title: Text(faq.question,
                       style: const TextStyle(
-                          fontWeight: FontWeight.w500, fontSize: 14)),
-                  trailing: Icon(isExpanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down),
+                          fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF1C1C1E))),
+                  trailing: Icon(
+                    isExpanded ? Icons.remove_circle_outline : Icons.add_circle_outline,
+                    color: isExpanded ? AppTheme.primary : const Color(0xFFC7C7CC),
+                    size: 20,
+                  ),
                   onTap: () => setState(
                       () => _expandedFaqIndex = isExpanded ? null : index),
                 ),
@@ -1046,17 +1135,19 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     child: Text(faq.answer,
                         style:
-                            TextStyle(color: Colors.grey[700], fontSize: 13)),
+                            const TextStyle(color: Color(0xFF48484A), fontSize: 14, height: 1.5)),
                   ),
               ],
             ),
           );
         }),
         const SizedBox(height: 8),
-        TextButton(
-            onPressed: () {},
-            child: Text('${l10n.still_have_questions} →',
-                style: const TextStyle(color: Color(0xFF2D8659)))),
+        Center(
+          child: TextButton(
+              onPressed: () {},
+              child: Text(l10n.still_have_questions,
+                  style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600))),
+        ),
       ],
     );
   }
@@ -1070,93 +1161,114 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       left: 0,
       right: 0,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey[200]!)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -5))
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            )
           ],
         ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 100,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(l10n.quantity,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[200]!),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Row(
-                      children: [
-                        _buildQuantityBtn(
-                            Icons.remove,
-                            _quantity > 1
-                                ? () => setState(() => _quantity--)
-                                : null),
-                        SizedBox(
-                            width: 40,
-                            child: Center(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        l10n.quantity,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF8E8E93)),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF2F2F7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildQuantityBtn(
+                                Icons.remove,
+                                _quantity > 1
+                                    ? () => setState(() => _quantity--)
+                                    : null),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
                                 child: Text(_quantity.toString(),
                                     style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16)))),
-                        _buildQuantityBtn(
-                            Icons.add,
-                            _quantity < widget.listing.quantityLeft
-                                ? () => setState(() => _quantity++)
-                                : null),
-                      ],
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 15)),
+                              ),
+                            _buildQuantityBtn(
+                                Icons.add,
+                                _quantity < widget.listing.quantityLeft
+                                    ? () => setState(() => _quantity++)
+                                    : null),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: (canReserve && !_isReserving && !_details!.userHasReserved) ? _handleReserve : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _details!.userHasReserved ? Color(0xFFC7C7CC) : AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 56),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      child: _isReserving
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2),
+                            )
+                          : FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                _details!.userHasReserved
+                                    ? l10n.already_reserved
+                                    : canReserve
+                                        ? '${l10n.reserve_for} ${totalPrice.toInt()} ${l10n.dzd}'
+                                        : l10n.sold_out,
+                                maxLines: 1,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w800),
+                              ),
+                            ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: (canReserve && !_isReserving) ? _handleReserve : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2D8659),
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 56),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  disabledBackgroundColor: Colors.grey[300],
-                ),
-                child: _isReserving
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2),
-                      )
-                    : Text(
-                        canReserve
-                            ? '${l10n.reserve_for} ${totalPrice.toInt()} ${l10n.dzd}'
-                            : l10n.sold_out,
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.lock_outline, size: 12, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(l10n.payment_after_reservation,
-                      style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                ],
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.verified_user_outlined, size: 14, color: Color(0xFF34C759)),
+                const SizedBox(width: 6),
+                Text(l10n.payment_after_reservation,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF8E8E93), fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -1166,16 +1278,39 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     return IconButton(
       icon: Icon(icon, size: 20),
       onPressed: onPressed,
-      color: onPressed == null ? Colors.grey[300] : const Color(0xFF2D8659),
+      color: onPressed == null ? const Color(0xFFC7C7CC) : AppTheme.primary,
     );
+  }
+
+  IconData _getSectionIcon(String label) {
+    if (label.toLowerCase().contains('pricing')) return Icons.payments_outlined;
+    if (label.toLowerCase().contains('pickup window')) return Icons.access_time_rounded;
+    if (label.toLowerCase().contains('pickup location')) return Icons.location_on_outlined;
+    if (label.toLowerCase().contains('what you get')) return Icons.inventory_2_outlined;
+    if (label.toLowerCase().contains('about merchant')) return Icons.storefront_rounded;
+    if (label.toLowerCase().contains('faqs')) return Icons.help_outline_rounded;
+    return Icons.info_outline;
+  }
+
+  IconData _getCategoryIcon(FoodCategory category) {
+    switch (category) {
+      case FoodCategory.bakery:
+        return Icons.bakery_dining_rounded;
+      case FoodCategory.restaurant:
+        return Icons.restaurant_rounded;
+      case FoodCategory.supermarket:
+        return Icons.shopping_basket_rounded;
+      case FoodCategory.cafe:
+        return Icons.local_cafe_rounded;
+    }
   }
 
   Color _getFreshnessColor(FreshnessGrade grade) {
     switch (grade) {
       case FreshnessGrade.A:
-        return Colors.green[500]!;
+        return const Color(0xFF2D8659);
       case FreshnessGrade.B:
-        return Colors.yellow[700]!;
+        return Colors.amber[700]!;
       case FreshnessGrade.C:
         return Colors.orange[700]!;
     }
@@ -1192,28 +1327,21 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     }
   }
 
-  String _getFreshnessEmoji(FreshnessGrade grade) {
-    switch (grade) {
-      case FreshnessGrade.A:
-        return '🟢';
-      case FreshnessGrade.B:
-        return '🟡';
-      case FreshnessGrade.C:
-        return '🟠';
-    }
-  }
-
-  String _getCategoryEmoji(FoodCategory category) {
-    switch (category) {
-      case FoodCategory.bakery:
-        return '🍞';
-      case FoodCategory.restaurant:
-        return '🍽️';
-      case FoodCategory.supermarket:
-        return '🛒';
-      case FoodCategory.cafe:
-        return '☕';
-    }
+  Widget _getFreshnessIndicator(FreshnessGrade grade) {
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 2,
+          )
+        ],
+      ),
+    );
   }
 
   String _getCategoryLabel(FoodCategory category, AppLocalizations l10n) {
@@ -1229,19 +1357,21 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     }
   }
 
-  String _getDietaryEmoji(String diet) {
-    switch (diet) {
+  IconData _getDietaryIcon(String diet) {
+    switch (diet.toLowerCase()) {
       case 'halal':
-        return '✅';
+        return Icons.verified_rounded;
       case 'vegan':
-        return '🌱';
+        return Icons.eco_rounded;
+      case 'vegetarian':
+        return Icons.spa_rounded;
       default:
-        return '📍';
+        return Icons.check_circle_rounded;
     }
   }
 
   String _getDietaryLabel(String diet, AppLocalizations l10n) {
-    switch (diet) {
+    switch (diet.toLowerCase()) {
       case 'halal':
         return l10n.halal;
       case 'vegan':

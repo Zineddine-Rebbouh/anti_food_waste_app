@@ -55,7 +55,7 @@ class RoleSelectorScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               const Text(
-                'SaveFood DZ',
+                'Tawfir',
                 style: TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,

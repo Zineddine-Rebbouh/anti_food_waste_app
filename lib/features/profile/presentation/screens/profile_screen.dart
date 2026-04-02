@@ -163,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return BlocProvider.value(
       value: _cubit,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF6F7F9),
+        backgroundColor: Colors.grey[50],
         body: BlocBuilder<ProfileCubit, ProfileState>(
           builder: (context, state) {
             final l10n = AppLocalizations.of(context)!;

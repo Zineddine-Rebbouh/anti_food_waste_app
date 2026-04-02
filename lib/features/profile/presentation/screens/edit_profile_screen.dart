@@ -114,7 +114,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
@@ -129,78 +129,103 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.black),
+          icon:
+              const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          BlocBuilder<ProfileCubit, ProfileState>(
-            builder: (_, state) {
-              final busy = state is ProfileUpdating || _isSaving;
-              return TextButton(
-                onPressed: busy ? null : () => _save(l10n),
-                child: busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppTheme.primary,
-                        ),
-                      )
-                    : Text(
-                        l10n.save_changes,
-                        style: const TextStyle(
-                          color: AppTheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-              );
-            },
-          ),
+          const SizedBox(width: 48), // Placeholder to keep title centered if needed, or just leave empty
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              // ── Avatar ───────────────────────────────────────────────────
-              _buildAvatarPicker(l10n),
-              const SizedBox(height: 36),
+      body: Column(
+        children: [
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    // ── Avatar ───────────────────────────────────────────────────
+                    _buildAvatarPicker(l10n),
+                    const SizedBox(height: 36),
 
-              // ── Full name ────────────────────────────────────────────────
-              _buildField(
-                controller: _nameCtrl,
-                label: l10n.full_name,
-                icon: Icons.person_outline_rounded,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return l10n.full_name;
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+                    // ── Full name ────────────────────────────────────────────────
+                    _buildField(
+                      controller: _nameCtrl,
+                      label: l10n.full_name,
+                      icon: Icons.person_outline_rounded,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return l10n.full_name;
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-              // ── Phone ────────────────────────────────────────────────────
-              _buildField(
-                controller: _phoneCtrl,
-                label: l10n.phone_number,
-                icon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 16),
+                    // ── Phone ────────────────────────────────────────────────────
+                    _buildField(
+                      controller: _phoneCtrl,
+                      label: l10n.phone_number,
+                      icon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
 
-              // ── Email (read-only) ─────────────────────────────────────────
-              _buildField(
-                controller: TextEditingController(text: widget.user.email),
-                label: l10n.email,
-                icon: Icons.email_outlined,
-                readOnly: true,
+                    // ── Email (read-only) ─────────────────────────────────────────
+                    _buildField(
+                      controller: TextEditingController(text: widget.user.email),
+                      label: l10n.email,
+                      icon: Icons.email_outlined,
+                      readOnly: true,
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
-        ),
+
+          // ── Bottom Save Button ──────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+            child: BlocBuilder<ProfileCubit, ProfileState>(
+              builder: (_, state) {
+                final busy = state is ProfileUpdating || _isSaving;
+                return SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: busy ? null : () => _save(l10n),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: busy
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            l10n.save_changes,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

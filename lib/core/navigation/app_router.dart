@@ -60,7 +60,7 @@ abstract final class AppRouter {
         return _fade(const OnboardingScreen());
 
       case AppRoutes.welcome:
-        return MaterialPageRoute(builder: (_) => const WelcomeScreen());
+        return _fade(const WelcomeScreen());
 
       case AppRoutes.roleSelector:
         return _fade(const RoleSelectorScreen());

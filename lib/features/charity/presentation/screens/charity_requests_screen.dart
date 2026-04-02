@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
-import 'package:anti_food_waste_app/features/charity/data/mock_charity_data.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_cubit.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_state.dart';
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/widgets/charity_status_badge.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_confirm_collection_screen.dart';
@@ -17,16 +19,16 @@ class _CharityRequestsScreenState
     extends State<CharityRequestsScreen> {
   int _selectedTab = 0;
 
-  List<CharityPickupRequest> get _activeRequests =>
-      mockPickupRequests
+  List<CharityPickupRequest> _getActiveRequests(List<CharityPickupRequest> requests) =>
+      requests
           .where((r) =>
               r.status == PickupRequestStatus.pending ||
               r.status == PickupRequestStatus.approved ||
               r.status == PickupRequestStatus.enRoute)
           .toList();
 
-  List<CharityPickupRequest> get _completedRequests =>
-      mockPickupRequests
+  List<CharityPickupRequest> _getCompletedRequests(List<CharityPickupRequest> requests) =>
+      requests
           .where((r) =>
               r.status == PickupRequestStatus.collected ||
               r.status == PickupRequestStatus.cancelled)
@@ -34,7 +36,19 @@ class _CharityRequestsScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BlocBuilder<CharityCubit, CharityState>(
+      builder: (context, state) {
+        if (state is CharityLoading) {
+          return const Scaffold(
+            backgroundColor: Color(0xFFF7F7F9),
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final List<CharityPickupRequest> requests = state is CharityLoaded ? state.myRequests : [];
+        final activeRequests = _getActiveRequests(requests);
+        final completedRequests = _getCompletedRequests(requests);
+
+        return Scaffold(
       backgroundColor: const Color(0xFFF7F7F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -53,23 +67,25 @@ class _CharityRequestsScreenState
       ),
       body: Column(
         children: [
-          _buildTabRow(),
+          _buildTabRow(activeRequests, completedRequests),
           Expanded(
             child: _selectedTab == 0
-                ? _buildRequestList(_activeRequests)
-                : _buildRequestList(_completedRequests),
+                ? _buildRequestList(activeRequests)
+                : _buildRequestList(completedRequests),
           ),
         ],
       ),
+    );
+      },
     );
   }
 
   // ── Tab Row ─────────────────────────────────────────────────────────────────
 
-  Widget _buildTabRow() {
+  Widget _buildTabRow(List<CharityPickupRequest> activeReq, List<CharityPickupRequest> completedReq) {
     final tabs = [
-      {'label': 'Active', 'count': _activeRequests.length},
-      {'label': 'Completed', 'count': _completedRequests.length},
+      {'label': 'Active', 'count': activeReq.length},
+      {'label': 'Completed', 'count': completedReq.length},
     ];
 
     return Container(

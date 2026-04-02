@@ -6,6 +6,7 @@ class RoleButton extends StatelessWidget {
   final String title;
   final String description;
   final VoidCallback onTap;
+  final bool isSelected;
 
   const RoleButton({
     super.key,
@@ -13,18 +14,23 @@ class RoleButton extends StatelessWidget {
     required this.title,
     required this.description,
     required this.onTap,
+    this.isSelected = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(16),
+          color: isSelected ? AppTheme.primary.withOpacity(0.05) : Colors.white,
+          border: Border.all(
+            color: isSelected ? AppTheme.primary : const Color(0xFFE5E7EB),
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           children: [
@@ -32,11 +38,11 @@ class RoleButton extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppTheme.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: AppTheme.primary),
+              child: Icon(icon, color: AppTheme.primary, size: 28),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,12 +50,19 @@ class RoleButton extends StatelessWidget {
                   Text(
                     title,
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 18,
+                      color: Color(0xFF111827),
+                    ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     description,
                     style: const TextStyle(
-                        color: AppTheme.mutedForeground, fontSize: 12),
+                      color: Color(0xFF6B7280),
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),

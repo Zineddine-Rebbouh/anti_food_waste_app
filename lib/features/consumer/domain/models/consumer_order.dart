@@ -1,3 +1,5 @@
+import 'package:anti_food_waste_app/core/config/app_config.dart';
+
 /// Domain model for a consumer's order, mapped from OrderListSerializer /
 /// OrderDetailSerializer responses.
 class ConsumerOrder {
@@ -47,11 +49,31 @@ class ConsumerOrder {
 
     String trimTime(String? raw) {
       if (raw == null || raw.isEmpty) return '';
-      return raw.length >= 5 ? raw.substring(0, 5) : raw;
+      final s = raw.trim();
+
+      // Works for ISO-8601 datetime strings coming from DRF:
+      // e.g. "2026-03-18T14:30:00Z" → "14:30"
+      final tryDt = DateTime.tryParse(s);
+      if (tryDt != null) {
+        final hh = tryDt.hour.toString().padLeft(2, '0');
+        final mm = tryDt.minute.toString().padLeft(2, '0');
+        return '$hh:$mm';
+      }
+
+      // Also support "HH:MM:SS" / "HH:MM"
+      final match = RegExp(r'(\d{2}:\d{2})').firstMatch(s);
+      if (match != null) return match.group(1)!;
+
+      // Fallback
+      return s.length >= 5 ? s.substring(0, 5) : s;
     }
 
-    final pickupStart = trimTime(listing?['pickup_start'] as String?);
-    final pickupEnd = trimTime(listing?['pickup_end'] as String?);
+    final pickupStart = trimTime(
+      (listing?['pickup_start'] as String?) ?? (json['pickup_start'] as String?),
+    );
+    final pickupEnd = trimTime(
+      (listing?['pickup_end'] as String?) ?? (json['pickup_end'] as String?),
+    );
 
     final image = listing?['primary_photo_url'] as String? ??
         json['listing_photo'] as String? ??
@@ -66,10 +88,24 @@ class ConsumerOrder {
     final shortRef = rawId.replaceAll('-', '').substring(0, rawId.replaceAll('-', '').length.clamp(0, 8)).toUpperCase();
     final orderNumber = '#SF-$shortRef';
 
+    String normalizeUrl(String url) {
+      if (url.isEmpty) return '';
+      final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
+      if (url.startsWith('http')) {
+        if (url.contains('://127.0.0.1') || url.contains('://localhost')) {
+          final path = Uri.parse(url).path;
+          return '$baseAppUrl$path';
+        }
+        return url;
+      }
+      final cleanUrl = url.startsWith('/') ? url : '/$url';
+      return '$baseAppUrl$cleanUrl';
+    }
+
     return ConsumerOrder(
       id: rawId,
       merchantName: json['merchant_name'] as String? ?? '',
-      merchantImage: image,
+      merchantImage: normalizeUrl(image),
       listingTitle: title,
       totalPrice: _toDoubleCO(json['total_price']),
       currency: json['currency'] as String? ?? 'DZD',

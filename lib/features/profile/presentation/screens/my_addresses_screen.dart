@@ -501,12 +501,6 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_rounded, color: Colors.black),
-            onPressed: () => _showAddressSheet(null),
-          ),
-        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

@@ -1,9 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
-import 'package:anti_food_waste_app/features/charity/data/mock_charity_data.dart';
+
 import 'package:anti_food_waste_app/features/charity/presentation/widgets/charity_donation_card.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/widgets/charity_status_badge.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_donation_detail_screen.dart';
@@ -130,12 +130,9 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
           r.status == PickupRequestStatus.pending ||
           r.status == PickupRequestStatus.approved)
       .length;
-  int get _totalMeals =>
-      mockImpactReports.fold(0, (sum, r) => sum + r.mealsServed);
-  int get _totalBeneficiaries =>
-      mockImpactReports.fold(0, (sum, r) => sum + r.beneficiaries);
-  double get _totalKg =>
-      mockImpactReports.fold(0.0, (sum, r) => sum + r.actualWeightKg);
+  int get _totalMeals => 0; // Fetch from API later
+  int get _totalBeneficiaries => 0;
+  double get _totalKg => 0.0;
   List<CharityDonation> _urgentDonations(List<CharityDonation> donations) =>
       donations.where((d) => d.urgency != UrgencyLevel.normal).toList();
   List<CharityDonation> _availableDonations(List<CharityDonation> donations) => donations
@@ -165,8 +162,8 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
               parsedDonations = state.donations;
               parsedRequests = state.myRequests;
             } else {
-              parsedDonations = mockDonations;
-              parsedRequests = mockPickupRequests;
+              parsedDonations = [];
+              parsedRequests = [];
             }
             return CustomScrollView(
               controller: _scrollController,

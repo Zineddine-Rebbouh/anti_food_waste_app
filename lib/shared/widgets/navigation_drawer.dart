@@ -89,7 +89,7 @@ class CustomNavigationDrawer extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 24.0),
             child: Text(
-              'SaveFood DZ v1.0.0',
+              'Tawfir v1.0.0',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[400],
@@ -122,7 +122,7 @@ class CustomNavigationDrawer extends StatelessWidget {
                 ),
                 child: const Center(
                   child: Text(
-                    'SF',
+                    'T',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -136,14 +136,14 @@ class CustomNavigationDrawer extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'SaveFood User',
+                    'Tawfir User',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    'user@savefood.dz',
+                    'user@tawfir.dz',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey,

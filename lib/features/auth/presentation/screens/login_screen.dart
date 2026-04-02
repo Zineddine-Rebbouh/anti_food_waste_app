@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/core/navigation/app_router.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/cubits/auth_cubit.dart';
@@ -56,6 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is AuthAuthenticated) {
@@ -70,27 +72,30 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          backgroundColor: AppTheme.background,
+          backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppTheme.foreground),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF212121)),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          title: const Text(
-            'Sign In',
-            style: TextStyle(color: AppTheme.foreground, fontSize: 20),
+          title: Text(
+            l10n.login,
+            style: const TextStyle(
+              color: Color(0xFF212121), 
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(1),
-            child: Container(
-              height: 1,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppTheme.primary, Colors.white, AppTheme.accent],
-                ),
-              ),
+            preferredSize: const Size.fromHeight(4),
+            child: Row(
+              children: [
+                Expanded(child: Container(color: AppTheme.primary, height: 4)),
+                Expanded(child: Container(color: Colors.white, height: 4)),
+                Expanded(child: Container(color: AppTheme.accent, height: 4)),
+              ],
             ),
           ),
         ),
@@ -107,38 +112,40 @@ class _LoginScreenState extends State<LoginScreen> {
                   // ── Logo ──────────────────────────────────────────────────
                   Center(
                     child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF2D8659), Color(0xFF1A5E3C)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child:
-                          const Icon(Icons.eco, size: 38, color: Colors.white),
+                      child: Center(
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 54,
+                          height: 54,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  const Text(
-                    'Welcome back',
+                  Text(
+                    l10n.welcome_back_simple,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.foreground,
+                      color: Color(0xFF212121),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Sign in to your SaveFood DZ account',
+                  Text(
+                    l10n.sign_in_to_tawfir,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
-                      color: AppTheme.mutedForeground,
+                      color: Color(0xFF757575),
                     ),
                   ),
                   const SizedBox(height: 36),
@@ -149,12 +156,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     autocorrect: false,
                     decoration: _inputDecoration(
-                      label: 'Email address',
+                      label: l10n.email_address,
                       icon: Icons.email_outlined,
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Email is required';
-                      if (!v.contains('@')) return 'Enter a valid email';
+                      if (v == null || v.isEmpty) return l10n.email_required;
+                      if (!v.contains('@')) return l10n.invalid_email;
                       return null;
                     },
                   ),
@@ -165,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: _inputDecoration(
-                      label: 'Password',
+                      label: l10n.password,
                       icon: Icons.lock_outline,
                     ).copyWith(
                       suffixIcon: IconButton(
@@ -180,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Password is required';
+                      if (v == null || v.isEmpty) return l10n.password_required;
                       return null;
                     },
                   ),
@@ -195,9 +202,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           builder: (_) => const ForgotPasswordScreen(),
                         ),
                       ),
-                      child: const Text(
-                        'Forgot password?',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.forgot_password_question,
+                        style: const TextStyle(
                           color: AppTheme.primary,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -231,9 +238,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text(
-                                'Sign In',
-                                style: TextStyle(
+                            : Text(
+                                l10n.login,
+                                style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -244,29 +251,30 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 20),
 
                   // ── Sign up link ──────────────────────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Don't have an account?  ",
-                        style: TextStyle(
-                          color: AppTheme.mutedForeground,
-                          fontSize: 14,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () =>
-                            Navigator.of(context).pushNamed(AppRoutes.signUp),
-                        child: const Text(
-                          'Sign Up',
-                          style: TextStyle(
-                            color: AppTheme.primary,
+                  Center(
+                    child: GestureDetector(
+                      onTap: () =>
+                          Navigator.of(context).pushNamed(AppRoutes.signUp),
+                      child: RichText(
+                        text: TextSpan(
+                          style: const TextStyle(
+                            color: Color(0xFF757575),
                             fontSize: 14,
-                            fontWeight: FontWeight.w700,
                           ),
+                          children: [
+                            TextSpan(text: l10n.dont_have_account + "  "),
+                            TextSpan(
+                              text: l10n.create_account,
+                              style: const TextStyle(
+                                color: AppTheme.primary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),

@@ -60,14 +60,19 @@ class MerchantOrder {
     final listingTitle =
         listing?['title'] as String? ?? json['listing_title'] as String? ?? '';
 
-    // Pickup window from nested listing (only in detail serializer).
+    // Pickup window: detail serializer nests `listing`, but list serializer
+    // (OrderListSerializer) exposes `pickup_start/pickup_end` at top-level.
     final now = DateTime.now();
     final pickupStart = listing != null && listing['pickup_start'] != null
         ? DateTime.parse(listing['pickup_start'] as String)
-        : now;
+        : (json['pickup_start'] != null
+            ? DateTime.parse(json['pickup_start'] as String)
+            : now);
     final pickupEnd = listing != null && listing['pickup_end'] != null
         ? DateTime.parse(listing['pickup_end'] as String)
-        : now.add(const Duration(hours: 2));
+        : (json['pickup_end'] != null
+            ? DateTime.parse(json['pickup_end'] as String)
+            : now.add(const Duration(hours: 2)));
 
     // Consumer info — only present when the merchant fetches order detail.
     final customerName =

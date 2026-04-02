@@ -49,7 +49,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             const _LegalSection(
               title: '1. Information We Collect',
               body:
-                  'When you use SaveFood DZ, we collect certain information to provide and improve our services. '
+                  'When you use Tawfir, we collect certain information to provide and improve our services. '
                   'Personal data such as your full name, email address, and phone number is collected when you '
                   'create an account. Payment information is handled exclusively by our secure payment processors '
                   'and is never stored on our own servers.\n\n'
@@ -83,7 +83,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             const _LegalSection(
               title: '3. Data Sharing',
               body:
-                  'SaveFood DZ does not sell, rent, or trade your personal information to any third parties for '
+                  'Tawfir does not sell, rent, or trade your personal information to any third parties for '
                   'their own marketing or commercial purposes. We treat your data with the highest level of '
                   'confidentiality and only share it under the limited circumstances described below.\n\n'
                   'We share only the minimum data required with merchants when you make a reservation. This '
@@ -92,7 +92,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   'your information for any purpose beyond completing your order.\n\n'
                   'We may disclose your data to law enforcement or governmental authorities if we are legally '
                   'required to do so, or if we reasonably believe such disclosure is necessary to protect '
-                  'the rights, property, or safety of SaveFood DZ, our users, or the general public.',
+                  'the rights, property, or safety of Tawfir, our users, or the general public.',
             ),
 
             // ── Section 4: Data Security ─────────────────────────────────────
@@ -117,7 +117,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             const _LegalSection(
               title: '5. Location Data',
               body:
-                  'SaveFood DZ uses your device\'s location to show you food deals from nearby merchants, '
+                  'Tawfir uses your device\'s location to show you food deals from nearby merchants, '
                   'sorted and filtered by proximity to your current position. Location access is requested at '
                   'the time of first use and requires your explicit permission before any location data '
                   'is collected or transmitted.\n\n'
@@ -126,7 +126,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   'session, and we do not share your precise location data with merchants, advertisers, or '
                   'any other third parties at any time.\n\n'
                   'You can disable location access at any time through your device\'s system settings or '
-                  'within the SaveFood DZ app under Settings > Privacy & Security > Share Location. '
+                  'within the Tawfir app under Settings > Privacy & Security > Share Location. '
                   'Disabling location access will limit the app\'s ability to surface nearby deals '
                   'automatically, but you can still browse all available listings manually.',
             ),
@@ -142,7 +142,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   'You may also request a copy of your data in a portable, machine-readable format, object '
                   'to certain types of data processing, restrict how we use your data in certain situations, '
                   'and withdraw any consent you have previously given. To exercise any of these rights, '
-                  'please contact our privacy team at privacy@savefood.dz.\n\n'
+                  'please contact our privacy team at privacy@tawfir.dz.\n\n'
                   'We will respond to all verified and legitimate requests within 30 calendar days. In some '
                   'cases, we may need to verify your identity before processing your request in order to '
                   'protect the integrity and security of your account.',
@@ -154,7 +154,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             // Footer contact note
             Center(
               child: Text(
-                'Questions? Email us at privacy@savefood.dz',
+                'Questions? Email us at privacy@tawfir.dz',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,

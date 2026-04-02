@@ -1,3 +1,4 @@
+import 'package:anti_food_waste_app/core/config/app_config.dart';
 enum FreshnessGrade { A, B, C }
 
 enum FoodCategory { bakery, restaurant, supermarket, cafe }
@@ -103,9 +104,9 @@ class FoodListing {
     String categoryName = '';
     final categoryField = json['category'];
     if (categoryField is Map) {
-      categoryName = (categoryField['name'] as String? ?? '').toLowerCase();
+      categoryName = (categoryField['name']?.toString() ?? '').toLowerCase();
     } else {
-      categoryName = (json['category_name'] as String? ?? '').toLowerCase();
+      categoryName = (json['category_name']?.toString() ?? '').toLowerCase();
     }
     FoodCategory category;
     if (categoryName.contains('boulangerie') ||
@@ -127,7 +128,7 @@ class FoodListing {
     }
 
     // ── Freshness ─────────────────────────────────────────────────────────
-    final fg = (json['freshness_grade'] as String? ?? 'A').toUpperCase();
+    final fg = (json['freshness_grade']?.toString() ?? 'A').toUpperCase();
     FreshnessGrade freshness;
     if (fg == 'B') {
       freshness = FreshnessGrade.B;
@@ -140,18 +141,56 @@ class FoodListing {
     // ── Pickup times (TimeField → "HH:MM:SS", keep "HH:MM") ─────────────
     String trimTime(String? raw) {
       if (raw == null || raw.isEmpty) return '';
-      return raw.length >= 5 ? raw.substring(0, 5) : raw;
+      final s = raw.trim();
+
+      // Works for ISO-8601 datetime strings coming from DRF:
+      // e.g. "2026-03-18T14:30:00Z" → "14:30"
+      final tryDt = DateTime.tryParse(s);
+      if (tryDt != null) {
+        final hh = tryDt.hour.toString().padLeft(2, '0');
+        final mm = tryDt.minute.toString().padLeft(2, '0');
+        return '$hh:$mm';
+      }
+
+      // Also support "HH:MM:SS" / "HH:MM"
+      final match = RegExp(r'(\d{2}:\d{2})').firstMatch(s);
+      if (match != null) return match.group(1)!;
+
+      // Fallback: keep the first 5 chars (legacy behavior)
+      return s.length >= 5 ? s.substring(0, 5) : s;
     }
 
     // ── Primary image ─────────────────────────────────────────────────────
     // List: primary_photo_url  |  Detail: first photo in photos[]
-    String imageUrl = json['primary_photo_url'] as String? ?? '';
-    if (imageUrl.isEmpty) {
+    String rawImageUrl = json['primary_photo_url']?.toString() ?? '';
+    if (rawImageUrl.isEmpty) {
       final photos = json['photos'] as List<dynamic>?;
       if (photos != null && photos.isNotEmpty) {
-        imageUrl = (photos.first as Map<String, dynamic>)['photo_url'] as String? ?? '';
+        rawImageUrl = (photos.first as Map<String, dynamic>)['photo_url'] as String? ?? '';
       }
     }
+
+    String normalizeUrl(String url) {
+      if (url.isEmpty) return '';
+      
+      // Get base URL without /api/v1/
+      final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
+      
+      if (url.startsWith('http')) {
+        // If it's a localhost/127.0.0.1 URL from the backend, 
+        // replace it with our configured baseAppUrl to ensure it works on emulators/devices.
+        if (url.contains('://127.0.0.1') || url.contains('://localhost')) {
+          final path = Uri.parse(url).path;
+          return '$baseAppUrl$path';
+        }
+        return url;
+      }
+      
+      final cleanUrl = url.startsWith('/') ? url : '/$url';
+      return '$baseAppUrl$cleanUrl';
+    }
+
+    final imageUrl = normalizeUrl(rawImageUrl);
 
     // ── Merchant info (detail response only) ─────────────────────────────
     final merchantInfo = json['merchant_info'] as Map<String, dynamic>?;
@@ -170,7 +209,7 @@ class FoodListing {
 
     // ── Posted minutes ago ────────────────────────────────────────────────
     int postedMinutesAgo = 0;
-    final createdAtStr = json['created_at'] as String?;
+    final createdAtStr = json['created_at']?.toString();
     if (createdAtStr != null) {
       try {
         final dt = DateTime.parse(createdAtStr);
@@ -183,8 +222,8 @@ class FoodListing {
 
     return FoodListing(
       id: _extractListingId(json),
-      title: json['title'] as String? ?? '',
-      merchantName: json['merchant_name'] as String? ?? merchantInfo?['business_name']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      merchantName: json['merchant_name']?.toString() ?? merchantInfo?['business_name']?.toString() ?? '',
       merchantId: merchantId,
       originalPrice: _toDouble(json['original_price']),
       discountedPrice: _toDouble(json['discounted_price']),
@@ -195,9 +234,9 @@ class FoodListing {
       distance: _toDouble(json['distance_km']),
       freshness: freshness,
       category: category,
-      pickupStart: trimTime(json['pickup_start'] as String?),
-      pickupEnd: trimTime(json['pickup_end'] as String?),
-      quantityLeft: (json['quantity_available'] as num? ?? 0).toInt(),
+      pickupStart: trimTime(json['pickup_start']?.toString()),
+      pickupEnd: trimTime(json['pickup_end']?.toString()),
+      quantityLeft: _toDouble(json['quantity_available']).toInt(),
       dietary: dietary,
       lat: lat == 0 ? _toDouble(json['lat']) : lat,
       lng: lng == 0 ? _toDouble(json['lng']) : lng,

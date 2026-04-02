@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_listing.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/cubits/merchant_cubit.dart';
 import 'package:anti_food_waste_app/shared/widgets/confetti_overlay.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 // ── Form State ─────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,13 @@ class _MerchantCreateListingScreenState
   bool _isPublishing = false;
   bool _showSuccess = false;
 
-  static const _stepLabels = ['Photo', 'Details', 'Price', 'Pickup', 'Preview'];
+  List<String> _getStepLabels(AppLocalizations l10n) => [
+        l10n.step_photo,
+        l10n.step_details,
+        l10n.step_price,
+        l10n.step_pickup,
+        l10n.step_preview
+      ];
 
   @override
   void dispose() {
@@ -82,21 +89,22 @@ class _MerchantCreateListingScreenState
       Navigator.pop(context);
       return;
     }
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Discard Listing?',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        content: const Text(
-          'Your progress will be saved as a draft.',
-          style: TextStyle(color: Color(0xFF6B7280)),
+        title: Text(l10n.discard_listing,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        content: Text(
+          l10n.discard_listing_desc,
+          style: const TextStyle(color: Color(0xFF6B7280)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Keep Editing',
-                style: TextStyle(color: Color(0xFF2D8659))),
+            child: Text(l10n.keep_editing,
+                style: const TextStyle(color: Color(0xFF2D8659))),
           ),
           TextButton(
             onPressed: () {
@@ -104,8 +112,8 @@ class _MerchantCreateListingScreenState
               _saveDraft();
               Navigator.pop(context);
             },
-            child: const Text('Save Draft',
-                style: TextStyle(color: Color(0xFF6B7280))),
+            child: Text(l10n.save_draft,
+                style: const TextStyle(color: Color(0xFF6B7280))),
           ),
         ],
       ),
@@ -196,6 +204,7 @@ class _MerchantCreateListingScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_showSuccess) {
       return _SuccessScreen(
         form: _form,
@@ -229,7 +238,7 @@ class _MerchantCreateListingScreenState
         ),
         title: _StepProgressHeader(
           currentStep: _currentStep,
-          labels: _stepLabels,
+          labels: _getStepLabels(l10n),
         ),
       ),
       body: PageView(
@@ -358,23 +367,24 @@ class _Step1PhotoState extends State<_Step1Photo> {
   Widget build(BuildContext context) {
     final hasPhoto = widget.form.imagePath.isNotEmpty;
 
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Add Photo',
-            style: TextStyle(
+          Text(
+            l10n.add_photo,
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Color(0xFF111827),
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Take a clear photo of your food',
-            style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+          Text(
+            l10n.add_photo_desc,
+            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
           ),
           const SizedBox(height: 24),
 
@@ -471,9 +481,9 @@ class _Step1PhotoState extends State<_Step1Photo> {
                               color: Color(0xFF2D8659), size: 32),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Tap to take photo',
-                          style: TextStyle(
+                        Text(
+                          l10n.add_photo,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF374151),
@@ -552,8 +562,8 @@ class _Step1PhotoState extends State<_Step1Photo> {
                 minimumSize: const Size(double.infinity, 52),
                 disabledBackgroundColor: const Color(0xFFD1D5DB),
               ),
-              child: const Text('Continue',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Text(l10n.next,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -584,22 +594,22 @@ class _Step2DetailsState extends State<_Step2Details> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _descCtrl;
 
-  final _categories = [
-    (MerchantFoodCategory.bakery, 'Bakery', '🍞'),
-    (MerchantFoodCategory.restaurant, 'Restaurant', '🍽️'),
-    (MerchantFoodCategory.supermarket, 'Supermarket', '🛒'),
-    (MerchantFoodCategory.cafe, 'Café', '☕'),
-    (MerchantFoodCategory.other, 'Other', '📦'),
-  ];
+  List<(MerchantFoodCategory, String, String)> _getCategories(AppLocalizations l10n) => [
+        (MerchantFoodCategory.bakery, l10n.bakery, '🍞'),
+        (MerchantFoodCategory.restaurant, l10n.restaurant, '🍽️'),
+        (MerchantFoodCategory.supermarket, l10n.supermarket, '🛒'),
+        (MerchantFoodCategory.cafe, l10n.cafe, '☕'),
+        (MerchantFoodCategory.other, l10n.other_label, '📦'),
+      ];
 
-  final _tags = [
-    (DietaryTag.halal, 'Halal'),
-    (DietaryTag.vegan, 'Vegan'),
-    (DietaryTag.vegetarian, 'Vegetarian'),
-    (DietaryTag.glutenFree, 'Gluten-Free'),
-    (DietaryTag.nutFree, 'Nut-Free'),
-    (DietaryTag.dairyFree, 'Dairy-Free'),
-  ];
+  List<(DietaryTag, String)> _getTags(AppLocalizations l10n) => [
+        (DietaryTag.halal, l10n.halal),
+        (DietaryTag.vegan, l10n.vegan),
+        (DietaryTag.vegetarian, l10n.vegetarian),
+        (DietaryTag.glutenFree, l10n.gluten_free),
+        (DietaryTag.nutFree, 'Nut-Free'),
+        (DietaryTag.dairyFree, 'Dairy-Free'),
+      ];
 
   @override
   void initState() {
@@ -620,33 +630,37 @@ class _Step2DetailsState extends State<_Step2Details> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final categories = _getCategories(l10n);
+    final tags = _getTags(l10n);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Item Details',
-            style: TextStyle(
+          Text(
+            l10n.step_details,
+            style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF111827)),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Describe your food item',
-            style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+          Text(
+            l10n.item_details_desc,
+            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
           ),
           const SizedBox(height: 24),
 
           // Title
-          const _FieldLabel(text: 'Item Title *'),
+          _FieldLabel(text: l10n.item_title),
           const SizedBox(height: 6),
           TextField(
             controller: _titleCtrl,
             maxLength: 60,
             decoration: InputDecoration(
-              hintText: 'e.g., Fresh Baguettes, Croissants Mix',
+              hintText: l10n.item_title_hint,
               filled: true,
               fillColor: const Color(0xFFF3F3F5),
               border: OutlineInputBorder(
@@ -701,12 +715,12 @@ class _Step2DetailsState extends State<_Step2Details> {
           const SizedBox(height: 20),
 
           // Category
-          const _FieldLabel(text: 'Category *'),
+          _FieldLabel(text: l10n.item_category),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _categories.map((cat) {
+            children: categories.map((cat) {
               final selected = widget.form.category == cat.$1;
               return GestureDetector(
                 onTap: () {
@@ -746,15 +760,14 @@ class _Step2DetailsState extends State<_Step2Details> {
           const SizedBox(height: 20),
 
           // Description
-          const _FieldLabel(text: 'Description (Optional)'),
+          _FieldLabel(text: l10n.item_description),
           const SizedBox(height: 6),
           TextField(
             controller: _descCtrl,
             maxLines: 3,
             maxLength: 300,
             decoration: InputDecoration(
-              hintText:
-                  'e.g., Baked fresh this morning, perfect for dinner or breakfast',
+              hintText: l10n.item_description_hint,
               filled: true,
               fillColor: const Color(0xFFF3F3F5),
               border: OutlineInputBorder(
@@ -776,12 +789,12 @@ class _Step2DetailsState extends State<_Step2Details> {
           const SizedBox(height: 20),
 
           // Dietary Tags
-          const _FieldLabel(text: 'Dietary Tags (Optional)'),
+          _FieldLabel(text: l10n.dietary_tags),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _tags.map((tag) {
+            children: tags.map((tag) {
               final selected = widget.form.dietaryTags.contains(tag.$1);
               return GestureDetector(
                 onTap: () {
@@ -945,6 +958,7 @@ class _Step3PricingState extends State<_Step3Pricing> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final discount = _orig > 0 && _disc > 0
         ? ((_orig - _disc) / _orig * 100).round()
         : 0;
@@ -956,31 +970,31 @@ class _Step3PricingState extends State<_Step3Pricing> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Set Your Prices',
-            style: TextStyle(
+          Text(
+            l10n.set_prices,
+            style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF111827)),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Original and discounted pricing',
-            style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+          Text(
+            l10n.pricing_desc,
+            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
           ),
           const SizedBox(height: 24),
 
           // Original Price
-          const _FieldLabel(text: 'Original Price *'),
+          _FieldLabel(text: '${l10n.pricing} *'),
           const SizedBox(height: 6),
           TextField(
             controller: _origCtrl,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               hintText: '100',
-              prefixText: 'DZD  ',
+              prefixText: '${l10n.dzd}  ',
               prefixStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-              helperText: 'Regular selling price',
+              helperText: l10n.regular_price,
               filled: true,
               fillColor: const Color(0xFFF3F3F5),
               border: OutlineInputBorder(

@@ -1,7 +1,9 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/core/services/location_service.dart';
+import 'package:anti_food_waste_app/core/utils/error_handler.dart';
 import 'package:anti_food_waste_app/features/consumer/data/repositories/consumer_repository.dart';
 import 'package:anti_food_waste_app/shared/models/food_listing.dart';
 import 'package:anti_food_waste_app/features/home/presentation/screens/listing_detail_screen.dart';
@@ -25,7 +27,6 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
   final _repository = ConsumerRepository();
 
   Set<Marker> _markers = {};
-  List<FoodListing> _listings = [];
 
   bool _isSearching = false;
   bool _isLocating = false;
@@ -35,10 +36,21 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
   // Track the last camera idle position to know if map moved
   LatLng _lastSearchCenter = _defaultTarget;
 
+  // Track user's actual GPS position for accurate distance calculation
+  LatLng? _userPosition;
+
   @override
   void initState() {
     super.initState();
-    // Defer initial fetch until map is created
+    // Fetch the user's GPS position early for distance calculations
+    _fetchUserPosition();
+  }
+
+  Future<void> _fetchUserPosition() async {
+    final pos = await LocationService.getCurrentPosition();
+    if (pos != null && mounted) {
+      setState(() => _userPosition = LatLng(pos.lat, pos.lng));
+    }
   }
 
   @override
@@ -67,10 +79,27 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
     // Intentionally not auto-searching — user taps button manually
   }
 
+  double _degToRad(double deg) => deg * (math.pi / 180.0);
+
+  /// Haversine distance between two points in meters.
+  double _distanceMeters(LatLng a, LatLng b) {
+    const earthRadiusM = 6371000.0;
+    final dLat = _degToRad(b.latitude - a.latitude);
+    final dLng = _degToRad(b.longitude - a.longitude);
+    final lat1 = _degToRad(a.latitude);
+    final lat2 = _degToRad(b.latitude);
+
+    final sinDLat = math.sin(dLat / 2);
+    final sinDLng = math.sin(dLng / 2);
+    final h =
+        sinDLat * sinDLat + math.cos(lat1) * math.cos(lat2) * sinDLng * sinDLng;
+    final c = 2 * math.atan2(math.sqrt(h), math.sqrt(1 - h));
+    return earthRadiusM * c;
+  }
+
   bool _hasMoved(LatLng newCenter) {
-    const threshold = 0.005; // ~500m
-    return (newCenter.latitude - _lastSearchCenter.latitude).abs() > threshold ||
-        (newCenter.longitude - _lastSearchCenter.longitude).abs() > threshold;
+    const thresholdM = 500; // show button after ~500m viewport move
+    return _distanceMeters(_lastSearchCenter, newCenter) > thresholdM;
   }
 
   // ── GPS ─────────────────────────────────────────────────────────────────
@@ -80,6 +109,7 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
     final pos = await LocationService.getCurrentPosition();
     if (pos != null && mounted) {
       final latlng = LatLng(pos.lat, pos.lng);
+      _userPosition = latlng;
       await _mapController?.animateCamera(
         CameraUpdate.newLatLngZoom(latlng, 14),
       );
@@ -125,21 +155,21 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
 
       if (!mounted) return;
 
-      final markers = listings
-          .map((l) => _buildMarker(l))
-          .toSet();
+      final markers = listings.map((l) => _buildMarker(l)).toSet();
 
       final center = await _mapController?.getVisibleRegion();
       if (center != null) {
-        final midLat = (center.northeast.latitude + center.southwest.latitude) / 2;
-        final midLng = (center.northeast.longitude + center.southwest.longitude) / 2;
+        final midLat =
+            (center.northeast.latitude + center.southwest.latitude) / 2;
+        final midLng =
+            (center.northeast.longitude + center.southwest.longitude) / 2;
         _lastSearchCenter = LatLng(midLat, midLng);
       }
 
       setState(() {
-        _listings = listings;
         _markers = markers;
-        _searchResult = 'Found ${listings.length} listing${listings.length == 1 ? '' : 's'}';
+        _searchResult =
+            'Found ${listings.length} listing${listings.length == 1 ? '' : 's'}';
       });
 
       // Auto-clear the "Found X" message after 3s
@@ -149,8 +179,8 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Search failed. Please try again.'),
+          SnackBar(
+            content: Text(AppErrorHandler.getMessage(e)),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -180,27 +210,69 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
   double _markerHue(FoodListing listing) {
     if (listing.discountPercent >= 50) return BitmapDescriptor.hueRed;
     if (listing.freshness == FreshnessGrade.A) return BitmapDescriptor.hueGreen;
-    if (listing.freshness == FreshnessGrade.B) return BitmapDescriptor.hueOrange;
+    if (listing.freshness == FreshnessGrade.B)
+      return BitmapDescriptor.hueOrange;
     return BitmapDescriptor.hueYellow;
   }
 
   // ── Bottom sheet ─────────────────────────────────────────────────────────
 
+  /// Compute the actual distance from user GPS to a listing (in km).
+  double _realDistanceKm(FoodListing listing) {
+    if (_userPosition == null) return listing.distance;
+    return _distanceMeters(
+          _userPosition!,
+          LatLng(listing.lat, listing.lng),
+        ) /
+        1000.0;
+  }
+
   void _showListingPreview(FoodListing listing) {
+    // Use real user-to-listing distance instead of camera-center distance
+    final realDist = _realDistanceKm(listing);
+    final enrichedListing = FoodListing(
+      id: listing.id,
+      title: listing.title,
+      merchantName: listing.merchantName,
+      merchantId: listing.merchantId,
+      originalPrice: listing.originalPrice,
+      discountedPrice: listing.discountedPrice,
+      discountPercent: listing.discountPercent,
+      imageUrl: listing.imageUrl,
+      rating: listing.rating,
+      reviewCount: listing.reviewCount,
+      distance: realDist,
+      freshness: listing.freshness,
+      category: listing.category,
+      pickupStart: listing.pickupStart,
+      pickupEnd: listing.pickupEnd,
+      quantityLeft: listing.quantityLeft,
+      dietary: listing.dietary,
+      lat: listing.lat,
+      lng: listing.lng,
+      postedMinutesAgo: listing.postedMinutesAgo,
+    );
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ListingPreviewSheet(
-        listing: listing,
-        onViewDetails: () {
-          Navigator.of(context).pop(); // close sheet
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => ListingDetailScreen(listing: listing),
-            ),
-          );
-        },
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.35,
+        minChildSize: 0.25,
+        maxChildSize: 0.9,
+        builder: (_, scrollController) => _ListingPreviewSheet(
+          listing: enrichedListing,
+          scrollController: scrollController,
+          onViewDetails: () {
+            Navigator.of(context).pop(); // close sheet
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ListingDetailScreen(listing: listing),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -227,37 +299,37 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
           rotateGesturesEnabled: false,
           zoomControlsEnabled: false,
           myLocationButtonEnabled: false,
-          myLocationEnabled: false,
+          myLocationEnabled: true,
           compassEnabled: true,
           mapToolbarEnabled: false,
         ),
 
         // ── "Search this area" button ────────────────────────────────────
         Positioned(
-            top: 12,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: AnimatedSlide(
-                offset: (_mapMoved || _isSearching || _searchResult != null)
-                    ? Offset.zero
-                    : const Offset(0, -2),
+          top: 12,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: AnimatedSlide(
+              offset: (_mapMoved || _isSearching || _searchResult != null)
+                  ? Offset.zero
+                  : const Offset(0, -2),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+              child: AnimatedOpacity(
+                opacity: (_mapMoved || _isSearching || _searchResult != null)
+                    ? 1.0
+                    : 0.0,
                 duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-                child: AnimatedOpacity(
-                  opacity: (_mapMoved || _isSearching || _searchResult != null)
-                      ? 1.0
-                      : 0.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: _SearchAreaButton(
-                    isSearching: _isSearching,
-                    resultText: _searchResult,
-                    onTap: _searchCurrentArea,
-                  ),
+                child: _SearchAreaButton(
+                  isSearching: _isSearching,
+                  resultText: _searchResult,
+                  onTap: _searchCurrentArea,
                 ),
               ),
             ),
           ),
+        ),
 
         // ── GPS / My Location button ─────────────────────────────────────
         Positioned(
@@ -318,9 +390,8 @@ class _SearchAreaButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = isSearching
-        ? 'Searching...'
-        : (resultText ?? 'Search this area');
+    final label =
+        isSearching ? 'Searching...' : (resultText ?? 'Search this area');
 
     return GestureDetector(
       onTap: isSearching ? null : onTap,
@@ -427,7 +498,8 @@ class _LegendDot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF374151))),
+        Text(label,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF374151))),
       ],
     );
   }
@@ -438,10 +510,12 @@ class _LegendDot extends StatelessWidget {
 class _ListingPreviewSheet extends StatelessWidget {
   final FoodListing listing;
   final VoidCallback onViewDetails;
+  final ScrollController? scrollController;
 
   const _ListingPreviewSheet({
     required this.listing,
     required this.onViewDetails,
+    this.scrollController,
   });
 
   @override
@@ -449,174 +523,177 @@ class _ListingPreviewSheet extends StatelessWidget {
     final discountPct = listing.discountPercent;
     final hasFreshPhoto = listing.imageUrl.isNotEmpty;
 
-    return GestureDetector(
-      onTap: onViewDetails,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.12),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
-            )
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag handle
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+    return SingleChildScrollView(
+      controller: scrollController,
+      child: GestureDetector(
+        onTap: onViewDetails,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              )
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                margin: const EdgeInsets.only(top: 10),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Thumbnail
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: hasFreshPhoto
-                        ? Image.network(
-                            listing.imageUrl,
-                            width: 90,
-                            height: 90,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                          )
-                        : _imagePlaceholder(),
-                  ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Thumbnail
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: hasFreshPhoto
+                          ? Image.network(
+                              listing.imageUrl,
+                              width: 90,
+                              height: 90,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                            )
+                          : _imagePlaceholder(),
+                    ),
 
-                  const SizedBox(width: 14),
+                    const SizedBox(width: 14),
 
-                  // Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          listing.merchantName,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF6B7280),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          listing.title,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF111827),
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Text(
-                              '${listing.discountedPrice.toStringAsFixed(0)} DA',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF10B981),
-                              ),
+                    // Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            listing.merchantName,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF6B7280),
                             ),
-                            const SizedBox(width: 6),
-                            if (discountPct > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFDCFCE7),
-                                  borderRadius: BorderRadius.circular(6),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            listing.title,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF111827),
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Text(
+                                '${listing.discountedPrice.toStringAsFixed(0)} DA',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF10B981),
                                 ),
-                                child: Text(
-                                  '-$discountPct%',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF065F46),
+                              ),
+                              const SizedBox(width: 6),
+                              if (discountPct > 0)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '-$discountPct%',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF065F46),
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            if (listing.distance > 0) ...[
-                              const Icon(Icons.place_outlined,
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              if (listing.distance > 0) ...[
+                                const Icon(Icons.place_outlined,
+                                    size: 13, color: Color(0xFF9CA3AF)),
+                                const SizedBox(width: 2),
+                                Text(
+                                  '${listing.distance.toStringAsFixed(1)} km',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF6B7280),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                              ],
+                              const Icon(Icons.access_time,
                                   size: 13, color: Color(0xFF9CA3AF)),
                               const SizedBox(width: 2),
                               Text(
-                                '${listing.distance.toStringAsFixed(1)} km',
+                                'Pickup until ${listing.pickupEnd}',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF6B7280),
                                 ),
                               ),
-                              const SizedBox(width: 10),
                             ],
-                            const Icon(Icons.access_time,
-                                size: 13, color: Color(0xFF9CA3AF)),
-                            const SizedBox(width: 2),
-                            Text(
-                              'Pickup until ${listing.pickupEnd}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF6B7280),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            // View Details button
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: SizedBox(
-                height: 44,
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: onViewDetails,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+              // View Details button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: SizedBox(
+                  height: 44,
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: onViewDetails,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 0,
                     ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'View Details',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: Colors.white,
+                    child: const Text(
+                      'View Details',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

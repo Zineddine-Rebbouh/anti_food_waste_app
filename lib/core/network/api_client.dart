@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:anti_food_waste_app/core/config/app_config.dart';
 import 'package:anti_food_waste_app/core/services/token_storage.dart';
@@ -62,6 +63,8 @@ class _AuthInterceptor extends Interceptor {
 /// app can redirect the user to the login screen.
 class _TokenRefreshInterceptor extends Interceptor {
   final Dio _mainDio;
+  bool _isRefreshing = false;
+  final _retryQueues = <Completer<bool>>[];
 
   _TokenRefreshInterceptor(this._mainDio);
 
@@ -84,8 +87,30 @@ class _TokenRefreshInterceptor extends Interceptor {
       return handler.next(err);
     }
 
+    if (_isRefreshing) {
+      final completer = Completer<bool>();
+      _retryQueues.add(completer);
+      final hasRefreshed = await completer.future;
+      if (hasRefreshed) {
+        final newAccess = await TokenStorage.getAccessToken();
+        err.requestOptions.headers['Authorization'] = 'Bearer $newAccess';
+        err.requestOptions.extra['isRetry'] = true;
+        try {
+          final retry = await _mainDio.fetch(err.requestOptions);
+          return handler.resolve(retry);
+        } on DioException catch (e) {
+          return handler.next(e);
+        }
+      } else {
+        return handler.next(err);
+      }
+    }
+
+    _isRefreshing = true;
+
     final refreshToken = await TokenStorage.getRefreshToken();
     if (refreshToken == null) {
+      _isRefreshing = false;
       await TokenStorage.clearTokens();
       return handler.next(err);
     }
@@ -117,13 +142,23 @@ class _TokenRefreshInterceptor extends Interceptor {
         email: await TokenStorage.getEmail(),
       );
 
+      _isRefreshing = false;
+      for (final completer in _retryQueues) {
+        completer.complete(true);
+      }
+      _retryQueues.clear();
+
       // Retry the original request with the refreshed token.
-      // Mark as retry so the interceptor does not fire again on another 401.
       err.requestOptions.headers['Authorization'] = 'Bearer $newAccess';
       err.requestOptions.extra['isRetry'] = true;
       final retry = await _mainDio.fetch(err.requestOptions);
       return handler.resolve(retry);
     } catch (_) {
+      _isRefreshing = false;
+      for (final completer in _retryQueues) {
+        completer.complete(false);
+      }
+      _retryQueues.clear();
       await TokenStorage.clearTokens();
       return handler.next(err);
     }

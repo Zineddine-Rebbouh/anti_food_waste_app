@@ -70,7 +70,7 @@ class AboutScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'SaveFood DZ',
+                    'Tawfir',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -197,13 +197,13 @@ class AboutScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                         _ContactTile(
                           icon: Icons.email_outlined,
-                          label: 'contact@savefood.dz',
+                          label: 'contact@tawfir.dz',
                           onTap: () {},
                         ),
                         Divider(height: 1, color: Colors.grey.shade100),
                         _ContactTile(
                           icon: Icons.camera_alt_outlined,
-                          label: '@savefood.dz',
+                          label: '@tawfir.dz',
                           onTap: () {},
                         ),
                       ],

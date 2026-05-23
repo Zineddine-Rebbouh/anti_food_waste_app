@@ -5,8 +5,6 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/features/consumer/data/repositories/consumer_repository.dart';
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
-
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
 
@@ -21,10 +19,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _confirmCtrl = TextEditingController();
   bool _isLoading = false;
 
-  // ── Computed getters ──────────────────────────────────────────────────────
+  static const Color forestGreen = AppTheme.primary;
+  static const Color accentBeige = Colors.white;
+  static const Color textNavy = Color(0xFF1A1A2E);
 
   String get _newPassword => _newCtrl.text;
-
   bool get _hasMinLength => _newPassword.length >= 8;
   bool get _hasUppercase => _newPassword.contains(RegExp(r'[A-Z]'));
   bool get _hasDigit => _newPassword.contains(RegExp(r'[0-9]'));
@@ -41,9 +40,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Color get _strengthColor {
     if (_newPassword.isEmpty) return Colors.transparent;
-    if (_newPassword.length < 6) return AppTheme.accent;
-    if (_newPassword.length < 10 || !_allRequirementsMet) return Colors.orange;
-    return AppTheme.primary;
+    if (_newPassword.length < 6) return const Color(0xFFEF4444);
+    if (_newPassword.length < 10 || !_allRequirementsMet) return const Color(0xFFF59E0B);
+    return forestGreen;
   }
 
   String _strengthLabel(AppLocalizations l10n) {
@@ -59,8 +58,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       _confirmCtrl.text.isNotEmpty &&
       _allRequirementsMet;
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
-
   @override
   void dispose() {
     _currentCtrl.dispose();
@@ -69,8 +66,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     super.dispose();
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
-
   Future<void> _submit(AppLocalizations l10n) async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -78,10 +73,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.passwords_dont_match),
-          backgroundColor: AppTheme.accent,
+          backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
       return;
@@ -98,26 +92,23 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.password_changed_success),
-          backgroundColor: AppTheme.primary,
+          backgroundColor: forestGreen,
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
       Navigator.of(context).pop();
     } on Object catch (e) {
       if (!mounted) return;
-      // Try to extract a human-readable message from the error
       final msg = e.toString().contains('old_password')
           ? l10n.password_current_incorrect
           : l10n.passwords_dont_match;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(msg),
-          backgroundColor: AppTheme.accent,
+          backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     } finally {
@@ -125,215 +116,208 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          l10n.change_password,
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Lock icon ────────────────────────────────────────────────
-              Center(
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.lock_rounded,
-                    color: Colors.white,
-                    size: 36,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // ── Current password ─────────────────────────────────────────
-              _PasswordField(
-                controller: _currentCtrl,
-                label: l10n.current_password,
-                onChanged: (_) => setState(() {}),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return l10n.current_password;
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // ── New password ─────────────────────────────────────────────
-              _PasswordField(
-                controller: _newCtrl,
-                label: l10n.new_password_label,
-                onChanged: (_) => setState(() {}),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return l10n.new_password_label;
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // ── Confirm password ─────────────────────────────────────────
-              _PasswordField(
-                controller: _confirmCtrl,
-                label: l10n.confirm_new_password,
-                onChanged: (_) => setState(() {}),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return l10n.confirm_new_password;
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // ── Strength indicator + requirements (shown when typing) ─────
-              if (_newPassword.isNotEmpty) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      backgroundColor: accentBeige,
+      body: Column(
+        children: [
+          _buildHeader(context, l10n),
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      l10n.password_requirements,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
+                    Center(
+                      child: Container(
+                        width: 84,
+                        height: 84,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: forestGreen.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            )
+                          ],
+                        ),
+                        child: const Icon(
+                          CupertinoIcons.lock_shield_fill,
+                          color: forestGreen,
+                          size: 38,
+                        ),
+                      ).animate().scale(delay: 100.ms, duration: 400.ms, curve: Curves.easeOutBack),
                     ),
-                    Text(
-                      _strengthLabel(l10n),
-                      style: TextStyle(
-                        color: _strengthColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
+                    const SizedBox(height: 40),
+
+                    _buildFieldLabel(l10n.current_password),
+                    _PasswordField(
+                      controller: _currentCtrl,
+                      hint: '••••••••',
+                      onChanged: (_) => setState(() {}),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return l10n.current_password;
+                        return null;
+                      },
                     ),
+                    const SizedBox(height: 24),
+
+                    _buildFieldLabel(l10n.new_password_label),
+                    _PasswordField(
+                      controller: _newCtrl,
+                      hint: '••••••••',
+                      onChanged: (_) => setState(() {}),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return l10n.new_password_label;
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+
+                    _buildFieldLabel(l10n.confirm_new_password),
+                    _PasswordField(
+                      controller: _confirmCtrl,
+                      hint: '••••••••',
+                      onChanged: (_) => setState(() {}),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return l10n.confirm_new_password;
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 32),
+
+                    if (_newPassword.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            l10n.password_requirements,
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: textNavy),
+                          ),
+                          Text(
+                            _strengthLabel(l10n).toUpperCase(),
+                            style: TextStyle(color: _strengthColor, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+                          ),
+                        ],
+                      ).animate().fadeIn(),
+                      const SizedBox(height: 12),
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: _strengthValue),
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOutQuart,
+                        builder: (context, value, _) {
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: LinearProgressIndicator(
+                              value: value,
+                              backgroundColor: Colors.white,
+                              valueColor: AlwaysStoppedAnimation<Color>(_strengthColor),
+                              minHeight: 8,
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      _RequirementRow(met: _hasMinLength, label: l10n.min_8_chars),
+                      _RequirementRow(met: _hasUppercase, label: l10n.uppercase_required),
+                      _RequirementRow(met: _hasDigit, label: l10n.number_required),
+                      _RequirementRow(met: _hasSpecial, label: l10n.special_char_required),
+                      const SizedBox(height: 32),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 8),
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: _strengthValue),
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOut,
-                  builder: (context, value, _) {
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: value,
-                        backgroundColor: AppTheme.inputBackground,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(_strengthColor),
-                        minHeight: 7,
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                // Requirements checklist
-                _RequirementRow(
-                  met: _hasMinLength,
-                  label: l10n.min_8_chars,
-                ),
-                _RequirementRow(
-                  met: _hasUppercase,
-                  label: l10n.uppercase_required,
-                ),
-                _RequirementRow(
-                  met: _hasDigit,
-                  label: l10n.number_required,
-                ),
-                _RequirementRow(
-                  met: _hasSpecial,
-                  label: l10n.special_char_required,
-                ),
-                const SizedBox(height: 28),
-              ],
-
-              if (_newPassword.isEmpty) const SizedBox(height: 12),
-
-              // ── Update button ────────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _canSubmit ? AppTheme.primary : AppTheme.muted,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppTheme.muted,
-                    disabledForegroundColor: AppTheme.mutedForeground,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed:
-                      _canSubmit && !_isLoading ? () => _submit(l10n) : null,
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
-                          ),
-                        )
-                      : Text(
-                          l10n.update_password,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
               ),
-              const SizedBox(height: 24),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+            child: SizedBox(
+              width: double.infinity,
+              height: 58,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: forestGreen,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.grey[300],
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
+                ),
+                onPressed: _canSubmit && !_isLoading ? () => _submit(l10n) : null,
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                      )
+                    : Text(
+                        l10n.update_password,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: forestGreen,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 16, 24, 32),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n.change_password,
+                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+              ),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-// ─── _PasswordField ───────────────────────────────────────────────────────────
+  Widget _buildFieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: forestGreen.withOpacity(0.5), letterSpacing: 1),
+      ),
+    );
+  }
+}
 
 class _PasswordField extends StatefulWidget {
   final TextEditingController controller;
-  final String label;
+  final String hint;
   final String? Function(String?)? validator;
   final ValueChanged<String>? onChanged;
 
-  const _PasswordField({
-    required this.controller,
-    required this.label,
-    this.validator,
-    this.onChanged,
-  });
+  const _PasswordField({required this.controller, required this.hint, this.validator, this.onChanged});
 
   @override
   State<_PasswordField> createState() => _PasswordFieldState();
@@ -344,49 +328,29 @@ class _PasswordFieldState extends State<_PasswordField> {
 
   @override
   Widget build(BuildContext context) {
+    const forestGreen = AppTheme.primary;
     return TextFormField(
       controller: widget.controller,
       obscureText: _obscure,
       onChanged: widget.onChanged,
       validator: widget.validator,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1A1A2E)),
       decoration: InputDecoration(
-        labelText: widget.label,
+        hintText: widget.hint,
         filled: true,
-        fillColor: AppTheme.inputBackground,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.accent, width: 1),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.accent, width: 1.5),
-        ),
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: forestGreen, width: 1.5)),
         suffixIcon: IconButton(
-          icon: Icon(
-            _obscure ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
-            color: AppTheme.mutedForeground,
-            size: 20,
-          ),
+          icon: Icon(_obscure ? CupertinoIcons.eye_fill : CupertinoIcons.eye_slash_fill, color: Colors.grey[400], size: 20),
           onPressed: () => setState(() => _obscure = !_obscure),
         ),
       ),
     );
   }
 }
-
-// ─── _RequirementRow ─────────────────────────────────────────────────────────
 
 class _RequirementRow extends StatelessWidget {
   final bool met;
@@ -396,29 +360,34 @@ class _RequirementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const forestGreen = AppTheme.primary;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(
-            met ? Icons.check_circle_rounded : Icons.circle_outlined,
-            color: met ? AppTheme.primary : AppTheme.mutedForeground,
-            size: 18,
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: met ? forestGreen.withOpacity(0.1) : Colors.grey[100],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              met ? Icons.check_rounded : Icons.circle_outlined,
+              color: met ? forestGreen : Colors.grey[300],
+              size: 14,
+            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Text(
             label,
             style: TextStyle(
-              color: met ? AppTheme.primary : AppTheme.mutedForeground,
+              color: met ? const Color(0xFF1A1A2E) : Colors.grey[500],
               fontSize: 13,
-              fontWeight: met ? FontWeight.w500 : FontWeight.normal,
+              fontWeight: met ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
         ],
-      )
-          .animate()
-          .fadeIn(duration: 300.ms)
-          .slideX(begin: 0.3, duration: 300.ms, curve: Curves.easeOut),
+      ).animate().fadeIn(duration: 300.ms).slideX(begin: 0.05, duration: 300.ms),
     );
   }
 }

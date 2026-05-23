@@ -29,4 +29,30 @@ class CharityRepository {
     final data = await _remoteSource.fetchMyRequests();
     return data.map((json) => CharityPickupRequest.fromJson(json)).toList();
   }
+
+  /// Update pickup request status
+  Future<void> updatePickupRequestStatus(String requestId, PickupRequestStatus status) async {
+    String statusStr;
+    switch (status) {
+      case PickupRequestStatus.enRoute:
+        statusStr = 'en-route';
+        break;
+      case PickupRequestStatus.collected:
+        statusStr = 'collected';
+        break;
+      case PickupRequestStatus.approved:
+        statusStr = 'approved';
+        break;
+      case PickupRequestStatus.pending:
+        statusStr = 'pending';
+        break;
+      case PickupRequestStatus.cancelled:
+        statusStr = 'rejected';
+        break;
+    }
+    await _remoteSource.updateRequestStatus(requestId, statusStr);
+  }
 }
+
+
+

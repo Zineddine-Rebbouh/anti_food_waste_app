@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:anti_food_waste_app/core/app_theme.dart';
 
 class ConfettiOverlay extends StatefulWidget {
   final Widget? child;
@@ -22,14 +23,14 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
         AnimationController(vsync: this, duration: const Duration(seconds: 3));
 
     final colors = [
-      const Color(0xFF2D8659),
+      AppTheme.primary,
       Colors.red,
       Colors.amber,
       Colors.green,
       Colors.orange
     ];
 
-    for (int i = 0; i < 50; i++) {
+    for (var i = 0; i < 50; i++) {
       _pieces.add(ConfettiPiece(
         x: _random.nextDouble(),
         color: colors[_random.nextInt(colors.length)],

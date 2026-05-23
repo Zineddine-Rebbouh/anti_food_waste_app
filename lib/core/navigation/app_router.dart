@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:anti_food_waste_app/features/onboarding/presentation/screens/splash_screen.dart';
 import 'package:anti_food_waste_app/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:anti_food_waste_app/features/onboarding/presentation/screens/welcome_screen.dart';
 import 'package:anti_food_waste_app/features/role_selector/presentation/screens/role_selector_screen.dart';
@@ -18,6 +17,16 @@ import 'package:anti_food_waste_app/features/charity/presentation/screens/charit
 import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_cubit.dart';
 import 'package:anti_food_waste_app/features/charity/domain/repositories/charity_repository.dart';
 import 'package:anti_food_waste_app/features/charity/data/sources/charity_remote_source.dart';
+import 'package:anti_food_waste_app/features/chat/presentation/cubit/chat_cubit.dart';
+import 'package:anti_food_waste_app/features/chat/presentation/screens/chat_screen.dart';
+import 'package:anti_food_waste_app/features/chat/services/chat_service.dart';
+import 'package:anti_food_waste_app/features/orders/presentation/screens/route_plan_screen.dart';
+import 'package:anti_food_waste_app/features/profile/presentation/cubits/profile_cubit.dart';
+import 'package:anti_food_waste_app/features/profile/presentation/screens/edit_profile_screen.dart';
+import 'package:anti_food_waste_app/features/profile/presentation/screens/change_password_screen.dart';
+import 'package:anti_food_waste_app/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:anti_food_waste_app/features/help/presentation/screens/help_screen.dart';
+import 'package:anti_food_waste_app/features/profile/presentation/screens/impact_dashboard_screen.dart';
 import 'package:anti_food_waste_app/shared/widgets/not_found_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -26,7 +35,6 @@ import 'package:anti_food_waste_app/shared/widgets/not_found_screen.dart';
 
 abstract final class AppRoutes {
   // Entry flow
-  static const String splash = '/';
   static const String onboarding = '/onboarding';
   static const String welcome = '/welcome';
   static const String roleSelector = '/role-selector';
@@ -43,6 +51,19 @@ abstract final class AppRoutes {
   static const String consumer = '/consumer';
   static const String merchant = '/merchant';
   static const String charity = '/charity';
+
+  // Chat
+  static const String chat = '/chat';
+
+  // Route Planning
+  static const String routePlan = '/route-plan';
+
+  // Profile & Settings
+  static const String editProfile = '/edit-profile';
+  static const String changePassword = '/change-password';
+  static const String notifications = '/notifications';
+  static const String help = '/help';
+  static const String impactDashboard = '/impact-dashboard';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,9 +74,6 @@ abstract final class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       // ── Entry flow ──────────────────────────────────────────────────────────
-      case AppRoutes.splash:
-        return _fade(const SplashScreen());
-
       case AppRoutes.onboarding:
         return _fade(const OnboardingScreen());
 
@@ -102,18 +120,80 @@ abstract final class AppRouter {
 
       case AppRoutes.charity:
         return MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (ctx) => CharityCubit(
-              repository: CharityRepository(remoteSource: CharityRemoteSource()),
-            )..fetchCharityData(),
+          builder: (_) => MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (ctx) => CharityCubit(
+                  repository: CharityRepository(remoteSource: CharityRemoteSource()),
+                )..fetchCharityData(),
+              ),
+              BlocProvider(
+                create: (ctx) => ProfileCubit()..loadProfile(),
+              ),
+            ],
             child: const CharityMainScreen(),
           ),
         );
 
-      // ── Fallback ────────────────────────────────────────────────────────────
+      // ── Chat ──────────────────────────────────────────────────────────────
+      case AppRoutes.chat:
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (ctx) => ChatCubit(ChatService()),
+            child: const ChatScreen(),
+          ),
+        );
+
+      // ── Route Planning ────────────────────────────────────────────────────
+      case AppRoutes.routePlan:
+        final orderIds = settings.arguments as List<String>? ?? [];
+        return MaterialPageRoute(
+          builder: (_) => RoutePlanScreen(orderIds: orderIds),
+        );
+
+      // ── Profile & Settings ────────────────────────────────────────────────
+      case AppRoutes.editProfile:
+        final user = settings.arguments as dynamic;
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) => ProfileCubit()..loadProfile(),
+            child: EditProfileScreen(user: user),
+          ),
+        );
+
+      case AppRoutes.changePassword:
+        return MaterialPageRoute(
+          builder: (_) => const ChangePasswordScreen(),
+        );
+
+      case AppRoutes.notifications:
+        return MaterialPageRoute(
+          builder: (_) => const NotificationsScreen(),
+        );
+
+      case AppRoutes.help:
+        return MaterialPageRoute(
+          builder: (_) => const HelpScreen(),
+        );
+      
+      case AppRoutes.impactDashboard:
+        return MaterialPageRoute(
+          builder: (_) => const ImpactDashboardScreen(),
+        );
+
+      // ── Fallback ────────────────────────────────────────────────────────
       default:
         return MaterialPageRoute(builder: (_) => const NotFoundScreen());
     }
+  }
+
+  /// Navigates to the login screen and removes every previous route from the
+  /// stack.
+  static void exitToLogin(BuildContext context) {
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRoutes.login,
+      (_) => false,
+    );
   }
 
   /// Navigates to the role selector and removes every previous route from the

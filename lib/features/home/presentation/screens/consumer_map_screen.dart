@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
@@ -14,7 +15,10 @@ import 'package:anti_food_waste_app/features/home/presentation/screens/listing_d
 /// bounding box.  Tapping a pin opens a bottom-sheet preview and the user
 /// can navigate to the full detail screen from there.
 class ConsumerMapScreen extends StatefulWidget {
-  const ConsumerMapScreen({super.key});
+  final double? initialLat;
+  final double? initialLng;
+
+  const ConsumerMapScreen({super.key, this.initialLat, this.initialLng});
 
   @override
   State<ConsumerMapScreen> createState() => _ConsumerMapScreenState();
@@ -27,11 +31,13 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
   final _repository = ConsumerRepository();
 
   Set<Marker> _markers = {};
+  List<FoodListing> _lastListings = [];
 
   bool _isSearching = false;
   bool _isLocating = false;
   bool _mapMoved = false;
   String? _searchResult; // "Found 12 listings" message
+  BitmapDescriptor? _customMarker;
 
   // Track the last camera idle position to know if map moved
   LatLng _lastSearchCenter = _defaultTarget;
@@ -42,14 +48,58 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
   @override
   void initState() {
     super.initState();
+    _initCustomMarker();
     // Fetch the user's GPS position early for distance calculations
     _fetchUserPosition();
+  }
+
+  Future<void> _initCustomMarker() async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    const size = 80.0;
+    
+    final paint = Paint()..color = AppTheme.primary;
+    final whitePaint = Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 6;
+    
+    // Draw a nice pin shape or just a circle
+    // Let's draw a circle with a small tail
+    final path = Path()
+      ..addOval(const Rect.fromLTWH(0, 0, size, size))
+      ..moveTo(size / 2 - 10, size - 5)
+      ..lineTo(size / 2, size + 15)
+      ..lineTo(size / 2 + 10, size - 5)
+      ..close();
+      
+    canvas.drawPath(path, paint);
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 3, whitePaint);
+    
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(size.toInt(), (size + 20).toInt());
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+    if (data != null && mounted) {
+      setState(() {
+        _customMarker = BitmapDescriptor.fromBytes(data.buffer.asUint8List());
+        // Force rebuild markers if we already have some listings
+        if (_lastListings.isNotEmpty) {
+          _markers = _lastListings.map((l) => _buildMarker(l)).toSet();
+        }
+      });
+    }
   }
 
   Future<void> _fetchUserPosition() async {
     final pos = await LocationService.getCurrentPosition();
     if (pos != null && mounted) {
-      setState(() => _userPosition = LatLng(pos.lat, pos.lng));
+      final latlng = LatLng(pos.lat, pos.lng);
+      setState(() => _userPosition = latlng);
+      // If map is already initialized, move to user position
+      if (_mapController != null) {
+        await _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(latlng, 14),
+        );
+        _lastSearchCenter = latlng;
+        await _searchCurrentArea();
+      }
     }
   }
 
@@ -63,8 +113,24 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
-    // Initial search once map is ready
-    Future.delayed(const Duration(milliseconds: 600), _searchCurrentArea);
+    // Initial search once map is ready. 
+    // If we already have a user position, center on it first.
+    Future.delayed(const Duration(milliseconds: 600), () async {
+      final initialLat = widget.initialLat;
+      final initialLng = widget.initialLng;
+      
+      if (initialLat != null && initialLng != null) {
+        final ll = LatLng(initialLat, initialLng);
+        await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(ll, 14));
+        _lastSearchCenter = ll;
+      } else if (_userPosition != null) {
+        await _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(_userPosition!, 14),
+        );
+        _lastSearchCenter = _userPosition!;
+      }
+      await _searchCurrentArea();
+    });
   }
 
   void _onCameraMove(CameraPosition position) {
@@ -167,6 +233,7 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
       }
 
       setState(() {
+        _lastListings = listings;
         _markers = markers;
         _searchResult =
             'Found ${listings.length} listing${listings.length == 1 ? '' : 's'}';
@@ -193,11 +260,10 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
   // ── Marker helpers ───────────────────────────────────────────────────────
 
   Marker _buildMarker(FoodListing listing) {
-    final hue = _markerHue(listing);
     return Marker(
       markerId: MarkerId(listing.id),
       position: LatLng(listing.lat, listing.lng),
-      icon: BitmapDescriptor.defaultMarkerWithHue(hue),
+      icon: _customMarker ?? BitmapDescriptor.defaultMarkerWithHue(_markerHue(listing)),
       infoWindow: InfoWindow(
         title: listing.title,
         snippet:
@@ -208,11 +274,7 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
   }
 
   double _markerHue(FoodListing listing) {
-    if (listing.discountPercent >= 50) return BitmapDescriptor.hueRed;
-    if (listing.freshness == FreshnessGrade.A) return BitmapDescriptor.hueGreen;
-    if (listing.freshness == FreshnessGrade.B)
-      return BitmapDescriptor.hueOrange;
-    return BitmapDescriptor.hueYellow;
+    return BitmapDescriptor.hueGreen;
   }
 
   // ── Bottom sheet ─────────────────────────────────────────────────────────
@@ -235,6 +297,7 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
       title: listing.title,
       merchantName: listing.merchantName,
       merchantId: listing.merchantId,
+      merchantLogoUrl: listing.merchantLogoUrl,
       originalPrice: listing.originalPrice,
       discountedPrice: listing.discountedPrice,
       discountPercent: listing.discountPercent,
@@ -341,35 +404,7 @@ class _ConsumerMapScreenState extends State<ConsumerMapScreen> {
           ),
         ),
 
-        // ── Legend ───────────────────────────────────────────────────────
-        if (_markers.isNotEmpty)
-          Positioned(
-            bottom: 24,
-            left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2))
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  _LegendDot(color: Color(0xFF22C55E), label: 'Grade A'),
-                  SizedBox(width: 10),
-                  _LegendDot(color: Color(0xFFF97316), label: 'Grade B/C'),
-                  SizedBox(width: 10),
-                  _LegendDot(color: Color(0xFFEF4444), label: '≥50% off'),
-                ],
-              ),
-            ),
-          ),
+        // Legend removed per user request
       ],
     );
   }
@@ -481,29 +516,8 @@ class _LocationFab extends StatelessWidget {
   }
 }
 
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
+// Listing Preview Bottom Sheet removed per user request labels
 
-  const _LegendDot({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 4),
-        Text(label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF374151))),
-      ],
-    );
-  }
-}
 
 // ── Listing Preview Bottom Sheet ──────────────────────────────────────────────
 

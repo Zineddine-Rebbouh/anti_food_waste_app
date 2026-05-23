@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../domain/models/app_notification.dart';
+import 'package:anti_food_waste_app/features/notifications/domain/models/app_notification.dart';
 
 abstract class NotificationsState extends Equatable {
   const NotificationsState();

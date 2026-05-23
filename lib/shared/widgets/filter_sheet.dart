@@ -45,7 +45,7 @@ class _FilterSheetState extends State<FilterSheet> {
   }
 
   int get _activeFilterCount {
-    int count = 0;
+    var count = 0;
     if (_radius != 5.0) count++;
     if (_selectedCategories.isNotEmpty) count++;
     if (_discountRange.start != 0 || _discountRange.end != 100) count++;

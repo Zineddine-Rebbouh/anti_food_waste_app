@@ -68,6 +68,10 @@ dependencies:
   geocoding: ^3.0.0
   mobile_scanner: ^5.2.3
   qr_flutter: ^4.1.0
+  shared_preferences: ^2.3.3
+  web_socket_channel: ^3.0.1
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
 
 dev_dependencies:
   flutter_test:
@@ -110,7 +114,10 @@ flutter:
   generate: true
   assets:
     - assets/images/onboarding/
+    - assets/images/
     - assets/images/logo.png
+    - assets/images/logo_transparent.png
+    - assets/images/logo_premium.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

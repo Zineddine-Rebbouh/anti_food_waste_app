@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_stats.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/cubits/merchant_cubit.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:anti_food_waste_app/core/utils/l10n_utils.dart';
 
 class MerchantPerformanceAnalyticsScreen extends StatefulWidget {
   const MerchantPerformanceAnalyticsScreen({super.key});
@@ -12,32 +14,26 @@ class MerchantPerformanceAnalyticsScreen extends StatefulWidget {
 }
 
 class _MerchantPerformanceAnalyticsScreenState
-    extends State<MerchantPerformanceAnalyticsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+    extends State<MerchantPerformanceAnalyticsScreen> {
+  int _selectedIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+  static const Color primaryGreen = Color(0xFF2D8659);
+  static const Color accentBeige = Colors.white;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return BlocBuilder<MerchantCubit, MerchantState>(
       builder: (context, state) {
         if (state is MerchantLoading) {
           return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+            backgroundColor: accentBeige,
+            body: Center(child: CircularProgressIndicator(color: primaryGreen)),
+          );
         }
         if (state is MerchantError) {
           return Scaffold(
+            backgroundColor: accentBeige,
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -47,15 +43,20 @@ class _MerchantPerformanceAnalyticsScreenState
                     const Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey),
                     const SizedBox(height: 16),
                     Text(
-                      state.message,
+                      L10nUtils.translateError(state.message, l10n),
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                       onPressed: () => context.read<MerchantCubit>().load(),
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
+                      label: Text(l10n.retry),
                     ),
                   ],
                 ),
@@ -65,96 +66,105 @@ class _MerchantPerformanceAnalyticsScreenState
         }
         if (state is! MerchantLoaded) {
           return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+            backgroundColor: accentBeige,
+            body: Center(child: CircularProgressIndicator(color: primaryGreen)),
+          );
         }
         final profile = state.profile;
+        
         return Scaffold(
-          backgroundColor: const Color(0xFFF9FAFB),
-          body: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: 120,
-                pinned: true,
-                backgroundColor: const Color(0xFF2D8659),
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF2D8659), Color(0xFF1A5E3C)],
-                      ),
-                    ),
-                    child: SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(56, 16, 16, 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            const Text(
-                              'Performance Analytics',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${profile.businessName} · ${profile.wilaya}',
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                bottom: TabBar(
-                  controller: _tabController,
-                  indicatorColor: Colors.white,
-                  indicatorWeight: 3,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white60,
-                  labelStyle: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 13),
-                  tabs: const [
-                    Tab(text: 'Today'),
-                    Tab(text: 'Week'),
-                    Tab(text: 'Month'),
-                    Tab(text: 'All Time'),
-                  ],
-                ),
-              ),
-              SliverFillRemaining(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _DayAnalyticsTab(profile: profile),
-                    _PeriodAnalyticsTab(
-                        stats: profile.weeklyStats, label: 'This Week'),
-                    _PeriodAnalyticsTab(
-                        stats: profile.monthlyStats, label: 'This Month'),
-                    _PeriodAnalyticsTab(
-                        stats: profile.allTimeStats, label: 'All Time'),
-                  ],
-                ),
-              ),
-            ],
+          backgroundColor: accentBeige,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: primaryGreen, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              l10n.performance_analytics_title.toUpperCase(),
+              style: const TextStyle(color: primaryGreen, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 2),
+            ),
+            centerTitle: true,
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
+                _buildSegmentedControl(l10n),
+                const SizedBox(height: 32),
+                _buildSelectedContent(profile, l10n),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         );
       },
     );
   }
-}
 
-// ── Today Tab ─────────────────────────────────────────────────────────────────
+  Widget _buildSegmentedControl(AppLocalizations l10n) {
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Row(
+        children: [
+          _buildSegmentItem(0, l10n.today),
+          _buildSegmentItem(1, l10n.week_short),
+          _buildSegmentItem(2, l10n.month_short),
+          _buildSegmentItem(3, l10n.all_short),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSegmentItem(int index, String label) {
+    final isSelected = _selectedIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedIndex = index),
+        child: Container(
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected ? primaryGreen : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.grey.shade400,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedContent(MerchantProfile profile, AppLocalizations l10n) {
+    switch (_selectedIndex) {
+      case 0:
+        return _DayAnalyticsTab(profile: profile);
+      case 1:
+        return _PeriodAnalyticsTab(stats: profile.weeklyStats, label: l10n.this_week_analytics);
+      case 2:
+        return _PeriodAnalyticsTab(stats: profile.monthlyStats, label: l10n.this_month_analytics);
+      case 3:
+        return _PeriodAnalyticsTab(stats: profile.allTimeStats, label: l10n.all_time_analytics);
+      default:
+        return _DayAnalyticsTab(profile: profile);
+    }
+  }
+}
 
 class _DayAnalyticsTab extends StatelessWidget {
   final MerchantProfile profile;
@@ -163,266 +173,174 @@ class _DayAnalyticsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = profile.dailyStats;
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    final l10n = AppLocalizations.of(context)!;
+    const primaryGreen = Color(0xFF2D8659);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 4),
-        // KPI row
         Row(
           children: [
             Expanded(
-                child: _KpiCard(
-              icon: Icons.receipt_long_outlined,
-              iconColor: const Color(0xFF2D8659),
-              label: 'Orders Today',
-              value: '${d.ordersToday}',
-              badge: d.ordersDelta > 0
-                  ? '+${d.ordersDelta} vs yesterday'
-                  : null,
-              badgeColor: const Color(0xFF10B981),
-            )),
-            const SizedBox(width: 12),
+              child: _KpiCard(
+                icon: Icons.shopping_bag_rounded,
+                iconColor: primaryGreen,
+                label: l10n.orders_today,
+                value: '${d.ordersToday}',
+                delta: d.ordersDelta > 0 ? '+${d.ordersDelta}' : null,
+              ),
+            ),
+            const SizedBox(width: 16),
             Expanded(
-                child: _KpiCard(
-              icon: Icons.payments_outlined,
-              iconColor: const Color(0xFF6366F1),
-              label: 'Net Revenue',
-              value: '${d.netRevenueToday.toStringAsFixed(0)} DZD',
-            )),
+              child: _KpiCard(
+                icon: Icons.account_balance_wallet_rounded,
+                iconColor: const Color(0xFF3B82F6),
+                label: l10n.net_revenue,
+                value: '${d.netRevenueToday.toInt()} DZD',
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
-                child: _KpiCard(
-              icon: Icons.eco_outlined,
-              iconColor: const Color(0xFF10B981),
-              label: 'Food Saved',
-              value: '${d.foodSavedKgToday} kg',
-            )),
-            const SizedBox(width: 12),
+              child: _KpiCard(
+                icon: Icons.eco_rounded,
+                iconColor: const Color(0xFF2D8659),
+                label: l10n.food_saved_label,
+                value: '${d.foodSavedKgToday.toInt()} kg',
+              ),
+            ),
+            const SizedBox(width: 16),
             Expanded(
-                child: _KpiCard(
-              icon: Icons.cloud_outlined,
-              iconColor: const Color(0xFF06B6D4),
-              label: 'CO² Avoided',
-              value: '${d.co2AvoidedKgToday} kg',
-            )),
+              child: _KpiCard(
+                icon: Icons.cloud_done_rounded,
+                iconColor: const Color(0xFF06B6D4),
+                label: l10n.co2_avoided,
+                value: '${d.co2AvoidedKgToday.toInt()} kg',
+              ),
+            ),
           ],
+        ),
+        const SizedBox(height: 40),
+        Text(
+          l10n.activity_peaks,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5),
         ),
         const SizedBox(height: 20),
-        _SectionTitle('Hourly Activity'),
-        const SizedBox(height: 12),
         _BarChart(
-          bars: const [
-            _Bar(label: '8am', value: 0.1),
-            _Bar(label: '9am', value: 0.2),
-            _Bar(label: '10am', value: 0.15),
-            _Bar(label: '12pm', value: 0.35),
-            _Bar(label: '2pm', value: 0.55),
-            _Bar(label: '4pm', value: 0.8),
-            _Bar(label: '6pm', value: 1.0),
-            _Bar(label: '8pm', value: 0.65),
+          bars: [
+            _Bar(label: l10n.chart_8am, value: 0.2),
+            _Bar(label: l10n.chart_12pm, value: 0.5),
+            _Bar(label: l10n.chart_4pm, value: 0.8),
+            _Bar(label: l10n.chart_8pm, value: 1.0),
+            _Bar(label: l10n.chart_10pm, value: 0.4),
           ],
         ),
+        const SizedBox(height: 40),
+        Text(
+          l10n.daily_breakdown,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5),
+        ),
         const SizedBox(height: 20),
-        _SectionTitle('Revenue Breakdown'),
-        const SizedBox(height: 12),
         _BreakdownCard(
           rows: [
-            _BreakdownRow(
-              label: 'Gross Revenue',
-              value: '${d.revenueToday.toStringAsFixed(0)} DZD',
-              bold: false,
-            ),
-            _BreakdownRow(
-              label: 'Platform Commission (12%)',
-              value:
-                  '- ${(d.revenueToday * 0.12).toStringAsFixed(0)} DZD',
-              valueColor: const Color(0xFFEF4444),
-              bold: false,
-            ),
-            _BreakdownRow(
-              label: 'Your Net Earnings',
-              value: '${d.netRevenueToday.toStringAsFixed(0)} DZD',
-              valueColor: const Color(0xFF2D8659),
-              bold: true,
-            ),
+            _BreakdownRow(label: l10n.gross_sales, value: '${d.revenueToday.toInt()} DZD'),
+            _BreakdownRow(label: l10n.platform_fee_label, value: '- ${(d.revenueToday * 0.12).toInt()} DZD', isNegative: true),
+            _BreakdownRow(label: l10n.net_earnings_label, value: '${d.netRevenueToday.toInt()} DZD', isMain: true),
           ],
         ),
-        const SizedBox(height: 20),
-        _SectionTitle('Conversion'),
-        const SizedBox(height: 12),
-        _ConversionCard(
-          views: 145,
-          reservations: d.ordersToday,
-          completedOrders: d.ordersToday,
-        ),
-        const SizedBox(height: 24),
       ],
     );
   }
 }
-
-// ── Period Tab (Week / Month / All Time) ──────────────────────────────────────
 
 class _PeriodAnalyticsTab extends StatelessWidget {
   final MerchantPeriodStats stats;
   final String label;
-  const _PeriodAnalyticsTab(
-      {required this.stats, required this.label});
+  const _PeriodAnalyticsTab({required this.stats, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    final grossRevenue = stats.revenue;
-    final netRevenue = grossRevenue * 0.88;
-    final avgOrderValue =
-        stats.orders > 0 ? grossRevenue / stats.orders : 0.0;
-    final co2Avoided = stats.foodSavedKg * 4;
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    final l10n = AppLocalizations.of(context)!;
+    const primaryGreen = Color(0xFF2D8659);
+    final netRevenue = stats.revenue * 0.88;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 4),
-        // Header label
-        Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2D8659).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF2D8659),
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
+        Row(
+          children: [
+            Expanded(
+              child: _KpiCard(
+                icon: Icons.receipt_rounded,
+                iconColor: primaryGreen,
+                label: l10n.total_orders_label,
+                value: '${stats.orders}',
+              ),
             ),
-          ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _KpiCard(
+                icon: Icons.payments_rounded,
+                iconColor: const Color(0xFF3B82F6),
+                label: l10n.net_revenue,
+                value: '${netRevenue.toInt()} DZD',
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
-        // KPI cards
         Row(
           children: [
             Expanded(
-                child: _KpiCard(
-              icon: Icons.receipt_long_outlined,
-              iconColor: const Color(0xFF2D8659),
-              label: 'Total Orders',
-              value: '${stats.orders}',
-            )),
-            const SizedBox(width: 12),
+              child: _KpiCard(
+                icon: Icons.eco_rounded,
+                iconColor: const Color(0xFF2D8659),
+                label: l10n.food_saved_label,
+                value: '${stats.foodSavedKg.toInt()} kg',
+              ),
+            ),
+            const SizedBox(width: 16),
             Expanded(
-                child: _KpiCard(
-              icon: Icons.payments_outlined,
-              iconColor: const Color(0xFF6366F1),
-              label: 'Net Revenue',
-              value: '${netRevenue.toStringAsFixed(0)} DZD',
-            )),
+              child: _KpiCard(
+                icon: Icons.restaurant_rounded,
+                iconColor: const Color(0xFFF59E0B),
+                label: l10n.meals_rescued_label,
+                value: '~${(stats.foodSavedKg / 0.4).round()}',
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-                child: _KpiCard(
-              icon: Icons.eco_outlined,
-              iconColor: const Color(0xFF10B981),
-              label: 'Food Saved',
-              value: '${stats.foodSavedKg.toStringAsFixed(1)} kg',
-            )),
-            const SizedBox(width: 12),
-            Expanded(
-                child: _KpiCard(
-              icon: Icons.show_chart,
-              iconColor: const Color(0xFFF59E0B),
-              label: 'Avg. Order',
-              value: '${avgOrderValue.toStringAsFixed(0)} DZD',
-            )),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-                child: _KpiCard(
-              icon: Icons.cloud_outlined,
-              iconColor: const Color(0xFF06B6D4),
-              label: 'CO² Avoided',
-              value: '${co2Avoided.toStringAsFixed(1)} kg',
-            )),
-            const SizedBox(width: 12),
-            Expanded(
-                child: _KpiCard(
-              icon: Icons.restaurant_outlined,
-              iconColor: const Color(0xFFEC4899),
-              label: 'Meals Rescued',
-              value: '~${(stats.foodSavedKg / 0.4).round()}',
-            )),
-          ],
+        const SizedBox(height: 40),
+        Text(
+          l10n.performance_trend,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5),
         ),
         const SizedBox(height: 20),
-        _SectionTitle('Revenue Breakdown'),
-        const SizedBox(height: 12),
+        _BarChart(
+          bars: [
+            _Bar(label: l10n.chart_mon, value: 0.4),
+            _Bar(label: l10n.chart_wed, value: 0.7),
+            _Bar(label: l10n.chart_fri, value: 0.9),
+            _Bar(label: l10n.chart_sat, value: 1.0),
+            _Bar(label: l10n.chart_sun, value: 0.3),
+          ],
+        ),
+        const SizedBox(height: 40),
+        Text(
+          l10n.revenue_breakdown,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5),
+        ),
+        const SizedBox(height: 20),
         _BreakdownCard(
           rows: [
-            _BreakdownRow(
-              label: 'Gross Revenue',
-              value: '${grossRevenue.toStringAsFixed(0)} DZD',
-              bold: false,
-            ),
-            _BreakdownRow(
-              label: 'Platform Commission (12%)',
-              value:
-                  '- ${(grossRevenue * 0.12).toStringAsFixed(0)} DZD',
-              valueColor: const Color(0xFFEF4444),
-              bold: false,
-            ),
-            _BreakdownRow(
-              label: 'Your Net Earnings',
-              value: '${netRevenue.toStringAsFixed(0)} DZD',
-              valueColor: const Color(0xFF2D8659),
-              bold: true,
-            ),
+            _BreakdownRow(label: l10n.gross_revenue, value: '${stats.revenue.toInt()} DZD'),
+            _BreakdownRow(label: l10n.platform_fee_label, value: '- ${(stats.revenue * 0.12).toInt()} DZD', isNegative: true),
+            _BreakdownRow(label: l10n.net_earnings_label, value: '${netRevenue.toInt()} DZD', isMain: true),
           ],
         ),
-        const SizedBox(height: 20),
-        _SectionTitle('Top Performing Days'),
-        const SizedBox(height: 12),
-        _BarChart(
-          bars: const [
-            _Bar(label: 'Mon', value: 0.4),
-            _Bar(label: 'Tue', value: 0.65),
-            _Bar(label: 'Wed', value: 0.5),
-            _Bar(label: 'Thu', value: 0.85),
-            _Bar(label: 'Fri', value: 1.0),
-            _Bar(label: 'Sat', value: 0.9),
-            _Bar(label: 'Sun', value: 0.3),
-          ],
-        ),
-        const SizedBox(height: 24),
       ],
-    );
-  }
-}
-
-// ── Shared widgets ─────────────────────────────────────────────────────────────
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  const _SectionTitle(this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF111827),
-      ),
     );
   }
 }
@@ -432,62 +350,54 @@ class _KpiCard extends StatelessWidget {
   final Color iconColor;
   final String label;
   final String value;
-  final String? badge;
-  final Color? badgeColor;
+  final String? delta;
 
   const _KpiCard({
     required this.icon,
     required this.iconColor,
     required this.label,
     required this.value,
-    this.badge,
-    this.badgeColor,
+    this.delta,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade50),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: iconColor, size: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, color: iconColor, size: 18),
+              ),
+              if (delta != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(100)),
+                  child: Text(delta!, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF16A34A))),
+                ),
+            ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 20),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF111827),
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827), letterSpacing: -0.5),
           ),
-          const SizedBox(height: 2),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 11, color: Color(0xFF9CA3AF))),
-          if (badge != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              badge!,
-              style: TextStyle(
-                  fontSize: 10,
-                  color: badgeColor ?? const Color(0xFF6B7280),
-                  fontWeight: FontWeight.w500),
-            ),
-          ],
+          const SizedBox(height: 4),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 0.5),
+          ),
         ],
       ),
     );
@@ -496,7 +406,7 @@ class _KpiCard extends StatelessWidget {
 
 class _Bar {
   final String label;
-  final double value; // 0.0 – 1.0
+  final double value;
   const _Bar({required this.label, required this.value});
 }
 
@@ -506,15 +416,15 @@ class _BarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const primaryGreen = Color(0xFF2D8659);
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(32),
       ),
       child: SizedBox(
-        height: 110,
+        height: 160,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -523,29 +433,30 @@ class _BarChart extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Expanded(
-                  child: Align(
+                  child: Container(
+                    width: 32,
+                    decoration: BoxDecoration(
+                      color: b.value == 1.0 ? primaryGreen : primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     alignment: Alignment.bottomCenter,
-                    child: Container(
-                      width: 24,
-                      height: 72 * b.value,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            const Color(0xFF2D8659),
-                            const Color(0xFF2D8659).withOpacity(0.6),
-                          ],
+                    child: FractionallySizedBox(
+                      heightFactor: b.value,
+                      child: Container(
+                        width: 32,
+                        decoration: BoxDecoration(
+                          color: b.value == 1.0 ? primaryGreen : primaryGreen.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        borderRadius: BorderRadius.circular(4),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(b.label,
-                    style: const TextStyle(
-                        fontSize: 10, color: Color(0xFF9CA3AF))),
+                const SizedBox(height: 12),
+                Text(
+                  b.label,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey.shade400),
+                ),
               ],
             );
           }).toList(),
@@ -558,13 +469,9 @@ class _BarChart extends StatelessWidget {
 class _BreakdownRow {
   final String label;
   final String value;
-  final Color? valueColor;
-  final bool bold;
-  const _BreakdownRow(
-      {required this.label,
-      required this.value,
-      this.valueColor,
-      required this.bold});
+  final bool isNegative;
+  final bool isMain;
+  _BreakdownRow({required this.label, required this.value, this.isNegative = false, this.isMain = false});
 }
 
 class _BreakdownCard extends StatelessWidget {
@@ -574,56 +481,43 @@ class _BreakdownCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         children: rows.asMap().entries.map((e) {
           final i = e.key;
-          final row = e.value;
-          return Column(
-            children: [
-              if (i > 0)
-                const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: Color(0xFFF3F4F6),
-                    indent: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      row.label,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: row.bold
-                            ? const Color(0xFF111827)
-                            : const Color(0xFF6B7280),
-                        fontWeight: row.bold
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                    Text(
-                      row.value,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: row.bold
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        color: row.valueColor ??
-                            const Color(0xFF374151),
-                      ),
-                    ),
-                  ],
+          final r = e.value;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: r.isMain ? Colors.white : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              border: i == 0 || r.isMain ? null : Border(top: BorderSide(color: Colors.grey.shade50)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  r.label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: r.isMain ? FontWeight.w800 : FontWeight.w600,
+                    color: r.isMain ? const Color(0xFF2D8659) : const Color(0xFF374151),
+                  ),
                 ),
-              ),
-            ],
+                Text(
+                  r.value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: r.isMain ? FontWeight.w900 : FontWeight.w700,
+                    color: r.isNegative ? const Color(0xFFEF4444) : (r.isMain ? const Color(0xFF2D8659) : const Color(0xFF111827)),
+                  ),
+                ),
+              ],
+            ),
           );
         }).toList(),
       ),
@@ -631,105 +525,5 @@ class _BreakdownCard extends StatelessWidget {
   }
 }
 
-class _ConversionCard extends StatelessWidget {
-  final int views;
-  final int reservations;
-  final int completedOrders;
-  const _ConversionCard(
-      {required this.views,
-      required this.reservations,
-      required this.completedOrders});
 
-  @override
-  Widget build(BuildContext context) {
-    final reservationRate =
-        views > 0 ? (reservations / views * 100).toStringAsFixed(1) : '0';
-    final completionRate = reservations > 0
-        ? (completedOrders / reservations * 100).toStringAsFixed(1)
-        : '0';
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _ConversionStep(
-              label: 'Listing Views',
-              value: '$views',
-              iconColor: const Color(0xFF6366F1)),
-          _Arrow(),
-          _ConversionStep(
-              label: 'Reserved',
-              value: '$reservations',
-              sub: '$reservationRate%',
-              iconColor: const Color(0xFFF59E0B)),
-          _Arrow(),
-          _ConversionStep(
-              label: 'Completed',
-              value: '$completedOrders',
-              sub: '$completionRate%',
-              iconColor: const Color(0xFF10B981)),
-        ],
-      ),
-    );
-  }
-}
 
-class _ConversionStep extends StatelessWidget {
-  final String label;
-  final String value;
-  final String? sub;
-  final Color iconColor;
-
-  const _ConversionStep(
-      {required this.label,
-      required this.value,
-      this.sub,
-      required this.iconColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            value,
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: iconColor),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(label,
-            style: const TextStyle(
-                fontSize: 11, color: Color(0xFF6B7280))),
-        if (sub != null)
-          Text(sub!,
-              style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF10B981),
-                  fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-}
-
-class _Arrow extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return const Icon(Icons.arrow_forward,
-        size: 16, color: Color(0xFFD1D5DB));
-  }
-}

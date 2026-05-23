@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class MerchantMetricCard extends StatelessWidget {
   final IconData icon;
@@ -99,6 +100,7 @@ class MerchantPeriodStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -129,18 +131,18 @@ class MerchantPeriodStatCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _StatRow(label: 'Orders', value: '$orders', color: const Color(0xFF374151)),
+            _StatRow(label: l10n.orders_label, value: '$orders', color: const Color(0xFF374151)),
             const SizedBox(height: 6),
             _StatRow(
-              label: 'Revenue',
-              value: '${revenue.toStringAsFixed(0)} DZD',
-              color: const Color(0xFF10B981),
+              label: l10n.revenue_label,
+              value: '${revenue.toStringAsFixed(0)} ${l10n.dzd}',
+              color: const Color(0xFF2D8659),
             ),
             const SizedBox(height: 6),
             _StatRow(
-              label: 'Food Saved',
-              value: '${foodSavedKg.toStringAsFixed(0)} kg',
-              color: const Color(0xFF10B981),
+              label: l10n.food_saved_analytics,
+              value: '${foodSavedKg.toStringAsFixed(0)} ${l10n.kg_unit}',
+              color: const Color(0xFF2D8659),
             ),
           ],
         ),
@@ -177,3 +179,6 @@ class _StatRow extends StatelessWidget {
     );
   }
 }
+
+
+

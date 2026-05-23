@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/cubits/merchant_cubit.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_home_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_listings_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_orders_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_profile_screen.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:anti_food_waste_app/features/chat/presentation/widgets/chat_floating_button.dart';
 
 class MerchantMainScreen extends StatefulWidget {
   const MerchantMainScreen({super.key});
@@ -28,15 +31,17 @@ class _MerchantMainScreenState extends State<MerchantMainScreen> {
       MerchantProfileScreen(),
     ];
   }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return BlocBuilder<MerchantCubit, MerchantState>(
       builder: (context, state) {
         final pendingCount =
             state is MerchantLoaded ? state.pendingOrderCount : 0;
 
         return Scaffold(
+          floatingActionButton: const ChatFloatingButton(),
           body: IndexedStack(index: _currentIndex, children: _screens),
           bottomNavigationBar: Container(
             decoration: const BoxDecoration(
@@ -60,21 +65,21 @@ class _MerchantMainScreenState extends State<MerchantMainScreen> {
                     _NavItem(
                       icon: Icons.home_outlined,
                       activeIcon: Icons.home,
-                      label: 'Home',
+                      label: l10n.home,
                       isActive: _currentIndex == 0,
                       onTap: () => setState(() => _currentIndex = 0),
                     ),
                     _NavItem(
                       icon: Icons.inventory_2_outlined,
                       activeIcon: Icons.inventory_2,
-                      label: 'Listings',
+                      label: l10n.nav_listings,
                       isActive: _currentIndex == 1,
                       onTap: () => setState(() => _currentIndex = 1),
                     ),
                     _NavItem(
                       icon: Icons.receipt_long_outlined,
                       activeIcon: Icons.receipt_long,
-                      label: 'Orders',
+                      label: l10n.nav_orders,
                       isActive: _currentIndex == 2,
                       badge: pendingCount > 0 ? '$pendingCount' : null,
                       onTap: () => setState(() => _currentIndex = 2),
@@ -82,7 +87,7 @@ class _MerchantMainScreenState extends State<MerchantMainScreen> {
                     _NavItem(
                       icon: Icons.person_outline,
                       activeIcon: Icons.person,
-                      label: 'Profile',
+                      label: l10n.profile,
                       isActive: _currentIndex == 3,
                       onTap: () => setState(() => _currentIndex = 3),
                     ),
@@ -116,7 +121,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const activeColor = Color(0xFF2D8659);
+    const activeColor = AppTheme.primary;
     const inactiveColor = Color(0xFF9CA3AF);
 
     return GestureDetector(
@@ -188,3 +193,6 @@ class _NavItem extends StatelessWidget {
     );
   }
 }
+
+
+

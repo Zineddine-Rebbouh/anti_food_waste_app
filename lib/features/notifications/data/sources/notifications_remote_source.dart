@@ -1,4 +1,4 @@
-import '../../../../core/network/api_client.dart';
+import 'package:anti_food_waste_app/core/network/api_client.dart';
 
 class NotificationsRemoteSource {
   Future<Map<String, dynamic>> fetchNotifications({String? cursor, int limit = 20}) async {

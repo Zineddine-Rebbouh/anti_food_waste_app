@@ -1,4 +1,4 @@
-enum OrderStatus { pending, completed, cancelled, noShow }
+enum OrderStatus { pending, accepted, active, completed, cancelled, noShow }
 
 enum PaymentMethod { paidOnline, cashOnPickup }
 
@@ -20,6 +20,8 @@ class MerchantOrder {
   final DateTime pickupEnd;
   final String? specialInstructions;
   final bool isDonation;
+  final String? rawStatus;
+  final DateTime? collectedAt;
 
   const MerchantOrder({
     required this.id,
@@ -39,6 +41,8 @@ class MerchantOrder {
     required this.pickupEnd,
     this.specialInstructions,
     this.isDonation = false,
+    this.rawStatus,
+    this.collectedAt,
   });
 
   // ── JSON deserialization ─────────────────────────────────────────────────
@@ -100,6 +104,10 @@ class MerchantOrder {
       pickupEnd: pickupEnd,
       specialInstructions: json['notes'] as String?,
       isDonation: false,
+      rawStatus: statusStr,
+      collectedAt: json['collected_at'] != null
+          ? DateTime.parse(json['collected_at'] as String)
+          : null,
     );
   }
 
@@ -113,6 +121,10 @@ class MerchantOrder {
         return OrderStatus.cancelled;
       case 'no_show':
         return OrderStatus.noShow;
+      case 'active':
+        return OrderStatus.active;
+      case 'accepted':
+        return OrderStatus.accepted;
       case 'pending':
       case 'reserved':
       default:
@@ -131,7 +143,10 @@ class MerchantOrder {
     return '${customerPhone.substring(0, 7)}***';
   }
 
-  bool get isPending => status == OrderStatus.pending;
+  bool get isPending =>
+      status == OrderStatus.pending ||
+      status == OrderStatus.accepted ||
+      status == OrderStatus.active;
 
   Duration get timeUntilPickupEnd => pickupEnd.difference(DateTime.now());
 
@@ -158,6 +173,11 @@ class MerchantOrder {
       pickupEnd: pickupEnd,
       specialInstructions: specialInstructions,
       isDonation: isDonation,
+      rawStatus: rawStatus,
+      collectedAt: collectedAt,
     );
   }
 }
+
+
+

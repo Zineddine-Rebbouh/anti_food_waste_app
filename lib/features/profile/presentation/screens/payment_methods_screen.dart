@@ -53,7 +53,7 @@ const Map<String, _BrandInfo> _kBrands = {
   'cib': _BrandInfo(
     emoji: '💳',
     name: 'CIB',
-    color: Color(0xFF2D8659),
+    color: AppTheme.primary,
   ),
   'dahabia': _BrandInfo(
     emoji: '💳',
@@ -438,7 +438,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
@@ -777,7 +777,7 @@ class _CardNumberFormatter extends TextInputFormatter {
     // newValue contains only digits (FilteringTextInputFormatter ran first).
     final digits = newValue.text;
     final buffer = StringBuffer();
-    for (int i = 0; i < digits.length; i++) {
+    for (var i = 0; i < digits.length; i++) {
       if (i > 0 && i % 4 == 0) buffer.write(' ');
       buffer.write(digits[i]);
     }

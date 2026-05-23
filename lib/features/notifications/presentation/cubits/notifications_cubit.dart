@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/repositories/notifications_repository.dart';
-import 'notifications_state.dart';
+import 'package:anti_food_waste_app/features/notifications/domain/repositories/notifications_repository.dart';
+import 'package:anti_food_waste_app/features/notifications/presentation/cubits/notifications_state.dart';
 
 class NotificationsCubit extends Cubit<NotificationsState> {
   final NotificationsRepository _repository;

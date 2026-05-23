@@ -5,6 +5,7 @@ import 'package:anti_food_waste_app/features/orders/presentation/screens/orders_
 import 'package:anti_food_waste_app/features/favorites/presentation/screens/favorites_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:anti_food_waste_app/shared/widgets/bottom_navigation.dart';
+import 'package:anti_food_waste_app/features/chat/presentation/widgets/chat_floating_button.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -27,6 +28,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: const ChatFloatingButton(),
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,

@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:anti_food_waste_app/core/app_theme.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_cubit.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_impact_report_screen.dart';
+import 'package:anti_food_waste_app/core/app_theme.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+const Color _forestGreen = Color(0xFF2D8659);
+const Color _accentBeige = Colors.white;
+const Color _textNavy = Color(0xFF1A1A2E);
 
 class CharityConfirmCollectionScreen extends StatefulWidget {
   const CharityConfirmCollectionScreen({super.key, required this.request});
@@ -33,6 +40,14 @@ class _CharityConfirmCollectionScreenState
         text: widget.request.estimatedServings.toString());
   }
 
+  List<String> _getConditionLabels(AppLocalizations l10n) => [
+        l10n.very_poor,
+        l10n.poor,
+        l10n.average,
+        l10n.good,
+        l10n.excellent,
+      ];
+
   @override
   void dispose() {
     _actualWeightCtrl.dispose();
@@ -40,33 +55,36 @@ class _CharityConfirmCollectionScreenState
     super.dispose();
   }
 
-  static const _conditionLabels = [
-    'Very Poor',
-    'Poor',
-    'Average',
-    'Good',
-    'Excellent',
-  ];
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(milliseconds: 1500));
-    setState(() => _isSubmitting = false);
+    try {
+      // Update status to collected
+      await context.read<CharityCubit>().updateRequestStatus(widget.request.id, PickupRequestStatus.collected);
+      setState(() => _isSubmitting = false);
+    } catch (e) {
+      setState(() => _isSubmitting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+      return;
+    }
 
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
-          children: const [
-            Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text('Collection confirmed! ✓'),
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(l10n.collection_confirmed_msg),
           ],
         ),
-        backgroundColor: AppTheme.primary,
+        backgroundColor: _forestGreen,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
@@ -77,44 +95,76 @@ class _CharityConfirmCollectionScreenState
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            CharityImpactReportScreen(request: widget.request),
+        builder: (ctx) => BlocProvider.value(
+          value: context.read<CharityCubit>(),
+          child: CharityImpactReportScreen(request: widget.request),
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F9),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Confirm Collection',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => Navigator.pop(context),
+      backgroundColor: _accentBeige,
+      body: Column(
+        children: [
+          _buildHeader(context, l10n),
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSummaryCard(l10n),
+                    const SizedBox(height: 20),
+                    _buildActualQuantitiesCard(l10n),
+                    const SizedBox(height: 20),
+                    _buildConditionRatingCard(l10n),
+                    const SizedBox(height: 20),
+                    _buildPhotoCard(l10n),
+                    const SizedBox(height: 32),
+                    _buildSubmitButton(l10n),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Premium Header ────────────────────────────────────────────────────────────
+
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: _forestGreen,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 16, 24, 32),
+          child: Row(
             children: [
-              _buildSummaryCard(),
-              const SizedBox(height: 12),
-              _buildActualQuantitiesCard(),
-              const SizedBox(height: 12),
-              _buildConditionRatingCard(),
-              const SizedBox(height: 12),
-              _buildPhotoCard(),
-              const SizedBox(height: 24),
-              _buildSubmitButton(),
+              IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n.confirm_collection_title,
+                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+              ),
             ],
           ),
         ),
@@ -124,34 +174,24 @@ class _CharityConfirmCollectionScreenState
 
   // ── Card 1: Summary ─────────────────────────────────────────────────────────
 
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard(AppLocalizations l10n) {
     return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Confirming collection from:',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppTheme.mutedForeground,
-            ),
+          Text(
+            l10n.confirming_collection_from.toUpperCase(),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: _forestGreen.withOpacity(0.5), letterSpacing: 1),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             widget.request.merchantName,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primary,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _forestGreen, letterSpacing: -0.5),
           ),
           const SizedBox(height: 4),
           Text(
             widget.request.donationTitle,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-            ),
+            style: TextStyle(fontSize: 14, color: _textNavy.withOpacity(0.7), fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
           Row(
@@ -160,8 +200,7 @@ class _CharityConfirmCollectionScreenState
                   size: 14, color: AppTheme.mutedForeground),
               const SizedBox(width: 4),
               Text(
-                'Expected: ${widget.request.quantityKg} kg  /  '
-                '${widget.request.estimatedServings} servings',
+                l10n.expected_label(widget.request.quantityKg, widget.request.estimatedServings),
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppTheme.mutedForeground,
@@ -176,17 +215,14 @@ class _CharityConfirmCollectionScreenState
 
   // ── Card 2: Actual Quantities ────────────────────────────────────────────────
 
-  Widget _buildActualQuantitiesCard() {
+  Widget _buildActualQuantitiesCard(AppLocalizations l10n) {
     return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'What did you actually collect?',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
+          Text(
+            l10n.what_actually_collected.toUpperCase(),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: _forestGreen.withOpacity(0.5), letterSpacing: 1),
           ),
           const SizedBox(height: 14),
           Row(
@@ -197,21 +233,19 @@ class _CharityConfirmCollectionScreenState
                   keyboardType: const TextInputType.numberWithOptions(
                       decimal: true),
                   decoration: InputDecoration(
-                    labelText: 'Actual weight (kg)',
+                    labelText: l10n.actual_weight_label,
                     hintText: '0.0',
                     filled: true,
-                    fillColor: AppTheme.inputBackground,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 14),
+                    fillColor: Colors.grey[50],
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _forestGreen, width: 1.5)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Required';
+                    if (v == null || v.trim().isEmpty) return l10n.required_field;
                     final n = double.tryParse(v);
-                    if (n == null || n <= 0) return 'Must be > 0';
+                    if (n == null || n <= 0) return l10n.must_be_greater_than_zero;
                     return null;
                   },
                 ),
@@ -222,21 +256,19 @@ class _CharityConfirmCollectionScreenState
                   controller: _actualServingsCtrl,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'Servings',
+                    labelText: l10n.servings,
                     hintText: '0',
                     filled: true,
-                    fillColor: AppTheme.inputBackground,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 14),
+                    fillColor: Colors.grey[50],
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _forestGreen, width: 1.5)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Required';
+                    if (v == null || v.trim().isEmpty) return l10n.required_field;
                     final n = int.tryParse(v);
-                    if (n == null || n <= 0) return 'Must be > 0';
+                    if (n == null || n <= 0) return l10n.must_be_greater_than_zero;
                     return null;
                   },
                 ),
@@ -250,17 +282,14 @@ class _CharityConfirmCollectionScreenState
 
   // ── Card 3: Condition Rating ─────────────────────────────────────────────────
 
-  Widget _buildConditionRatingCard() {
+  Widget _buildConditionRatingCard(AppLocalizations l10n) {
     return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Food Condition',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
+          Text(
+            l10n.food_condition_label.toUpperCase(),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: _forestGreen.withOpacity(0.5), letterSpacing: 1),
           ),
           const SizedBox(height: 16),
           Row(
@@ -289,15 +318,15 @@ class _CharityConfirmCollectionScreenState
           const SizedBox(height: 8),
           Center(
             child: Text(
-              _conditionLabels[_conditionRating - 1],
+              _getConditionLabels(l10n)[_conditionRating - 1],
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
                 color: _conditionRating >= 4
-                    ? AppTheme.primary
+                    ? _forestGreen
                     : _conditionRating == 3
                         ? Colors.orange
-                        : AppTheme.accent,
+                        : Colors.red,
               ),
             ),
           ),
@@ -308,17 +337,14 @@ class _CharityConfirmCollectionScreenState
 
   // ── Card 4: Photo Evidence ───────────────────────────────────────────────────
 
-  Widget _buildPhotoCard() {
+  Widget _buildPhotoCard(AppLocalizations l10n) {
     return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Add Photo (optional)',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
+          Text(
+            l10n.add_photo_optional.toUpperCase(),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: _forestGreen.withOpacity(0.5), letterSpacing: 1),
           ),
           const SizedBox(height: 12),
           GestureDetector(
@@ -329,35 +355,22 @@ class _CharityConfirmCollectionScreenState
               width: double.infinity,
               height: 90,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: _hasPhoto
-                      ? AppTheme.primary.withOpacity(0.4)
-                      : Colors.grey.shade300,
+                  color: _hasPhoto ? _forestGreen.withOpacity(0.4) : Colors.grey.shade200,
                   width: 1.5,
-                  style: BorderStyle.solid,
                 ),
-                color: _hasPhoto
-                    ? AppTheme.primary.withOpacity(0.04)
-                    : Colors.transparent,
+                color: _hasPhoto ? _forestGreen.withOpacity(0.04) : Colors.grey[50],
               ),
               child: _hasPhoto
                   ? Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.check_circle_rounded,
-                          color: AppTheme.primary,
-                          size: 22,
-                        ),
+                        const Icon(Icons.check_circle_rounded, color: _forestGreen, size: 22),
                         const SizedBox(width: 8),
-                        const Text(
-                          'Photo attached',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        Text(
+                          l10n.photo_attached,
+                          style: const TextStyle(fontSize: 14, color: _forestGreen, fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(width: 16),
                         GestureDetector(
@@ -381,7 +394,7 @@ class _CharityConfirmCollectionScreenState
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Tap to attach photo',
+                          l10n.tap_to_attach_photo,
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.grey.shade500,
@@ -398,37 +411,26 @@ class _CharityConfirmCollectionScreenState
 
   // ── Submit Button ────────────────────────────────────────────────────────────
 
-  Widget _buildSubmitButton() {
+  Widget _buildSubmitButton(AppLocalizations l10n) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.zero,
       child: SizedBox(
         width: double.infinity,
-        height: 52,
+        height: 58,
         child: ElevatedButton(
           onPressed: _isSubmitting ? null : _submit,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primary,
+            backgroundColor: _forestGreen,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
+            disabledBackgroundColor: Colors.grey[300],
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             elevation: 0,
           ),
           child: _isSubmitting
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: Colors.white,
-                  ),
-                )
-              : const Text(
-                  'Confirm Collection',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+              : Text(
+                  l10n.confirm_collection_title.toUpperCase(),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                 ),
         ),
       ),
@@ -446,16 +448,17 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.only(bottom: 4),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: const Color(0xFF2D8659).withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -463,3 +466,6 @@ class _SectionCard extends StatelessWidget {
     );
   }
 }
+
+
+

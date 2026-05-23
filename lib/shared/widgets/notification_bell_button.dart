@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../features/notifications/presentation/cubits/notifications_cubit.dart';
-import '../../features/notifications/presentation/cubits/notifications_state.dart';
-import 'notification_panel.dart';
+import 'package:anti_food_waste_app/features/notifications/presentation/cubits/notifications_cubit.dart';
+import 'package:anti_food_waste_app/features/notifications/presentation/cubits/notifications_state.dart';
+import 'package:anti_food_waste_app/shared/widgets/notification_panel.dart';
 
 class NotificationBellButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
-  const NotificationBellButton({Key? key, this.onPressed}) : super(key: key);
+  const NotificationBellButton({super.key, this.onPressed});
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<NotificationsCubit, NotificationsState>(
       builder: (context, state) {
-        int unreadCount = 0;
+        var unreadCount = 0;
         if (state is NotificationsLoaded) {
           unreadCount = state.unreadCount;
         }

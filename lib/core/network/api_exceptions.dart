@@ -21,7 +21,7 @@ class ApiException implements Exception {
       final statusCode = error.response!.statusCode;
       final data = error.response!.data;
       
-      String parsedMessage = 'An unexpected error occurred.';
+      var parsedMessage = 'An unexpected error occurred.';
       
       if (data != null && data is Map<String, dynamic>) {
         if (data.containsKey('detail')) {
@@ -29,7 +29,12 @@ class ApiException implements Exception {
         } else if (data.containsKey('message')) {
           parsedMessage = data['message'];
         } else if (data.containsKey('error')) {
-          parsedMessage = data['error'];
+          final err = data['error'];
+          if (err is Map && err.containsKey('message')) {
+            parsedMessage = err['message'].toString();
+          } else {
+            parsedMessage = err.toString();
+          }
         } else if (data.containsKey('non_field_errors') && data['non_field_errors'] is List) {
           parsedMessage = data['non_field_errors'][0].toString();
         } else if (data.isNotEmpty) {

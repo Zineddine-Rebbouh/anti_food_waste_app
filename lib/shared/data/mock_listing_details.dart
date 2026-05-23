@@ -1,4 +1,4 @@
-import '../models/listing_extra_details.dart';
+import 'package:anti_food_waste_app/shared/models/listing_extra_details.dart';
 
 final Map<String, ListingExtraDetails> mockListingExtraDetails = {
   'r1': ListingExtraDetails(
@@ -18,14 +18,20 @@ final Map<String, ListingExtraDetails> mockListingExtraDetails = {
       'Reusable paper bag',
     ],
     merchant: MerchantDetails(
+      id: 'm1',
       name: 'Boulangerie El Khobz',
       logoUrl: null,
+      address: '12 Rue Didouche Mourad, Algiers Center',
+      lat: 36.7638,
+      lng: 3.0488,
       badges: ['top_saver', 'verified'],
       bio:
           'Family-owned bakery since 1985, committed to traditional Algerian baking methods and reducing food waste.',
       mealsSaved: 1240,
       fulfillmentRate: 98,
       memberSince: 'March 2023',
+      averageRating: 4.8,
+      totalReviews: 124,
     ),
     reviews: [
       ListingReview(
@@ -76,14 +82,20 @@ final Map<String, ListingExtraDetails> mockListingExtraDetails = {
       'Chopsticks included',
     ],
     merchant: MerchantDetails(
+      id: 'm5',
       name: 'Yuki Sushi Algiers',
       logoUrl: null,
+      address: 'Sidi Yahia Boulevard, Hydra, Algiers',
+      lat: 36.7538,
+      lng: 3.0588,
       badges: ['five_star', 'trending'],
       bio:
           'Authentic Japanese cuisine in the heart of Algiers. We believe fresh fish shouldn\'t go to waste.',
       mealsSaved: 850,
       fulfillmentRate: 95,
       memberSince: 'October 2023',
+      averageRating: 4.9,
+      totalReviews: 312,
     ),
     reviews: [
       ListingReview(

@@ -1,6 +1,6 @@
-import '../../domain/models/app_notification.dart';
-import '../../domain/repositories/notifications_repository.dart';
-import '../sources/notifications_remote_source.dart';
+import 'package:anti_food_waste_app/features/notifications/domain/models/app_notification.dart';
+import 'package:anti_food_waste_app/features/notifications/domain/repositories/notifications_repository.dart';
+import 'package:anti_food_waste_app/features/notifications/data/sources/notifications_remote_source.dart';
 
 class NotificationsRepositoryImpl implements NotificationsRepository {
   final NotificationsRemoteSource _remoteSource;

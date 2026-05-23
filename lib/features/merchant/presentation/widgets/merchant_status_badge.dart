@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_listing.dart';
 import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_order.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class MerchantStatusBadge extends StatelessWidget {
   final ListingStatus status;
@@ -8,46 +9,39 @@ class MerchantStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg;
+    final l10n = AppLocalizations.of(context)!;
+    Color color;
     String label;
 
     switch (status) {
       case ListingStatus.active:
-        bg = const Color(0xFF10B981);
-        label = 'Active';
+        color = const Color(0xFF2D8659);
+        label = l10n.status_active;
         break;
       case ListingStatus.draft:
-        bg = const Color(0xFFF59E0B);
-        label = 'Draft';
+        color = const Color(0xFFF59E0B);
+        label = l10n.status_draft;
         break;
       case ListingStatus.soldOut:
-        bg = const Color(0xFF6B7280);
-        label = 'Sold Out';
+        color = const Color(0xFF6B7280);
+        label = l10n.status_sold_out;
         break;
       case ListingStatus.expired:
-        bg = const Color(0xFFEF4444);
-        label = 'Expired';
+        color = const Color(0xFFEF4444);
+        label = l10n.status_expired;
         break;
       case ListingStatus.paused:
-        bg = const Color(0xFFF97316);
-        label = 'Paused';
+        color = const Color(0xFFF97316);
+        label = l10n.status_paused;
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(50),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(100)),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
+        style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
       ),
     );
   }
@@ -59,41 +53,35 @@ class GradeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg;
+    final l10n = AppLocalizations.of(context)!;
+    Color color;
     String label;
 
     switch (grade) {
       case FreshnessGrade.a:
-        bg = const Color(0xFF10B981);
-        label = 'Grade A';
+        color = const Color(0xFF2D8659);
+        label = 'A';
         break;
       case FreshnessGrade.b:
-        bg = const Color(0xFFF59E0B);
-        label = 'Grade B';
+        color = const Color(0xFFF59E0B);
+        label = 'B';
         break;
       case FreshnessGrade.c:
-        bg = const Color(0xFFF97316);
-        label = 'Grade C';
+        color = const Color(0xFFF97316);
+        label = 'C';
         break;
       case FreshnessGrade.f:
-        bg = const Color(0xFFEF4444);
-        label = 'Grade F';
+        color = const Color(0xFFEF4444);
+        label = 'F';
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(4),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
       child: Text(
         label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -105,43 +93,47 @@ class OrderStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg;
+    final l10n = AppLocalizations.of(context)!;
+    Color color;
     String label;
 
     switch (status) {
       case OrderStatus.pending:
-        bg = const Color(0xFF3B82F6);
-        label = 'Pending';
+        color = const Color(0xFFF59E0B);
+        label = l10n.status_pending;
+        break;
+      case OrderStatus.accepted:
+        color = const Color(0xFF3B82F6);
+        label = l10n.status_accepted;
+        break;
+      case OrderStatus.active:
+        color = const Color(0xFF3B82F6);
+        label = l10n.status_active;
         break;
       case OrderStatus.completed:
-        bg = const Color(0xFF10B981);
-        label = 'Completed';
+        color = const Color(0xFF2D8659);
+        label = l10n.status_completed;
         break;
       case OrderStatus.cancelled:
-        bg = const Color(0xFFEF4444);
-        label = 'Cancelled';
+        color = const Color(0xFFEF4444);
+        label = l10n.status_cancelled;
         break;
       case OrderStatus.noShow:
-        bg = const Color(0xFF6B7280);
-        label = 'No-Show';
+        color = const Color(0xFF6B7280);
+        label = l10n.status_no_show;
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(50),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(100)),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
+        style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
       ),
     );
   }
 }
+
+
+

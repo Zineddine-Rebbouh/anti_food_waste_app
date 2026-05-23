@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_cubit.dart';
@@ -6,217 +7,243 @@ import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/widgets/charity_status_badge.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_confirm_collection_screen.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_pickup_detail_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class CharityRequestsScreen extends StatefulWidget {
   const CharityRequestsScreen({super.key});
 
   @override
-  State<CharityRequestsScreen> createState() =>
-      _CharityRequestsScreenState();
+  State<CharityRequestsScreen> createState() => _CharityRequestsScreenState();
 }
 
-class _CharityRequestsScreenState
-    extends State<CharityRequestsScreen> {
+class _CharityRequestsScreenState extends State<CharityRequestsScreen> {
+  static const Color _green = Color(0xFF2D8659);
+  static const Color _beige = Colors.white;
+
   int _selectedTab = 0;
 
-  List<CharityPickupRequest> _getActiveRequests(List<CharityPickupRequest> requests) =>
-      requests
-          .where((r) =>
-              r.status == PickupRequestStatus.pending ||
-              r.status == PickupRequestStatus.approved ||
-              r.status == PickupRequestStatus.enRoute)
-          .toList();
+  List<CharityPickupRequest> _getPendingRequests(List<CharityPickupRequest> r) =>
+      r.where((x) => x.status == PickupRequestStatus.pending).toList();
 
-  List<CharityPickupRequest> _getCompletedRequests(List<CharityPickupRequest> requests) =>
-      requests
-          .where((r) =>
-              r.status == PickupRequestStatus.collected ||
-              r.status == PickupRequestStatus.cancelled)
-          .toList();
+  List<CharityPickupRequest> _getActiveRequests(List<CharityPickupRequest> r) => r
+      .where((x) =>
+          x.status == PickupRequestStatus.approved ||
+          x.status == PickupRequestStatus.enRoute)
+      .toList();
+
+  List<CharityPickupRequest> _getCompletedRequests(List<CharityPickupRequest> r) => r
+      .where((x) =>
+          x.status == PickupRequestStatus.collected ||
+          x.status == PickupRequestStatus.cancelled)
+      .toList();
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return BlocBuilder<CharityCubit, CharityState>(
       builder: (context, state) {
         if (state is CharityLoading) {
           return const Scaffold(
-            backgroundColor: Color(0xFFF7F7F9),
-            body: Center(child: CircularProgressIndicator()),
+            backgroundColor: _beige,
+            body: Center(child: CircularProgressIndicator(color: _green)),
           );
         }
-        final List<CharityPickupRequest> requests = state is CharityLoaded ? state.myRequests : [];
-        final activeRequests = _getActiveRequests(requests);
-        final completedRequests = _getCompletedRequests(requests);
+        final requests =
+            state is CharityLoaded ? state.myRequests : <CharityPickupRequest>[];
+        final pending = _getPendingRequests(requests);
+        final active = _getActiveRequests(requests);
+        final completed = _getCompletedRequests(requests);
+
+        final currentList = _selectedTab == 0
+            ? pending
+            : _selectedTab == 1
+                ? active
+                : completed;
 
         return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F9),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'My Pickups',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Column(
-        children: [
-          _buildTabRow(activeRequests, completedRequests),
-          Expanded(
-            child: _selectedTab == 0
-                ? _buildRequestList(activeRequests)
-                : _buildRequestList(completedRequests),
-          ),
-        ],
-      ),
-    );
-      },
-    );
-  }
-
-  // ── Tab Row ─────────────────────────────────────────────────────────────────
-
-  Widget _buildTabRow(List<CharityPickupRequest> activeReq, List<CharityPickupRequest> completedReq) {
-    final tabs = [
-      {'label': 'Active', 'count': activeReq.length},
-      {'label': 'Completed', 'count': completedReq.length},
-    ];
-
-    return Container(
-      color: Colors.white,
-      child: Row(
-        children: List.generate(tabs.length, (i) {
-          final isSelected = _selectedTab == i;
-          final label = tabs[i]['label'] as String;
-          final count = tabs[i]['count'] as int;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedTab = i),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: isSelected
-                          ? AppTheme.primary
-                          : Colors.grey.shade200,
-                      width: isSelected ? 2.5 : 1,
+          backgroundColor: _beige,
+          body: Column(
+            children: [
+              // ── Premium green header ────────────────────────────────────
+              Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: _green,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(40),
+                    bottomRight: Radius.circular(40),
+                  ),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.my_pickups_title.toUpperCase(),
+                          style: TextStyle(
+                              color: Colors.white.withOpacity(0.5),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.my_pickups_title,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5),
+                        ),
+                        const SizedBox(height: 24),
+                        // ── Tabs embedded in header ─────────────────────
+                        Row(
+                          children: List.generate(3, (i) {
+                            final labels = [
+                              l10n.status_pending,
+                              l10n.active_tab,
+                              l10n.completed_tab,
+                            ];
+                            final counts = [
+                              pending.length,
+                              active.length,
+                              completed.length,
+                            ];
+                            final isSelected = _selectedTab == i;
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: () =>
+                                    setState(() => _selectedTab = i),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  margin: EdgeInsetsDirectional.only(
+                                      end: i < 2 ? 12 : 0, bottom: 0),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 14),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        '${counts[i]}',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w900,
+                                          color: isSelected
+                                              ? _green
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        labels[i],
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: isSelected
+                                              ? _green.withOpacity(0.7)
+                                              : Colors.white.withOpacity(0.6),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        color: isSelected
-                            ? AppTheme.primary
-                            : AppTheme.mutedForeground,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppTheme.primary
-                            : Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '$count',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? Colors.white
-                              : AppTheme.mutedForeground,
+              ),
+
+              // ── Request list ────────────────────────────────────────────
+              Expanded(
+                child: RefreshIndicator(
+                  color: _green,
+                  onRefresh: () async =>
+                      context.read<CharityCubit>().fetchCharityData(),
+                  child: currentList.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.inbox_outlined,
+                                  size: 64, color: Colors.grey.shade300),
+                              const SizedBox(height: 16),
+                              Text(
+                                l10n.no_requests_here,
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.grey.shade400),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                          itemCount: currentList.length,
+                          itemBuilder: (_, i) {
+                            final req = currentList[i];
+                            return _PickupRequestCard(
+                              request: req,
+                              l10n: l10n,
+                              onActionTap:
+                                  req.status == PickupRequestStatus.approved
+                                      ? () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => BlocProvider.value(
+                                                value: context
+                                                    .read<CharityCubit>(),
+                                                child:
+                                                    CharityConfirmCollectionScreen(
+                                                        request: req),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      : null,
+                            );
+                          },
                         ),
-                      ),
-                    ),
-                  ],
                 ),
               ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  // ── Request List ────────────────────────────────────────────────────────────
-
-  Widget _buildRequestList(List<CharityPickupRequest> requests) {
-    if (requests.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 64,
-              color: Colors.grey.shade300,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'No requests here',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade400,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      itemCount: requests.length,
-      itemBuilder: (_, i) {
-        final req = requests[i];
-        return _PickupRequestCard(
-          request: req,
-          onActionTap: req.status == PickupRequestStatus.approved
-              ? () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          CharityConfirmCollectionScreen(request: req),
-                    ),
-                  );
-                }
-              : null,
+            ],
+          ),
         );
       },
     );
   }
 }
 
-// ── _PickupRequestCard ───────────────────────────────────────────────────────
-
+// ─────────────────────────────────────────────────────────────────────────────
+// Pickup request card
+// ─────────────────────────────────────────────────────────────────────────────
 class _PickupRequestCard extends StatelessWidget {
   const _PickupRequestCard({
     required this.request,
     this.onActionTap,
+    required this.l10n,
   });
 
   final CharityPickupRequest request;
   final VoidCallback? onActionTap;
+  final AppLocalizations l10n;
+
+  static const Color _green = Color(0xFF2D8659);
 
   Color get _statusColor {
     switch (request.status) {
@@ -227,7 +254,7 @@ class _PickupRequestCard extends StatelessWidget {
       case PickupRequestStatus.enRoute:
         return Colors.purple.shade600;
       case PickupRequestStatus.collected:
-        return AppTheme.primary;
+        return _green;
       case PickupRequestStatus.cancelled:
         return AppTheme.accent;
     }
@@ -249,434 +276,218 @@ class _PickupRequestCard extends StatelessWidget {
   }
 
   String _formatDateTime(DateTime dt) {
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final min = dt.minute.toString().padLeft(2, '0');
-    final day = dt.day.toString().padLeft(2, '0');
-    final month = dt.month.toString().padLeft(2, '0');
-    return '$day/$month  $hour:$min';
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    final mo = dt.month.toString().padLeft(2, '0');
+    return '$d/$mo  $h:$m';
   }
 
   @override
   Widget build(BuildContext context) {
-    final showTimeline = request.status == PickupRequestStatus.approved ||
-        request.status == PickupRequestStatus.enRoute;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade100),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header row
-                Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: _statusColor.withOpacity(0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _statusIcon,
-                        size: 18,
-                        color: _statusColor,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        request.donationTitle,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    CharityStatusBadge(status: request.status),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // Merchant name
-                Text(
-                  request.merchantName,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.mutedForeground,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Scheduled time
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.schedule_rounded,
-                      size: 14,
-                      color: AppTheme.mutedForeground,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _formatDateTime(request.scheduledPickupTime),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.mutedForeground,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-
-                // Quantity + servings
-                Row(
-                  children: [
-                    _SmallChip(
-                      icon: Icons.scale_outlined,
-                      label: '${request.quantityKg} kg',
-                      color: AppTheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    _SmallChip(
-                      icon: Icons.restaurant_outlined,
-                      label: '${request.estimatedServings} servings',
-                      color: Colors.orange.shade700,
-                    ),
-                  ],
-                ),
-
-                // Merchant note
-                if (request.merchantNote != null) ...[
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.amber.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline_rounded,
-                          size: 14,
-                          color: Colors.amber.shade800,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            request.merchantNote!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.amber.shade900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 12),
-
-                // Status-specific action
-                _buildStatusAction(context),
-              ],
-            ),
-          ),
-        ),
-
-        // Timeline for approved/enRoute
-        if (showTimeline) _buildTimeline(),
-      ],
-    );
-  }
-
-  Widget _buildStatusAction(BuildContext context) {
-    switch (request.status) {
-      case PickupRequestStatus.approved:
-        return SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: onActionTap,
-            icon: const Icon(Icons.check_circle_outline_rounded,
-                size: 18),
-            label: const Text(
-              'Mark as Collected',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 44),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 0,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BlocProvider.value(
+              value: context.read<CharityCubit>(),
+              child: CharityPickupDetailScreen(requestId: request.id),
             ),
           ),
         );
-
-      case PickupRequestStatus.pending:
-        return Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppTheme.muted,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.hourglass_top_rounded,
-                size: 14,
-                color: Colors.amber.shade700,
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'Awaiting merchant approval',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.mutedForeground,
-                ),
-              ),
-            ],
-          ),
-        );
-
-      case PickupRequestStatus.enRoute:
-        return Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.local_shipping_outlined,
-                size: 14,
-                color: Colors.blue.shade700,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'In Transit',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.blue.shade700,
-                ),
-              ),
-            ],
-          ),
-        );
-
-      case PickupRequestStatus.collected:
-        return Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.task_alt_rounded,
-                    size: 14,
-                    color: AppTheme.primary,
-                  ),
-                  const SizedBox(width: 6),
-                  const Text(
-                    'Completed',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: () {},
-              child: const Text(
-                'View Impact',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.info,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
-        );
-
-      case PickupRequestStatus.cancelled:
-        return Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.red.shade50,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.cancel_outlined,
-                size: 14,
-                color: Colors.red.shade700,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Cancelled',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.red.shade700,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Top row: icon + title + badge ─────────────────────────
+            Row(
+              children: [
+                // Listing Photo
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _statusColor.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: request.listingPhoto.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: request.listingPhoto,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Center(
+                              child: CircularProgressIndicator(
+                                color: _statusColor,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            errorWidget: (context, url, error) =>
+                                Icon(_statusIcon, size: 20, color: _statusColor),
+                          )
+                        : Icon(_statusIcon, size: 20, color: _statusColor),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-    }
-  }
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    request.donationTitle,
+                    style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF111827)),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                CharityStatusBadge(status: request.status),
+              ],
+            ),
+            const SizedBox(height: 12),
 
-  Widget _buildTimeline() {
-    final steps = [
-      {'label': 'Request Sent', 'done': true},
-      {
-        'label': 'Merchant Approved',
-        'done': request.status == PickupRequestStatus.approved ||
-            request.status == PickupRequestStatus.enRoute ||
-            request.status == PickupRequestStatus.collected,
-      },
-      {
-        'label': 'En Route',
-        'done': request.status == PickupRequestStatus.enRoute ||
-            request.status == PickupRequestStatus.collected,
-        'inProgress': request.status == PickupRequestStatus.enRoute,
-      },
-      {
-        'label': 'Collected',
-        'done': request.status == PickupRequestStatus.collected,
-      },
-    ];
+            // ── Merchant name ──────────────────────────────────────────
+            Text(
+              request.merchantName,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 10),
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        border: Border(
-          left: BorderSide(color: Colors.grey.shade100),
-          right: BorderSide(color: Colors.grey.shade100),
-          bottom: BorderSide(color: Colors.grey.shade100),
-        ),
-      ),
-      child: Row(
-        children: List.generate(steps.length * 2 - 1, (i) {
-          if (i.isOdd) {
-            // Connector line
-            final stepIndex = i ~/ 2;
-            final isDone = steps[stepIndex]['done'] as bool? ?? false;
-            return Expanded(
-              child: Container(
-                height: 2,
-                color: isDone
-                    ? AppTheme.primary
-                    : Colors.grey.shade200,
-              ),
-            );
-          }
-          final s = steps[i ~/ 2];
-          final isDone = s['done'] as bool? ?? false;
-          final isInProgress = s['inProgress'] as bool? ?? false;
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+            // ── Schedule + chips ───────────────────────────────────────
+            Row(
+              children: [
+                Icon(Icons.schedule_rounded,
+                    size: 13, color: Colors.grey.shade400),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    _formatDateTime(request.scheduledPickupTime),
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _SmallChip(
+                  icon: Icons.scale_rounded,
+                  label: '${request.quantityKg} kg',
+                  color: _green,
+                ),
+                _SmallChip(
+                  icon: Icons.restaurant_rounded,
+                  label: '${request.estimatedServings} ${l10n.servings_label(request.estimatedServings)}',
+                  color: Colors.orange.shade700,
+                ),
+              ],
+            ),
+
+            // ── Merchant note ──────────────────────────────────────────
+            if (request.merchantNote != null) ...[
+              const SizedBox(height: 12),
               Container(
-                width: 22,
-                height: 22,
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isDone
-                      ? AppTheme.primary
-                      : isInProgress
-                          ? Colors.orange
-                          : Colors.grey.shade200,
-                  shape: BoxShape.circle,
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.shade200),
                 ),
-                child: isInProgress
-                    ? const Icon(Icons.circle, size: 8, color: Colors.white)
-                    : isDone
-                        ? const Icon(Icons.check, size: 12,
-                            color: Colors.white)
-                        : null,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                s['label'] as String,
-                style: TextStyle(
-                  fontSize: 9,
-                  color: isDone
-                      ? AppTheme.primary
-                      : isInProgress
-                          ? Colors.orange
-                          : Colors.grey.shade400,
-                  fontWeight:
-                      isDone ? FontWeight.w600 : FontWeight.normal,
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded,
+                        size: 14, color: Colors.amber.shade800),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        request.merchantNote!,
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.amber.shade900),
+                      ),
+                    ),
+                  ],
                 ),
-                textAlign: TextAlign.center,
               ),
             ],
-          );
-        }),
+
+            const SizedBox(height: 14),
+
+            // ── Footer: tap hint or action button ─────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.touch_app_rounded,
+                        size: 13, color: Colors.grey.shade400),
+                    const SizedBox(width: 4),
+                    Text(
+                      l10n.tap_for_details,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade400,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+                if (onActionTap != null)
+                  GestureDetector(
+                    onTap: onActionTap,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _green,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Text(
+                        l10n.confirm_collection,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Helper ───────────────────────────────────────────────────────────────────
-
+// ─── Small chip ───────────────────────────────────────────────────────────────
 class _SmallChip extends StatelessWidget {
-  const _SmallChip({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
+  const _SmallChip(
+      {required this.icon, required this.label, required this.color});
 
   final IconData icon;
   final String label;
@@ -685,27 +496,26 @@ class _SmallChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(100),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
+          const SizedBox(width: 5),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
+                fontSize: 11, fontWeight: FontWeight.w700, color: color),
           ),
         ],
       ),
     );
   }
 }
+
+
+

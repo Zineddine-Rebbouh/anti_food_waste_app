@@ -53,6 +53,7 @@ class FoodListing {
   final String title;
   final String merchantName;
   final String merchantId;
+  final String merchantLogoUrl;
   final double originalPrice;
   final double discountedPrice;
   final int discountPercent;
@@ -69,12 +70,15 @@ class FoodListing {
   final double lat;
   final double lng;
   final int postedMinutesAgo;
+  final bool isBorderArea;
+  final String urgencyLabel;
 
   FoodListing({
     required this.id,
     required this.title,
     required this.merchantName,
     required this.merchantId,
+    required this.merchantLogoUrl,
     required this.originalPrice,
     required this.discountedPrice,
     required this.discountPercent,
@@ -91,6 +95,8 @@ class FoodListing {
     required this.lat,
     required this.lng,
     required this.postedMinutesAgo,
+    this.isBorderArea = false,
+    this.urgencyLabel = 'normal',
   });
 
   double get savings => originalPrice - discountedPrice;
@@ -101,7 +107,7 @@ class FoodListing {
     // ── Category ──────────────────────────────────────────────────────────
     // List response: category_name (string)
     // Detail response: category (object with 'name' field)
-    String categoryName = '';
+    var categoryName = '';
     final categoryField = json['category'];
     if (categoryField is Map) {
       categoryName = (categoryField['name']?.toString() ?? '').toLowerCase();
@@ -162,7 +168,7 @@ class FoodListing {
 
     // ── Primary image ─────────────────────────────────────────────────────
     // List: primary_photo_url  |  Detail: first photo in photos[]
-    String rawImageUrl = json['primary_photo_url']?.toString() ?? '';
+    var rawImageUrl = json['primary_photo_url']?.toString() ?? '';
     if (rawImageUrl.isEmpty) {
       final photos = json['photos'] as List<dynamic>?;
       if (photos != null && photos.isNotEmpty) {
@@ -172,6 +178,12 @@ class FoodListing {
 
     String normalizeUrl(String url) {
       if (url.isEmpty) return '';
+
+      // Check for known broken Unsplash URLs from mock data or backend
+      if (url.contains('photo-1610832958506-aa56338406cd') || 
+          url.contains('photo-1550583724-125581f77833')) {
+        return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
+      }
       
       // Get base URL without /api/v1/
       final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
@@ -199,6 +211,11 @@ class FoodListing {
     final lat = _toDouble(locationMap?['latitude'] ?? json['latitude']);
     final lng = _toDouble(locationMap?['longitude'] ?? json['longitude']);
     final merchantId = merchantInfo?['id']?.toString() ?? json['merchant_id']?.toString() ?? '';
+    
+    // Logo extraction
+    var rawLogoUrl = merchantInfo?['logo_url']?.toString() ?? json['merchant_logo_url']?.toString() ?? '';
+    final merchantLogoUrl = normalizeUrl(rawLogoUrl);
+
     // Detail has average_rating inside merchant_info; list has merchant_rating at top level
     final rating = merchantInfo != null
         ? _toDouble(merchantInfo['average_rating'])
@@ -208,7 +225,7 @@ class FoodListing {
         : 0;
 
     // ── Posted minutes ago ────────────────────────────────────────────────
-    int postedMinutesAgo = 0;
+    var postedMinutesAgo = 0;
     final createdAtStr = json['created_at']?.toString();
     if (createdAtStr != null) {
       try {
@@ -225,13 +242,14 @@ class FoodListing {
       title: json['title']?.toString() ?? '',
       merchantName: json['merchant_name']?.toString() ?? merchantInfo?['business_name']?.toString() ?? '',
       merchantId: merchantId,
+      merchantLogoUrl: merchantLogoUrl,
       originalPrice: _toDouble(json['original_price']),
       discountedPrice: _toDouble(json['discounted_price']),
       discountPercent: _toDouble(json['discount_percentage']).toInt(),
       imageUrl: imageUrl,
       rating: rating,
       reviewCount: reviewCount,
-      distance: _toDouble(json['distance_km']),
+      distance: _toDouble(json['distance_km'] ?? json['distance']),
       freshness: freshness,
       category: category,
       pickupStart: trimTime(json['pickup_start']?.toString()),
@@ -241,6 +259,8 @@ class FoodListing {
       lat: lat == 0 ? _toDouble(json['lat']) : lat,
       lng: lng == 0 ? _toDouble(json['lng']) : lng,
       postedMinutesAgo: postedMinutesAgo,
+      isBorderArea: json['is_border_area'] == true,
+      urgencyLabel: json['urgency_label']?.toString() ?? 'normal',
     );
   }
 }

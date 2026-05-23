@@ -4,6 +4,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/features/consumer/data/repositories/consumer_repository.dart';
 import 'package:anti_food_waste_app/features/profile/domain/models/user_address.dart';
+import 'package:anti_food_waste_app/shared/widgets/tawfir_loading_indicator.dart';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -112,9 +113,9 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
         TextEditingController(text: existing?.postalCode ?? '');
     final notesCtrl =
         TextEditingController(text: existing?.notes ?? '');
-    String selectedLabel = existing?.label ?? 'Home';
-    bool isDefault = existing?.isDefault ?? false;
-    bool saving = false;
+    var selectedLabel = existing?.label ?? 'Home';
+    var isDefault = existing?.isDefault ?? false;
+    var saving = false;
 
     showModalBottomSheet(
       context: context,
@@ -449,13 +450,10 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
                                   }
                                 },
                           child: saving
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
+                              ? const TawfirLoadingIndicator(
+                                  size: 18,
+                                  strokeWidth: 2,
+                                  color: Colors.white,
                                 )
                               : Text(
                                   l10n.save_address,
@@ -503,7 +501,7 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: TawfirLoadingIndicator(message: 'Loading addresses...'))
           : _error != null
               ? _buildErrorState(l10n)
               : _addresses.isEmpty

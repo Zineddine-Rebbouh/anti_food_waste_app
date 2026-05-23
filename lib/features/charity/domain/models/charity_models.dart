@@ -1,4 +1,5 @@
-﻿// ─── Charity Module: Domain Models ───────────────────────────────────────────
+// ─── Charity Module: Domain Models ───────────────────────────────────────────
+import 'package:anti_food_waste_app/core/config/app_config.dart';
 
 enum DonationStatus { available, claimed, collected, expired }
 
@@ -53,7 +54,7 @@ class CharityDonation {
   factory CharityDonation.fromJson(Map<String, dynamic> json) {
     // Basic mapping from backend DonationListSerializer
     final statusStr = json['status'] as String? ?? 'available';
-    DonationStatus parsedStatus = DonationStatus.available;
+    var parsedStatus = DonationStatus.available;
     if (statusStr == 'assigned') parsedStatus = DonationStatus.claimed;
     if (statusStr == 'collected') parsedStatus = DonationStatus.collected;
     DateTime? colStart;
@@ -65,13 +66,14 @@ class CharityDonation {
     final now = DateTime.now();
     colStart ??= now;
     colEnd ??= now.add(const Duration(hours: 2));
+
     return CharityDonation(
       id: json['id']?.toString() ?? '',
       title: json['listing_title']?.toString() ?? 'Donation',
       description: '', 
       merchantName: json['merchant_name']?.toString() ?? 'Unknown Merchant',
       merchantAddress: 'Address Not Provided',
-      imageUrl: json['listing_photo']?.toString(),
+      imageUrl: CharityDonation.normalizeUrl(json['listing_photo']?.toString()),
       category: DonationCategory.grocery,
       quantityKg: 0.0,
       estimatedServings: 0,
@@ -88,13 +90,14 @@ class CharityDonation {
   factory CharityDonation.fromJsonDetail(Map<String, dynamic> json) {
     final parent = CharityDonation.fromJson(json); // Get basics
     final listing = json['listing'] as Map<String, dynamic>? ?? {};
+
     return CharityDonation(
       id: parent.id,
       title: listing['title']?.toString() ?? parent.title,
       description: listing['description']?.toString() ?? parent.description,
       merchantName: parent.merchantName,
       merchantAddress: listing['merchant_address']?.toString() ?? parent.merchantAddress, 
-      imageUrl: listing['primary_photo_url']?.toString() ?? parent.imageUrl,
+      imageUrl: CharityDonation.normalizeUrl(listing['primary_photo_url']?.toString() ?? parent.imageUrl),
       category: parent.category, 
       quantityKg: double.tryParse(listing['quantity']?.toString() ?? '0') ?? 0.0,
       estimatedServings: parent.estimatedServings,
@@ -108,6 +111,27 @@ class CharityDonation {
       postedAt: parent.postedAt,
     );
   }
+  static String normalizeUrl(String? url) {
+    if (url == null || url.isEmpty) return '';
+    
+    // Check for known broken Unsplash URLs from mock data or backend
+    if (url.contains('photo-1610832958506-aa56338406cd') || 
+        url.contains('photo-1550583724-125581f77833')) {
+      return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
+    }
+
+    final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
+    if (url.startsWith('http')) {
+      if (url.contains('://127.0.0.1') || url.contains('://localhost')) {
+        final path = Uri.parse(url).path;
+        return '$baseAppUrl$path';
+      }
+      return url;
+    }
+    final cleanUrl = url.startsWith('/') ? url : '/$url';
+    return '$baseAppUrl$cleanUrl';
+  }
+
   bool get isExpiringSoon =>
       expiresAt.difference(DateTime.now()).inHours < 3 &&
       status == DonationStatus.available;
@@ -159,6 +183,12 @@ class CharityPickupRequest {
   final int estimatedServings;
   final String? notes;
   final String? merchantNote;
+  final double? merchantLatitude;
+  final double? merchantLongitude;
+  final String merchantPhone;
+  final String listingPhoto;
+  final String? qrHash;
+  final DateTime? expiresAt;
 
   const CharityPickupRequest({
     required this.id,
@@ -177,26 +207,66 @@ class CharityPickupRequest {
     required this.estimatedServings,
     this.notes,
     this.merchantNote,
+    this.merchantLatitude,
+    this.merchantLongitude,
+    required this.merchantPhone,
+    this.listingPhoto = '',
+    this.qrHash,
+    this.expiresAt,
   });
 
+  bool get hasLocation => merchantLatitude != null && merchantLongitude != null;
+
   factory CharityPickupRequest.fromJson(Map<String, dynamic> json) {
+    final qrData = json['qr_data'] as Map<String, dynamic>?;
+
     return CharityPickupRequest(
       id: json['id']?.toString() ?? '',
       donationId: json['donation']?.toString() ?? '',
-      donationTitle: 'Requested Donation', 
-      merchantName: 'Merchant',
-      merchantAddress: 'Address',
+      donationTitle: json['listing_title']?.toString() ?? 'Requested Donation',
+      merchantName: json['merchant_name']?.toString() ?? 'Merchant',
+      merchantAddress: json['merchant_address']?.toString() ?? 'Address',
       charityName: json['charity_name']?.toString() ?? 'Charity',
       contactPerson: '',
       contactPhone: '',
       vehicleType: 'Car',
-      requestedAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
-      scheduledPickupTime: DateTime.now().add(const Duration(hours: 1)),
-      status: PickupRequestStatus.pending,
-      quantityKg: 0.0,
+      requestedAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at']) 
+          : DateTime.now(),
+      scheduledPickupTime: json['pickup_start'] != null 
+          ? DateTime.parse(json['pickup_start']) 
+          : DateTime.now().add(const Duration(hours: 1)),
+      status: _statusFromBackend(json['status'] as String?),
+      quantityKg: (json['quantity'] as num?)?.toDouble() ?? 0.0,
       estimatedServings: 0,
       notes: json['message']?.toString(),
+      merchantLatitude: (json['merchant_latitude'] as num?)?.toDouble(),
+      merchantLongitude: (json['merchant_longitude'] as num?)?.toDouble(),
+      merchantPhone: json['merchant_phone']?.toString() ?? '',
+      listingPhoto: CharityDonation.normalizeUrl((json['listing_photo'] ?? json['donation_photo'])?.toString() ?? ''),
+      qrHash: qrData?['qr_hash']?.toString(),
+      expiresAt: qrData?['expires_at'] != null 
+          ? DateTime.parse(qrData!['expires_at']) 
+          : null,
     );
+  }
+
+  static PickupRequestStatus _statusFromBackend(String? status) {
+    switch (status) {
+      case 'approved':
+      case 'assigned':
+        return PickupRequestStatus.approved;
+      case 'en-route':
+        return PickupRequestStatus.enRoute;
+      case 'collected':
+        return PickupRequestStatus.collected;
+      case 'rejected':
+      case 'expired':
+        return PickupRequestStatus.cancelled;
+      case 'pending':
+      default:
+        return PickupRequestStatus.pending;
+    }
   }
   String get statusLabel {
     switch (status) {
@@ -238,5 +308,8 @@ class CharityImpactReport {
     required this.reportedAt,
   });
 }
+
+
+
 
 

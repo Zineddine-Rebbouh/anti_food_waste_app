@@ -33,3 +33,6 @@ class CharityError extends CharityState {
   @override
   List<Object?> get props => [message];
 }
+
+
+

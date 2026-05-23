@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:anti_food_waste_app/core/config/app_config.dart';
 import 'package:anti_food_waste_app/core/services/token_storage.dart';
+import 'package:anti_food_waste_app/core/services/preferences_service.dart';
 
 class ApiClient {
   ApiClient._();
@@ -19,6 +20,7 @@ class ApiClient {
     );
     d.interceptors.add(_AuthInterceptor());
     d.interceptors.add(_TokenRefreshInterceptor(d));
+    d.interceptors.add(_LanguageInterceptor());
     d.interceptors.add(LogInterceptor(
       requestBody: true,
       responseBody: true,
@@ -53,6 +55,21 @@ class _AuthInterceptor extends Interceptor {
       if (token != null) {
         options.headers['Authorization'] = 'Bearer $token';
       }
+    }
+    handler.next(options);
+  }
+}
+
+/// Injects Accept-Language header into outgoing requests based on app locale.
+class _LanguageInterceptor extends Interceptor {
+  @override
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    final locale = PreferencesService.getLocale();
+    if (locale != null) {
+      options.headers['Accept-Language'] = locale;
     }
     handler.next(options);
   }

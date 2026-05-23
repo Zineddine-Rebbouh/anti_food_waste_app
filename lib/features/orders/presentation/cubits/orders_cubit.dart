@@ -7,7 +7,7 @@ import 'package:anti_food_waste_app/features/consumer/domain/models/consumer_ord
 // These types were previously defined locally inside orders_screen.dart.
 // They are now the canonical definitions; the screen imports them from here.
 
-enum OrderStatus { reserved, paid, collected, canceled }
+enum OrderStatus { pending, accepted, collected, canceled }
 
 class Order {
   final String id;
@@ -15,11 +15,29 @@ class Order {
   final String merchantImage;
   final String items;
   final double price;
+  final double unitPrice;
+  final int quantity;
+  final String currency;
   final String pickupTime;
   final String pickupDate;
   final OrderStatus status;
   final String orderNumber;
   final String address;
+  final String merchantPhone;
+  final double? merchantLatitude;
+  final double? merchantLongitude;
+  final String merchantLogoUrl;
+  final String merchantCoverUrl;
+  final String paymentMethod;
+  final String paymentStatus;
+  final String pickupCode;
+  final String createdAt;
+  final String pickupStartRaw;
+  final String pickupEndRaw;
+  final String orderStatusRaw;
+  final String cancellationReason;
+  final String notes;
+  final String? collectedAt;
 
   Order({
     required this.id,
@@ -27,26 +45,44 @@ class Order {
     required this.merchantImage,
     required this.items,
     required this.price,
+    required this.unitPrice,
+    required this.quantity,
+    required this.currency,
     required this.pickupTime,
     required this.pickupDate,
     required this.status,
     required this.orderNumber,
     required this.address,
+    required this.merchantPhone,
+    this.merchantLatitude,
+    this.merchantLongitude,
+    required this.merchantLogoUrl,
+    required this.merchantCoverUrl,
+    required this.paymentMethod,
+    required this.paymentStatus,
+    required this.pickupCode,
+    required this.createdAt,
+    required this.pickupStartRaw,
+    required this.pickupEndRaw,
+    required this.orderStatusRaw,
+    required this.cancellationReason,
+    required this.notes,
+    this.collectedAt,
   });
+
+  bool get hasLocation => merchantLatitude != null && merchantLongitude != null;
 
   /// Builds an [Order] UI model from a [ConsumerOrder] domain model.
   factory Order.fromConsumerOrder(ConsumerOrder co) {
     // Map backend order_status → UI OrderStatus
     final OrderStatus uiStatus;
-    switch (co.orderStatus) {
-      case 'collected':
-        uiStatus = OrderStatus.collected;
-      case 'cancelled':
-      case 'no_show':
-        uiStatus = OrderStatus.canceled;
-      default: // 'pending', 'reserved', and any unknown
-        uiStatus = OrderStatus.reserved;
-    }
+    uiStatus = switch (co.orderStatus) {
+      'pending' || 'reserved' => OrderStatus.pending,
+      'accepted' => OrderStatus.accepted,
+      'collected' => OrderStatus.collected,
+      'cancelled' || 'no_show' => OrderStatus.canceled,
+      _ => OrderStatus.accepted,
+    };
 
     // Pickup time string
     final pickupTime = (co.pickupStart.isNotEmpty && co.pickupEnd.isNotEmpty)
@@ -54,7 +90,7 @@ class Order {
         : '';
 
     // Pickup date: active orders → "Today", past → formatted date
-    String pickupDate = 'Today';
+    var pickupDate = 'Today';
     if (!co.isActive && co.createdAt.isNotEmpty) {
       try {
         final dt = DateTime.parse(co.createdAt).toLocal();
@@ -69,11 +105,29 @@ class Order {
       merchantImage: co.merchantImage,
       items: co.listingTitle,
       price: co.totalPrice,
+      unitPrice: co.unitPrice,
+      quantity: co.quantity,
+      currency: co.currency,
       pickupTime: pickupTime,
       pickupDate: pickupDate,
       status: uiStatus,
       orderNumber: co.orderNumber,
       address: co.merchantAddress,
+      merchantPhone: co.merchantPhone,
+      merchantLatitude: co.merchantLatitude,
+      merchantLongitude: co.merchantLongitude,
+      merchantLogoUrl: co.merchantLogoUrl,
+      merchantCoverUrl: co.merchantCoverUrl,
+      paymentMethod: co.paymentMethod,
+      paymentStatus: co.paymentStatus,
+      pickupCode: co.pickupCode,
+      createdAt: co.createdAt,
+      pickupStartRaw: co.pickupStartRaw,
+      pickupEndRaw: co.pickupEndRaw,
+      orderStatusRaw: co.orderStatus,
+      cancellationReason: co.cancellationReason,
+      notes: co.notes,
+      collectedAt: co.collectedAt,
     );
   }
 }
@@ -104,16 +158,18 @@ class OrdersLoading extends OrdersState {
 }
 
 class OrdersLoaded extends OrdersState {
+  final List<Order> pendingOrders;
   final List<Order> activeOrders;
-  final List<Order> pastOrders;
+  final List<Order> historyOrders;
 
   const OrdersLoaded({
+    required this.pendingOrders,
     required this.activeOrders,
-    required this.pastOrders,
+    required this.historyOrders,
   });
 
   @override
-  List<Object?> get props => [activeOrders, pastOrders];
+  List<Object?> get props => [pendingOrders, activeOrders, historyOrders];
 }
 
 class OrdersError extends OrdersState {
@@ -141,18 +197,23 @@ class OrdersCubit extends Cubit<OrdersState> {
       final consumersOrders = await _repository.fetchOrders();
       final uiOrders = consumersOrders.map(Order.fromConsumerOrder).toList();
 
-      // Active: pending + reserved; Past: everything else
-      final active = uiOrders
-          .where((o) =>
-              o.status == OrderStatus.reserved || o.status == OrderStatus.paid)
+      final pending = uiOrders
+          .where((o) => o.status == OrderStatus.pending)
           .toList();
-      final past = uiOrders
+      final active = uiOrders
+          .where((o) => o.status == OrderStatus.accepted)
+          .toList();
+      final history = uiOrders
           .where((o) =>
               o.status == OrderStatus.collected ||
               o.status == OrderStatus.canceled)
           .toList();
 
-      emit(OrdersLoaded(activeOrders: active, pastOrders: past));
+      emit(OrdersLoaded(
+        pendingOrders: pending,
+        activeOrders: active,
+        historyOrders: history,
+      ));
     } catch (e) {
       emit(OrdersError(e.toString()));
     }
@@ -162,8 +223,9 @@ class OrdersCubit extends Cubit<OrdersState> {
     try {
       await _repository.cancelOrder(orderId);
       await loadOrders();
-    } catch (_) {
-      // Silently ignore cancel errors; UI stays in previous state.
+    } catch (e) {
+      // Re-throw to allow UI to show an error message
+      throw Exception('Failed to cancel reservation: $e');
     }
   }
 
@@ -171,5 +233,13 @@ class OrdersCubit extends Cubit<OrdersState> {
   /// Returns a map with keys: 'order_id', 'qr_hash', 'pickup_code'.
   Future<Map<String, dynamic>> fetchOrderQr(String orderId) async {
     return _repository.fetchOrderQr(orderId);
+  }
+
+  Future<void> submitReview(String orderId, int rating, String? comment) async {
+    await _repository.submitReview(
+      orderId: orderId,
+      rating: rating,
+      comment: comment,
+    );
   }
 }

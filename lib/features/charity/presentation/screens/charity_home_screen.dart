@@ -1,462 +1,306 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:anti_food_waste_app/core/app_theme.dart';
+import 'package:animate_do/animate_do.dart';
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
-
 import 'package:anti_food_waste_app/features/charity/presentation/widgets/charity_donation_card.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/widgets/charity_status_badge.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_donation_detail_screen.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_cubit.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_state.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_donations_screen.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_requests_screen.dart';
+import 'package:anti_food_waste_app/core/navigation/app_router.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-IconData _categoryIcon(DonationCategory c) {
-  switch (c) {
-    case DonationCategory.bakery:
-      return Icons.breakfast_dining_outlined;
-    case DonationCategory.restaurant:
-      return Icons.restaurant_outlined;
-    case DonationCategory.grocery:
-      return Icons.local_grocery_store_outlined;
-    case DonationCategory.cafe:
-      return Icons.local_cafe_outlined;
-    case DonationCategory.hotel:
-      return Icons.hotel_outlined;
-  }
-}
-
-IconData _statusIcon(PickupRequestStatus s) {
-  switch (s) {
-    case PickupRequestStatus.pending:
-      return Icons.hourglass_top_rounded;
-    case PickupRequestStatus.approved:
-      return Icons.check_circle_outline_rounded;
-    case PickupRequestStatus.enRoute:
-      return Icons.local_shipping_outlined;
-    case PickupRequestStatus.collected:
-      return Icons.task_alt_rounded;
-    case PickupRequestStatus.cancelled:
-      return Icons.cancel_outlined;
-  }
-}
-
-Color _statusColor(PickupRequestStatus s) {
-  switch (s) {
-    case PickupRequestStatus.pending:
-      return Colors.amber.shade600;
-    case PickupRequestStatus.approved:
-      return Colors.blue.shade600;
-    case PickupRequestStatus.enRoute:
-      return Colors.purple.shade600;
-    case PickupRequestStatus.collected:
-      return AppTheme.primary;
-    case PickupRequestStatus.cancelled:
-      return Colors.red.shade600;
-  }
-}
-
-String _timeAgo(DateTime dt) {
-  final diff = DateTime.now().difference(dt);
-  if (diff.inDays > 0) return '${diff.inDays}d ago';
-  if (diff.inHours > 0) return '${diff.inHours}h ago';
-  if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
-  return 'just now';
-}
-
-String _timeUntil(DateTime dt) {
-  final diff = dt.difference(DateTime.now());
-  if (diff.isNegative) return 'expired';
-  if (diff.inMinutes < 60) return '${diff.inMinutes}m left';
-  return '${diff.inHours}h left';
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CharityHomeScreen
-// Note: implemented as StatefulWidget to support the dynamic SliverAppBar
-// colour transition between its expanded (green gradient) and collapsed
-// (white) states via a ScrollController.  The public constructor is `const`
-// and the widget is otherwise fully read-only (all data from mock sources).
-// ─────────────────────────────────────────────────────────────────────────────
 class CharityHomeScreen extends StatefulWidget {
   const CharityHomeScreen({super.key});
+
+  static const Color primaryGreen = Color(0xFF2D8659);
+  static const Color accentBeige = Colors.white;
 
   @override
   State<CharityHomeScreen> createState() => _CharityHomeScreenState();
 }
 
 class _CharityHomeScreenState extends State<CharityHomeScreen> {
-  late final ScrollController _scrollController;
-  bool _isCollapsed = false;
-
-  // Threshold: expandedHeight(160) - kToolbarHeight(56) = 104
-  static const double _collapseThreshold = 104.0;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    final collapsed = _scrollController.offset > _collapseThreshold;
-    if (collapsed != _isCollapsed) {
-      setState(() => _isCollapsed = collapsed);
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  // ── Derived data ────────────────────────────────────────────────────────────
-  // We'll pass the state into these helper methods now.
   int _availableCount(List<CharityDonation> donations) =>
       donations.where((d) => d.status == DonationStatus.available).length;
+  
   int _urgentCount(List<CharityDonation> donations) => donations
       .where((d) =>
           d.urgency == UrgencyLevel.critical ||
           d.urgency == UrgencyLevel.urgent)
       .length;
+
   int _pendingPickupsCount(List<CharityPickupRequest> requests) => requests
       .where((r) =>
           r.status == PickupRequestStatus.pending ||
           r.status == PickupRequestStatus.approved)
       .length;
-  int get _totalMeals => 0; // Fetch from API later
-  int get _totalBeneficiaries => 0;
-  double get _totalKg => 0.0;
-  List<CharityDonation> _urgentDonations(List<CharityDonation> donations) =>
-      donations.where((d) => d.urgency != UrgencyLevel.normal).toList();
-  List<CharityDonation> _availableDonations(List<CharityDonation> donations) => donations
-      .where((d) => d.status == DonationStatus.available)
-      .take(3)
-      .toList();
-  List<CharityPickupRequest> _recentRequests(List<CharityPickupRequest> requests) =>
-      requests.take(3).toList();
 
-  // ── Build ────────────────────────────────────────────────────────────────────
+  int get _totalMeals => 1250; 
+
   @override
   Widget build(BuildContext context) {
-    final bool collapsed = _isCollapsed;
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: collapsed
-          ? SystemUiOverlayStyle.dark
-          : SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF7F8FA),
-        body: BlocBuilder<CharityCubit, CharityState>(
-          builder: (context, state) {
-            List<CharityDonation> parsedDonations = [];
-            List<CharityPickupRequest> parsedRequests = [];
-            if (state is CharityLoading) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is CharityLoaded) {
-              parsedDonations = state.donations;
-              parsedRequests = state.myRequests;
-            } else {
-              parsedDonations = [];
-              parsedRequests = [];
-            }
-            return CustomScrollView(
-              controller: _scrollController,
-          slivers: [
-            // ── SliverAppBar ──────────────────────────────────────────────────
-            SliverAppBar(
-              expandedHeight: 160,
-              pinned: true,
-              elevation: 0,
-              backgroundColor:
-                  collapsed ? Colors.white : AppTheme.primary,
-              foregroundColor:
-                  collapsed ? Colors.black87 : Colors.white,
-              surfaceTintColor: Colors.transparent,
-              title: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: collapsed ? Colors.black87 : Colors.white,
-                ),
-                child: const Text('SAA Dashboard'),
+    final l10n = AppLocalizations.of(context)!;
+    
+    return Scaffold(
+      backgroundColor: CharityHomeScreen.accentBeige,
+      body: BlocBuilder<CharityCubit, CharityState>(
+        builder: (context, state) {
+          var donations = <CharityDonation>[];
+          var requests = <CharityPickupRequest>[];
+          
+          if (state is CharityLoading) {
+            return const Center(child: CircularProgressIndicator(color: CharityHomeScreen.primaryGreen));
+          } else if (state is CharityLoaded) {
+            donations = state.donations;
+            requests = state.myRequests;
+          }
+          
+          return RefreshIndicator(
+            onRefresh: () async => context.read<CharityCubit>().fetchCharityData(),
+            color: CharityHomeScreen.primaryGreen,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  FadeInDown(duration: const Duration(milliseconds: 600), child: _buildHeader(context, l10n)),
+                  FadeInUp(delay: const Duration(milliseconds: 100), duration: const Duration(milliseconds: 600), child: _StatsRow(
+                    availableCount: _availableCount(donations),
+                    urgentCount: _urgentCount(donations),
+                    pendingPickupsCount: _pendingPickupsCount(requests),
+                    totalMeals: _totalMeals,
+                  )),
+                  FadeInUp(delay: const Duration(milliseconds: 200), duration: const Duration(milliseconds: 600), child: _buildQuickActions(context, l10n)),
+                  const SizedBox(height: 32),
+                  FadeInUp(delay: const Duration(milliseconds: 300), duration: const Duration(milliseconds: 600), child: _buildSectionHeader(l10n.expiring_soon, Icons.bolt_rounded, l10n.view_all, () {})),
+                  const SizedBox(height: 16),
+                  FadeInUp(delay: const Duration(milliseconds: 400), duration: const Duration(milliseconds: 600), child: _buildExpiringList(donations, requests, l10n)),
+                  const SizedBox(height: 100),
+                ],
               ),
-              actions: [
-                IconButton(
-                  icon: Icon(
-                    Icons.notifications_outlined,
-                    color: collapsed ? Colors.black87 : Colors.white,
-                  ),
-                  onPressed: () {},
-                ),
-              ],
-              flexibleSpace: FlexibleSpaceBar(
-                collapseMode: CollapseMode.pin,
-                background: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF2D8659), Color(0xFF1B5E38)],
-                    ),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(20, 72, 20, 18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Good morning,',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.70),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Secours Alimentaire Algérie',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.verified_rounded,
-                            size: 14,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: CharityHomeScreen.primaryGreen,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 60),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
                             color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
                           ),
-                          const SizedBox(width: 5),
-                          const Text(
-                            'Verified Charity',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: const BoxDecoration(
-                              color: Colors.white54,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Algiers',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.75),
-                              fontSize: 12,
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.apartment_rounded, size: 28, color: CharityHomeScreen.primaryGreen),
+                        ),
+                        const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(l10n.charity_name_placeholder, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    Icon(Icons.location_on_rounded, size: 12, color: Colors.white.withOpacity(0.5)),
+                                    const SizedBox(width: 4),
+                                    Text(l10n.location_algiers, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12, fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.verified_rounded, color: Color(0xFF2D8659), size: 12),
+                                      const SizedBox(width: 4),
+                                      Text(l10n.status_verified, style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 10, fontWeight: FontWeight.w800)),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(14)),
+                            child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 22),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-            ),
-
-            // ── All content below AppBar ──────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Section 1: Stats Row ────────────────────────────────────
-                  const SizedBox(height: 16),
-                  _StatsRow(
-                    availableCount: _availableCount(parsedDonations),
-                    urgentCount: _urgentCount(parsedDonations),
-                    pendingPickupsCount: _pendingPickupsCount(parsedRequests),
-                    totalMeals: _totalMeals,
-                  ),
-
-                  // ── Section 2: Expiring Soon ────────────────────────────────
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Row(
-                          children: [
-                            Text(
-                              'Expiring Soon',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1A1A2E),
-                              ),
-                            ),
-                            SizedBox(width: 6),
-                            Icon(
-                              Icons.access_time_rounded,
-                              size: 15,
-                              color: AppTheme.warning,
-                            ),
-                          ],
-                        ),
-                        TextButton(
-                          onPressed: () {},
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppTheme.primary,
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text(
-                            'View all',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 175,
-                    child: _urgentDonations(parsedDonations).isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No urgent donations right now.',
-                              style: TextStyle(
-                                  color: AppTheme.mutedForeground, fontSize: 13),
-                            ),
-                          )
-                        : ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _urgentDonations(parsedDonations).length,
-                            itemBuilder: (_, i) => _ExpiringSoonCard(
-                              donation: _urgentDonations(parsedDonations)[i],
-                            ),
-                          ),
-                  ),
-
-                  // ── Section 3: Recent Activity ──────────────────────────────
-                  const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Recent Activity',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A1A2E),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border:
-                          Border.all(color: Colors.grey.shade100, width: 1.2),
-                    ),
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
-                      itemCount: _recentRequests(parsedRequests).length,
-                      separatorBuilder: (_, __) => Divider(
-                        height: 1,
-                        color: Colors.grey.shade100,
-                      ),
-                      itemBuilder: (_, i) =>
-                          _ActivityItem(request: _recentRequests(parsedRequests)[i]),
-                    ),
-                  ),
-
-                  // ── Section 4: Available Now ────────────────────────────────
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Available Now',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1A1A2E),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {},
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppTheme.primary,
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text(
-                            'See all',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  ..._availableDonations(parsedDonations).map(
-                    (d) => CharityDonationCard(
-                      donation: d,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                CharityDonationDetailScreen(donation: d),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // ── Section 5: Impact Summary ───────────────────────────────
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _ImpactCard(
-                      totalMeals: _totalMeals,
-                      totalBeneficiaries: _totalBeneficiaries,
-                      totalKg: _totalKg,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                ],
-              ),
-            ),
-          ],
-        );
-        },
+                const SizedBox(height: 40),
+                Text(
+                  l10n.today,
+                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.charity_overview,
+                  style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
+                ),
+                Text(
+                  l10n.your_impact_summary,
+                  style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Section 1 — Stats Row
-// ─────────────────────────────────────────────────────────────────────────────
+  Widget _buildQuickActions(BuildContext context, AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.quick_actions, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _ActionCard(
+                  title: l10n.browse_donations,
+                  subtitle: l10n.browse_donations_desc,
+                  icon: Icons.search_rounded,
+                  color: CharityHomeScreen.primaryGreen,
+                  onTap: () {
+                    final cubit = context.read<CharityCubit>();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider.value(
+                          value: cubit,
+                          child: const CharityDonationsScreen(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ActionCard(
+                  title: l10n.active_pickups,
+                  subtitle: l10n.active_pickups_desc,
+                  icon: Icons.local_shipping_rounded,
+                  color: const Color(0xFF3B82F6),
+                  onTap: () {
+                    final cubit = context.read<CharityCubit>();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider.value(
+                          value: cubit,
+                          child: const CharityRequestsScreen(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon, String actionLabel, VoidCallback onAction) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: CharityHomeScreen.primaryGreen),
+              const SizedBox(width: 8),
+              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+            ],
+          ),
+          TextButton(
+            onPressed: onAction,
+            child: Text(actionLabel, style: const TextStyle(color: CharityHomeScreen.primaryGreen, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpiringList(List<CharityDonation> donations, List<CharityPickupRequest> requests, AppLocalizations l10n) {
+    final expiring = donations.take(3).toList();
+    if (expiring.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: expiring.map((d) {
+        final isRequested = requests.any((r) => r.donationId == d.id);
+        return CharityDonationCard(
+          donation: d,
+          isRequested: isRequested,
+          onTap: () {
+            final cubit = context.read<CharityCubit>();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BlocProvider.value(
+                  value: cubit,
+                  child: CharityDonationDetailScreen(donation: d),
+                ),
+              ),
+            );
+          },
+        );
+      }).toList(),
+    );
+  }
+}
 
 class _StatsRow extends StatelessWidget {
   final int availableCount;
@@ -464,48 +308,27 @@ class _StatsRow extends StatelessWidget {
   final int pendingPickupsCount;
   final int totalMeals;
 
-  const _StatsRow({
-    required this.availableCount,
-    required this.urgentCount,
-    required this.pendingPickupsCount,
-    required this.totalMeals,
-  });
+  const _StatsRow({required this.availableCount, required this.urgentCount, required this.pendingPickupsCount, required this.totalMeals});
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          _StatCard(
-            label: 'Available',
-            value: '$availableCount',
-            icon: Icons.volunteer_activism_outlined,
-            color: AppTheme.primary,
+    final l10n = AppLocalizations.of(context)!;
+    return Transform.translate(
+      offset: const Offset(0, -40),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _StatCard(label: l10n.available_stat, value: '$availableCount', icon: Icons.volunteer_activism_rounded, color: const Color(0xFF2D8659), delta: l10n.today)),
+              const SizedBox(width: 12),
+              Expanded(child: _StatCard(label: l10n.urgent_stat, value: '$urgentCount', icon: Icons.bolt_rounded, color: const Color(0xFFEF4444), delta: l10n.today)),
+              const SizedBox(width: 12),
+              Expanded(child: _StatCard(label: l10n.pending_pickup_stat, value: '$pendingPickupsCount', icon: Icons.local_shipping_rounded, color: const Color(0xFF3B82F6), delta: l10n.today)),
+            ],
           ),
-          const SizedBox(width: 10),
-          _StatCard(
-            label: 'Urgent',
-            value: '$urgentCount',
-            icon: Icons.priority_high_rounded,
-            color: AppTheme.warning,
-          ),
-          const SizedBox(width: 10),
-          _StatCard(
-            label: 'Pending Pickup',
-            value: '$pendingPickupsCount',
-            icon: Icons.local_shipping_outlined,
-            color: Colors.blue.shade600,
-          ),
-          const SizedBox(width: 10),
-          _StatCard(
-            label: 'This Week',
-            value: '$totalMeals',
-            icon: Icons.people_alt_outlined,
-            color: Colors.purple.shade600,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -516,390 +339,83 @@ class _StatCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
+  final String? delta;
+  const _StatCard({required this.label, required this.value, required this.icon, required this.color, this.delta});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 106,
-      padding: const EdgeInsets.all(13),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100, width: 1.2),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(9),
-            ),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withOpacity(0.08), shape: BoxShape.circle),
             child: Icon(icon, color: color, size: 18),
           ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A1A2E),
-              height: 1,
+          const SizedBox(height: 16),
+          Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          const SizedBox(height: 2),
+          Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade500, height: 1.2)),
+          if (delta != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: const Color(0xFF2D8659).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+              child: Text(delta!, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF2D8659))),
             ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-          ),
+          ],
         ],
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Section 2 — Expiring Soon Card
-// ─────────────────────────────────────────────────────────────────────────────
+class _ActionCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
 
-class _ExpiringSoonCard extends StatelessWidget {
-  final CharityDonation donation;
-
-  const _ExpiringSoonCard({required this.donation});
-
-  @override
-  Widget build(BuildContext context) {
-    final Color urgencyColor = donation.urgency == UrgencyLevel.critical
-        ? AppTheme.accent
-        : AppTheme.warning;
-
-    final String timeLeft = _timeUntil(donation.expiresAt);
-
-    return Container(
-      width: 165,
-      margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade100, width: 1.2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Category icon
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.09),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              _categoryIcon(donation.category),
-              color: AppTheme.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(height: 9),
-          // Title
-          Text(
-            donation.title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A1A2E),
-              height: 1.3,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 3),
-          // Merchant
-          Text(
-            donation.merchantName,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const Spacer(),
-          // Bottom row: time left + qty badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.access_time_rounded,
-                      size: 12, color: urgencyColor),
-                  const SizedBox(width: 3),
-                  Text(
-                    timeLeft,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: urgencyColor,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${donation.quantityKg}kg',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Section 3 — Activity Item
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ActivityItem extends StatelessWidget {
-  final CharityPickupRequest request;
-
-  const _ActivityItem({required this.request});
+  const _ActionCard({required this.title, required this.subtitle, required this.icon, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final Color color = _statusColor(request.status);
-    final String timeAgo = _timeAgo(request.requestedAt);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          // Status icon circle
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.10),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _statusIcon(request.status),
-              color: color,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Title + merchant
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  request.donationTitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A2E),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  request.merchantName,
-                  style:
-                      TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Badge + time ago
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              CharityStatusBadge(status: request.status),
-              const SizedBox(height: 3),
-              Text(
-                timeAgo,
-                style:
-                    TextStyle(fontSize: 10, color: Colors.grey.shade400),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Section 5 — Impact Summary Card
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ImpactCard extends StatelessWidget {
-  final int totalMeals;
-  final int totalBeneficiaries;
-  final double totalKg;
-
-  const _ImpactCard({
-    required this.totalMeals,
-    required this.totalBeneficiaries,
-    required this.totalKg,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF2D8659), Color(0xFF1B5E38)],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
         ),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primary.withOpacity(0.30),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          const Text(
-            'Total Impact This Week',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: color, size: 24),
             ),
-          ),
-          const SizedBox(height: 6),
-          // Big meal count
-          Text(
-            '$totalMeals',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 44,
-              fontWeight: FontWeight.bold,
-              height: 1,
-            ),
-          ),
-          const Text(
-            'meals served',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 18),
-          // Stats row
-          Row(
-            children: [
-              _ImpactStat(
-                value: '$totalBeneficiaries',
-                label: 'Beneficiaries',
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 1,
-                height: 28,
-                color: Colors.white24,
-              ),
-              const SizedBox(width: 8),
-              _ImpactStat(
-                value: '${totalKg.toStringAsFixed(1)} kg',
-                label: 'Food rescued',
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          // Report button
-          GestureDetector(
-            onTap: () {},
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'View Full Report',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(width: 5),
-                Icon(
-                  Icons.arrow_forward_rounded,
-                  color: Colors.white,
-                  size: 15,
-                ),
-              ],
-            ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+            const SizedBox(height: 4),
+            Text(subtitle, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey.shade400)),
+          ],
+        ),
       ),
     );
   }
 }
-
-class _ImpactStat extends StatelessWidget {
-  final String value;
-  final String label;
-
-  const _ImpactStat({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            height: 1,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white60, fontSize: 11),
-        ),
-      ],
-    );
-  }
-}
-
 
 
 

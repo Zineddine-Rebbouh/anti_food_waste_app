@@ -2,11 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:anti_food_waste_app/features/consumer/data/repositories/consumer_repository.dart';
 import 'package:anti_food_waste_app/shared/models/food_listing.dart';
 
+import 'package:anti_food_waste_app/core/services/preferences_service.dart';
+
 class FavoritesProvider extends ChangeNotifier {
   final ConsumerRepository _repository;
 
   FavoritesProvider({ConsumerRepository? repository})
-      : _repository = repository ?? ConsumerRepository();
+      : _repository = repository ?? ConsumerRepository() {
+    _favoriteIds.addAll(PreferencesService.getFavoriteIds());
+  }
 
   final Set<String> _favoriteIds = <String>{};
   bool _isLoaded = false;
@@ -31,6 +35,7 @@ class FavoritesProvider extends ChangeNotifier {
         ..clear()
         ..addAll(ids.map((e) => e.trim()).where((e) => e.isNotEmpty));
       _isLoaded = true;
+      PreferencesService.setFavoriteIds(_favoriteIds.toList());
     } catch (_) {
       _favoriteIds.clear();
       _isLoaded = false;
@@ -56,6 +61,7 @@ class FavoritesProvider extends ChangeNotifier {
     } else {
       _favoriteIds.remove(normalizedId);
     }
+    PreferencesService.setFavoriteIds(_favoriteIds.toList());
     notifyListeners();
 
     try {
@@ -71,6 +77,7 @@ class FavoritesProvider extends ChangeNotifier {
       } else {
         _favoriteIds.remove(normalizedId);
       }
+      PreferencesService.setFavoriteIds(_favoriteIds.toList());
       notifyListeners();
       rethrow;
     }
@@ -82,6 +89,7 @@ class FavoritesProvider extends ChangeNotifier {
       ..clear()
       ..addAll(listings.map((e) => e.id.trim()).where((e) => e.isNotEmpty));
     _isLoaded = true;
+    PreferencesService.setFavoriteIds(_favoriteIds.toList());
     notifyListeners();
     return listings;
   }

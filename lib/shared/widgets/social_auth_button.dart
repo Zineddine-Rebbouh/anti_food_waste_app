@@ -44,6 +44,7 @@ class SocialAuthButton extends StatelessWidget {
           Image.network(
             'https://developers.google.com/identity/images/g-logo.png',
             height: 24,
+            errorBuilder: (context, error, stackTrace) => const Icon(Icons.login, size: 24),
           ),
           const SizedBox(width: 12),
           Text(

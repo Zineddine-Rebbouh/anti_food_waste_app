@@ -1,12 +1,16 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/core/navigation/app_router.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/cubits/auth_state.dart';
-import 'package:anti_food_waste_app/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:anti_food_waste_app/features/verification/presentation/screens/merchant_pending.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:anti_food_waste_app/core/app_theme.dart';
+import 'package:anti_food_waste_app/core/services/preferences_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,78 +19,43 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _logoController;
-  late AnimationController _rotateController;
-  late AnimationController _contentController;
-  late AnimationController _dotController;
-
-  late Animation<double> _logoScale;
-  late Animation<double> _logoRotate;
-  late Animation<double> _contentOpacity;
-  late Animation<double> _contentTranslate;
+class _SplashScreenState extends State<SplashScreen> {
+  bool _isTransitioning = false;
 
   @override
   void initState() {
     super.initState();
-
-    _logoController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
-
-    _rotateController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
-
-    _contentController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
-
-    _dotController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1000))
-      ..repeat();
-
-    _logoScale = CurvedAnimation(
-      parent: _logoController,
-      curve: Curves.easeOutBack,
-    );
-
-    _logoRotate = Tween<double>(begin: -1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeOut),
-    );
-
-    _contentOpacity = CurvedAnimation(
-      parent: _contentController,
-      curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
-    );
-
-    _contentTranslate = Tween<double>(begin: 20.0, end: 0.0).animate(
-      CurvedAnimation(
-          parent: _contentController,
-          curve: const Interval(0.4, 1.0, curve: Curves.easeOut)),
-    );
-
-    _logoController.forward();
-    _contentController.forward();
 
     // Check for a stored session while the splash animation plays.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthCubit>().checkAuthStatus();
     });
 
-    Timer(const Duration(seconds: 3), () async {
+    // 3.5 seconds for animation display, then start fade out transition
+    Timer(const Duration(milliseconds: 3500), () {
+      if (mounted) {
+        setState(() {
+          _isTransitioning = true;
+        });
+      }
+    });
+
+    // 4 seconds total duration before navigating
+    Timer(const Duration(seconds: 4), () async {
       if (!mounted) return;
+      
       final state = context.read<AuthCubit>().state;
+      
       if (state is AuthAuthenticated) {
-        // Pending merchant/charity should not enter their module yet.
         if (!state.isApproved &&
             (state.userType == 'merchant' || state.userType == 'charity')) {
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MerchantPendingScreen()),
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const MerchantPendingScreen(),
+              transitionsBuilder: (_, animation, __, child) => 
+                FadeTransition(opacity: animation, child: child),
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
             (_) => false,
           );
           return;
@@ -98,227 +67,165 @@ class _SplashScreenState extends State<SplashScreen>
         };
         Navigator.of(context).pushNamedAndRemoveUntil(route, (_) => false);
       } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-        );
+        // If not authenticated, check if they've seen onboarding
+        if (!PreferencesService.hasSeenOnboarding()) {
+          Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.onboarding, (_) => false);
+        } else {
+          Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
+        }
       }
     });
   }
 
   @override
-  void dispose() {
-    _logoController.dispose();
-    _rotateController.dispose();
-    _contentController.dispose();
-    _dotController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    // Fallback if app_localizations somehow misses
+    final l10n = AppLocalizations.of(context);
+    const primaryColor = AppTheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Clean, minimalist background (adapts to light/dark)
+    final backgroundColor = isDark ? const Color(0xFF111412) : const Color(0xFFFDFDFD);
+    final gradientCenter = isDark ? const Color(0xFF1E2822) : const Color(0xFFEDF5F0);
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF2D8659),
-              Color(0xFF1e5a3a),
+      body: AnimatedOpacity(
+        opacity: _isTransitioning ? 0.0 : 1.0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            // A very subtle radial glow behind the logo
+            gradient: RadialGradient(
+              center: Alignment.center,
+              radius: 0.8,
+              colors: [
+                gradientCenter,
+                backgroundColor,
+              ],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo - Pure, clean, no background box
+              Hero(
+                tag: 'app_logo',
+                child: Image.asset(
+                  'assets/images/logo_transparent.png',
+                  width: 140,
+                  height: 140,
+                  fit: BoxFit.contain,
+                ),
+              )
+              .animate()
+              .scale(
+                begin: const Offset(0.4, 0.4),
+                end: const Offset(1.0, 1.0),
+                duration: 1000.ms,
+                curve: Curves.easeOutBack,
+              )
+              .fadeIn(duration: 800.ms)
+              .then() // After entrance, add a very subtle continuous float
+              .moveY(
+                begin: 0,
+                end: -8,
+                duration: 2.seconds,
+                curve: Curves.easeInOutSine,
+              )
+              .then()
+              .moveY(
+                begin: -8,
+                end: 0,
+                duration: 2.seconds,
+                curve: Curves.easeInOutSine,
+              ),
+
+              const SizedBox(height: 36),
+
+              // Brand Name
+              Text(
+                'Tawfir',
+                style: GoogleFonts.montserrat(
+                  color: isDark ? Colors.white : primaryColor,
+                  fontSize: 44,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
+                ),
+              )
+              .animate()
+              .slideY(
+                begin: 0.5,
+                end: 0,
+                delay: 400.ms,
+                duration: 800.ms,
+                curve: Curves.easeOutQuart,
+              )
+              .fadeIn(delay: 400.ms, duration: 800.ms),
+
+              const SizedBox(height: 8),
+
+              // Tagline
+              Text(
+                l10n?.tagline ?? "Smart Solutions for Zero Waste",
+                style: GoogleFonts.inter(
+                  color: isDark ? Colors.white60 : Colors.black54,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.2,
+                ),
+              )
+              .animate()
+              .slideY(
+                begin: 0.5,
+                end: 0,
+                delay: 600.ms,
+                duration: 800.ms,
+                curve: Curves.easeOutQuart,
+              )
+              .fadeIn(delay: 600.ms, duration: 800.ms),
+
+              const SizedBox(height: 60),
+
+              // Simple, elegant loading dots
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(3, (index) {
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 5),
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(isDark ? 0.8 : 0.6),
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                  .animate(
+                    onPlay: (c) => c.repeat(),
+                    delay: (index * 150).ms,
+                  )
+                  .scale(
+                    begin: const Offset(1, 1),
+                    end: const Offset(1.5, 1.5),
+                    duration: 600.ms,
+                    curve: Curves.easeInOut,
+                  )
+                  .then()
+                  .scale(
+                    begin: const Offset(1.5, 1.5),
+                    end: const Offset(1, 1),
+                    duration: 600.ms,
+                    curve: Curves.easeInOut,
+                  );
+                }),
+              )
+              .animate()
+              .fadeIn(delay: 800.ms, duration: 800.ms),
             ],
           ),
-        ),
-        child: Stack(
-          children: [
-            // Decorative circles (simplified)
-            Positioned(
-              top: -50,
-              left: -50,
-              child: Opacity(
-                opacity: 0.1,
-                child: Container(
-                  width: 300,
-                  height: 300,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -50,
-              right: -50,
-              child: Opacity(
-                opacity: 0.1,
-                child: Container(
-                  width: 300,
-                  height: 300,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-
-            // Content
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Animated Logo
-                  ScaleTransition(
-                    scale: _logoScale,
-                    child: RotationTransition(
-                      turns: _logoRotate,
-                      child: Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 8,
-                          ),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/images/logo.png',
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.contain,
-                            ),
-                            RotationTransition(
-                              turns: _rotateController,
-                              child: Container(
-                                width: 140,
-                                height: 140,
-                                alignment: Alignment.topCenter,
-                                child: const Icon(
-                                  Icons.sync,
-                                  color: Colors.white,
-                                  size: 32,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Brand Name and Tagline
-                  AnimatedBuilder(
-                    animation: _contentController,
-                    builder: (context, child) {
-                      return Opacity(
-                        opacity: _contentOpacity.value,
-                        child: Transform.translate(
-                          offset: Offset(0, _contentTranslate.value),
-                          child: Column(
-                            children: [
-                              const Text(
-                                'Tawfir',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 40),
-                                child: Text(
-                                  l10n.tagline,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 18,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            // Loading dots
-            Positioned(
-              bottom: 60,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(3, (index) {
-                    return AnimatedBuilder(
-                      animation: _dotController,
-                      builder: (context, child) {
-                        final delay = index * 0.2;
-                        final val =
-                            (_dotController.value - delay).clamp(0.0, 1.0);
-                        final opacity = 0.5 + (0.5 * val);
-
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(opacity),
-                          ),
-                        );
-                      },
-                    );
-                  }),
-                ),
-              ),
-            ),
-
-            // Algerian color accents
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 4,
-              child: Row(
-                children: [
-                  Expanded(child: Container(color: const Color(0xFF2D8659))),
-                  Expanded(child: Container(color: Colors.white)),
-                  Expanded(child: Container(color: const Color(0xFFD32F2F))),
-                ],
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 4,
-              child: Row(
-                children: [
-                  Expanded(child: Container(color: const Color(0xFF2D8659))),
-                  Expanded(child: Container(color: Colors.white)),
-                  Expanded(child: Container(color: const Color(0xFFD32F2F))),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );

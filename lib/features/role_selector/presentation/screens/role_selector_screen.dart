@@ -30,7 +30,7 @@ class RoleSelectorScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(2),
                   gradient: const LinearGradient(
                     colors: [
-                      Color(0xFF2D8659),
+                      AppTheme.primary,
                       Colors.white,
                       Color(0xFFD32F2F),
                     ],
@@ -44,7 +44,7 @@ class RoleSelectorScreen extends StatelessWidget {
                 height: 86,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF2D8659), Color(0xFF1A5E3C)],
+                    colors: [AppTheme.primary, Color(0xFF1A5E3C)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -75,7 +75,7 @@ class RoleSelectorScreen extends StatelessWidget {
               _RoleCard(
                 icon: Icons.shopping_bag_outlined,
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF2D8659), Color(0xFF1A5E3C)],
+                  colors: [AppTheme.primary, Color(0xFF1A5E3C)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -270,8 +270,13 @@ class _RoleCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Icon(Icons.arrow_forward_ios,
-                    size: 14, color: Colors.white54),
+                Icon(
+                  Localizations.localeOf(context).languageCode == 'ar'
+                      ? Icons.chevron_left
+                      : Icons.chevron_right,
+                  size: 16,
+                  color: Colors.white70,
+                ),
               ],
             ),
           ),

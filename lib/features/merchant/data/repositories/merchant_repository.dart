@@ -1,3 +1,4 @@
+import 'package:anti_food_waste_app/core/utils/app_logger.dart';
 import 'package:anti_food_waste_app/features/merchant/data/sources/merchant_remote_source.dart';
 import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_listing.dart';
 import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_order.dart';
@@ -41,13 +42,16 @@ class MerchantRepository {
     );
 
     // Listings and orders — failures yield empty lists.
-    final phase2 = await Future.wait([
+    // fetchOrders() already merges standard orders and donation requests.
+    final phase2 = await Future.wait<dynamic>([
       _safeList(_source.fetchMyListings()),
-      _safeList(_source.fetchOrders()),
+      fetchOrders(),
     ]);
 
-    final listings = phase2[0].map(MerchantListing.fromJson).toList();
-    final orders = phase2[1].map(MerchantOrder.fromJson).toList();
+    final listings = (phase2[0] as List<Map<String, dynamic>>)
+        .map(MerchantListing.fromJson)
+        .toList();
+    final orders = phase2[1] as List<MerchantOrder>;
 
     return MerchantDashboardData(
       profile: profile,
@@ -95,10 +99,38 @@ class MerchantRepository {
       _source.fetchMerchantAnalytics(periodDays: 30),
     ]);
     return MerchantProfile.fromApiJson(
-      userMeJson: results[0] as Map<String, dynamic>,
-      dailyAnalytics: results[1] as Map<String, dynamic>,
-      weeklyAnalytics: results[2] as Map<String, dynamic>,
-      monthlyAnalytics: results[3] as Map<String, dynamic>,
+      userMeJson: results[0],
+      dailyAnalytics: results[1],
+      weeklyAnalytics: results[2],
+      monthlyAnalytics: results[3],
+    );
+  }
+
+  Future<String> uploadLogo(String filePath) async {
+    final json = await _source.uploadLogo(filePath);
+    return json['logo_url'] as String? ??
+        json['logo'] as String? ??
+        json['avatar_url'] as String? ??
+        json['avatar'] as String? ??
+        '';
+  }
+
+  Future<MerchantProfile> updateProfile(Map<String, dynamic> data) async {
+    await _source.updateUserMe(data);
+    return fetchProfile();
+  }
+
+  Future<void> updateLocation({
+    required double latitude,
+    required double longitude,
+    String? address,
+    String? wilaya,
+  }) async {
+    await _source.updateLocation(
+      lat: latitude,
+      lng: longitude,
+      address: address,
+      wilaya: wilaya,
     );
   }
 
@@ -132,7 +164,9 @@ class MerchantRepository {
   /// Returns the photo URL stored on the server, or empty string on failure.
   Future<String> uploadListingPhoto(String listingId, String filePath) async {
     final json = await _source.uploadListingPhoto(listingId, filePath);
-    return json['photo_url'] as String? ?? '';
+    // The individual photo endpoint returns the newly created photo object. 
+    // Usually { id: ..., photo: "http://...", is_primary: ... }
+    return json['photo'] as String? ?? json['photo_url'] as String? ?? '';
   }
 
   Future<MerchantListing> markAsDonation(String id) async {
@@ -140,17 +174,103 @@ class MerchantRepository {
     return MerchantListing.fromJson(json);
   }
 
+  Future<MerchantListing> unmarkAsDonation(String id) async {
+    final json = await _source.unmarkListingAsDonation(id);
+    return MerchantListing.fromJson(json);
+  }
+
   // ── Orders ────────────────────────────────────────────────────────────────
 
   Future<List<MerchantOrder>> fetchOrders() async {
-    final raw = await _source.fetchOrders();
-    return raw.map(MerchantOrder.fromJson).toList();
+    final orders = <MerchantOrder>[];
+
+    // 1. Fetch standard consumer orders
+    try {
+      final raw = await _source.fetchOrders();
+      orders.addAll(raw.map((json) {
+        try {
+          final order = MerchantOrder.fromJson(json);
+          // Standard orders are active immediately as they are reservations
+          if (order.status == OrderStatus.pending) {
+            return order.copyWith(status: OrderStatus.active);
+          }
+          return order;
+        } catch (e, st) {
+          AppLogger.error('MerchantRepository: Error parsing standard order', e, st);
+          rethrow;
+        }
+      }).toList());
+    } catch (e, st) {
+      AppLogger.error('MerchantRepository.fetchOrders (standard)', e, st);
+      // We don't rethrow here so we can still try to fetch donations
+    }
+
+    // 2. Fetch donation requests from charities
+    try {
+      final rawRequests = await _source.fetchDonationRequests();
+      final donationOrders = rawRequests.map((json) {
+        try {
+          return MerchantOrder(
+            id: json['id'] as String,
+            orderNumber: json['id'].toString().substring(0, 8).toUpperCase(),
+            customerId: json['charity'] as String? ?? '',
+            customerName: json['charity_name'] as String? ?? 'Charity',
+            customerPhone: '',
+            customerEcoScore: 100.0,
+            listingId: json['donation'] as String? ?? '',
+            listingTitle: json['listing_title'] as String? ?? 'Donation Request',
+            quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+            totalAmount: 0,
+            paymentMethod: PaymentMethod.cashOnPickup,
+            status: _statusFromRequest(json['status'] as String?),
+            orderedAt: json['created_at'] != null 
+                ? DateTime.parse(json['created_at'] as String) 
+                : DateTime.now(),
+            pickupStart: json['pickup_start'] != null 
+                ? DateTime.parse(json['pickup_start']) 
+                : DateTime.now(),
+            pickupEnd: json['pickup_end'] != null 
+                ? DateTime.parse(json['pickup_end']) 
+                : DateTime.now().add(const Duration(hours: 2)),
+            specialInstructions: json['message'] as String?,
+            isDonation: true,
+            rawStatus: json['status'] as String?,
+          );
+        } catch (e, st) {
+          AppLogger.error('MerchantRepository: Error parsing donation request', e, st);
+          rethrow;
+        }
+      }).toList();
+      orders.addAll(donationOrders);
+    } catch (e, st) {
+      AppLogger.error('MerchantRepository.fetchOrders (donations)', e, st);
+    }
+
+    // Sort by most recent first
+    orders.sort((a, b) => b.orderedAt.compareTo(a.orderedAt));
+    return orders;
+  }
+
+  OrderStatus _statusFromRequest(String? status) {
+    if (status == 'approved' || status == 'assigned') return OrderStatus.active;
+    if (status == 'rejected') return OrderStatus.cancelled;
+    if (status == 'collected') return OrderStatus.completed;
+    return OrderStatus.pending; // map "pending" to OrderStatus.pending so merchant can see it
+  }
+
+  Future<void> approveDonationRequest(String donationId, String requestId) async {
+    await _source.approveDonationRequest(donationId, requestId);
   }
 
   /// Confirms a pickup by validating the consumer's QR code hash.
   Future<MerchantOrder> fulfillOrder(String orderId, String qrHash) async {
     final json = await _source.fulfillOrder(orderId, qrHash);
     return MerchantOrder.fromJson(json);
+  }
+
+  /// Confirms a charity donation pickup by validating the charity's QR code hash.
+  Future<void> fulfillDonation(String donationId, String qrHash) async {
+    await _source.fulfillDonation(donationId, qrHash);
   }
 
   /// Cancels a pending order as merchant, with an optional reason.
@@ -212,3 +332,6 @@ class MerchantDashboardData {
     required this.categories,
   });
 }
+
+
+

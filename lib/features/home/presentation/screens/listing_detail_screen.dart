@@ -10,6 +10,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:anti_food_waste_app/features/home/presentation/screens/merchant_detail_screen.dart';
+import 'package:anti_food_waste_app/shared/widgets/tawfir_loading_indicator.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   final FoodListing listing;
@@ -142,7 +144,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        String msg = 'Could not place order. Please try again.';
+        var msg = 'Could not place order. Please try again.';
         if (e is DioException && e.response?.data != null) {
           try {
             msg = e.response!.data['error']['message'] as String;
@@ -176,7 +178,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     if (_isLoadingDetail) {
       return Scaffold(
         appBar: AppBar(backgroundColor: Colors.white, elevation: 0),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: TawfirLoadingIndicator(message: 'Loading details...')),
       );
     }
 
@@ -595,7 +597,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             child: Text(
               '${l10n.you_save}: ${widget.listing.savings.toInt()} ${l10n.dzd} (${widget.listing.discountPercent}% ${l10n.off})',
               style: const TextStyle(
-                color: Color(0xFF2D8659),
+                color: AppTheme.primary,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
@@ -614,7 +616,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       final hour = int.parse(parts[0]);
       final min = int.parse(parts[1]);
       final now = DateTime.now();
-      var target = DateTime(now.year, now.month, now.day, hour, min);
+      final target = DateTime(now.year, now.month, now.day, hour, min);
       if (now.isAfter(target)) {
         return 'Pickup ended';
       }
@@ -686,45 +688,26 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '${widget.listing.distance} km ${l10n.from_you}',
-                style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13),
+                widget.listing.distance > 0 
+                  ? '${widget.listing.distance.toStringAsFixed(1)} km ${l10n.from_you}'
+                  : l10n.nearby,
+                style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.map_outlined, size: 16),
-                      label: Text(l10n.view_map),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppTheme.primary,
-                        minimumSize: const Size(0, 44),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        side: BorderSide(color: AppTheme.primary.withOpacity(0.2)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                    ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _handleGetDirections,
+                  icon: const Icon(Icons.map_outlined, size: 18),
+                  label: Text(l10n.view_map),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _handleGetDirections,
-                      icon: const Icon(Icons.navigation_outlined, size: 16),
-                      label: Text(l10n.get_directions),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(0, 44),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
@@ -749,22 +732,38 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ..._details!.whatYouGet.map((item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 4),
-                          child: Icon(Icons.check_circle_outline, size: 16, color: AppTheme.primary),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                            child: Text(item,
-                                style: const TextStyle(color: Color(0xFF3A3A3C), fontSize: 15, height: 1.4))),
-                      ],
+              if (_details!.whatYouGet.isEmpty)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Icon(Icons.check_circle_outline, size: 16, color: AppTheme.primary),
                     ),
-                  )),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: Text(
+                            "A selection of our best surplus items from today. Fresh, delicious, and perfectly safe to enjoy!",
+                            style: TextStyle(color: Colors.grey[600], fontSize: 14, height: 1.4))),
+                  ],
+                )
+              else
+                ..._details!.whatYouGet.map((item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 4),
+                            child: Icon(Icons.check_circle_outline, size: 16, color: AppTheme.primary),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                              child: Text(item,
+                                  style: const TextStyle(color: Color(0xFF3A3A3C), fontSize: 15, height: 1.4))),
+                        ],
+                      ),
+                    )),
               const SizedBox(height: 8),
               if (widget.listing.dietary.isNotEmpty)
                 Wrap(
@@ -801,60 +800,91 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader(l10n.about_merchant),
-        Row(
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F7),
-                borderRadius: BorderRadius.circular(20),
+        InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MerchantDetailScreen(merchant: _details!.merchant),
               ),
-              child: Center(
-                child: _details!.merchant.logoUrl != null && _details!.merchant.logoUrl!.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Image.network(_details!.merchant.logoUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.store, color: Color(0xFF8E8E93), size: 32),
-                            ))
-                    : Text(
-                        _details!.merchant.name.substring(0, 1),
-                        style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.primary),
-                      ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_details!.merchant.name,
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1C1C1E))),
-                  const SizedBox(height: 6),
-                  Row(
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Row(
+              children: [
+                Hero(
+                  tag: 'merchant_logo_${_details!.merchant.id}',
+                  child: Container(
+                    width: 72,
+                    height: 72,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF2F2F7),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: (_details!.merchant.logoUrl != null && _details!.merchant.logoUrl!.isNotEmpty) || widget.listing.merchantLogoUrl.isNotEmpty
+                          ? ClipOval(
+                              child: Image.network(
+                                  (_details!.merchant.logoUrl != null && _details!.merchant.logoUrl!.isNotEmpty) 
+                                      ? _details!.merchant.logoUrl! 
+                                      : widget.listing.merchantLogoUrl,
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.store, color: Color(0xFF8E8E93), size: 32),
+                                  ))
+                          : Text(
+                              _details!.merchant.name.isNotEmpty ? _details!.merchant.name[0].toUpperCase() : "?",
+                              style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.primary),
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.star_rounded, color: Color(0xFFFFCC00), size: 20),
-                      const SizedBox(width: 4),
-                      Text(widget.listing.rating.toString(),
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                      const SizedBox(width: 4),
-                      Text('(${widget.listing.reviewCount} ${l10n.results})',
+                      Text(_details!.merchant.name.isNotEmpty ? _details!.merchant.name : widget.listing.merchantName,
                           style: const TextStyle(
-                              color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.w500)),
+                              fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1C1C1E))),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(Icons.star_rounded, color: Color(0xFFFFCC00), size: 20),
+                          const SizedBox(width: 4),
+                          Text(widget.listing.rating.toString(),
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                          const SizedBox(width: 4),
+                          Text('(${widget.listing.reviewCount} ${l10n.results})',
+                              style: const TextStyle(
+                                  color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const Icon(Icons.chevron_right, color: Color(0xFFC7C7CC)),
+              ],
             ),
-          ],
+          ),
         ),
         const SizedBox(height: 20),
+        Text(
+          l10n.description.toUpperCase(),
+          style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.primary,
+              letterSpacing: 1.0),
+        ),
+        const SizedBox(height: 8),
         Text(
           _details!.merchant.bio,
           style: const TextStyle(color: Color(0xFF48484A), fontSize: 15, height: 1.5),
@@ -896,9 +926,16 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             const SizedBox(width: 12),
             Expanded(
                 child: ElevatedButton(
-                    onPressed: () {}, 
+                    onPressed: () {
+                       Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MerchantDetailScreen(merchant: _details!.merchant),
+                        ),
+                      );
+                    }, 
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1C1C1E),
+                      backgroundColor: AppTheme.primary,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1225,7 +1262,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     child: ElevatedButton(
                       onPressed: (canReserve && !_isReserving && !_details!.userHasReserved) ? _handleReserve : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _details!.userHasReserved ? Color(0xFFC7C7CC) : AppTheme.primary,
+                        backgroundColor: _details!.userHasReserved ? const Color(0xFFC7C7CC) : AppTheme.primary,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 56),
                         shape: RoundedRectangleBorder(
@@ -1237,8 +1274,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           ? const SizedBox(
                               height: 24,
                               width: 24,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
+                              child: TawfirLoadingIndicator(
+                                  size: 18, strokeWidth: 2, color: Colors.white),
                             )
                           : FittedBox(
                               fit: BoxFit.scaleDown,
@@ -1308,7 +1345,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   Color _getFreshnessColor(FreshnessGrade grade) {
     switch (grade) {
       case FreshnessGrade.A:
-        return const Color(0xFF2D8659);
+        return AppTheme.primary;
       case FreshnessGrade.B:
         return Colors.amber[700]!;
       case FreshnessGrade.C:

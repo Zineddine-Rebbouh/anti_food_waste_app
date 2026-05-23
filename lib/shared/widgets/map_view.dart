@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
@@ -23,11 +24,16 @@ class MapView extends StatefulWidget {
   /// Optional backend freshness filter ("A", "B", or "C").
   final String? freshnessGrade;
 
+  final double? initialLat;
+  final double? initialLng;
+
   const MapView({
     super.key,
     this.onListingTap,
     this.category,
     this.freshnessGrade,
+    this.initialLat,
+    this.initialLng,
   });
 
   @override
@@ -41,13 +47,52 @@ class _MapViewState extends State<MapView> {
   final _repository = ConsumerRepository();
 
   Set<Marker> _markers = {};
+  List<FoodListing> _lastListings = [];
 
   bool _isSearching = false;
   bool _isLocating = false;
   bool _mapMoved = false;
   String? _resultLabel;
+  BitmapDescriptor? _customMarker;
 
   LatLng _lastSearchCenter = _defaultTarget;
+
+  @override
+  void initState() {
+    super.initState();
+    _initCustomMarker();
+  }
+
+  Future<void> _initCustomMarker() async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    const size = 80.0;
+    
+    final paint = Paint()..color = AppTheme.primary;
+    final whitePaint = Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 6;
+    
+    final path = Path()
+      ..addOval(const Rect.fromLTWH(0, 0, size, size))
+      ..moveTo(size / 2 - 10, size - 5)
+      ..lineTo(size / 2, size + 15)
+      ..lineTo(size / 2 + 10, size - 5)
+      ..close();
+      
+    canvas.drawPath(path, paint);
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 3, whitePaint);
+    
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(size.toInt(), (size + 20).toInt());
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+    if (data != null && mounted) {
+      setState(() {
+        _customMarker = BitmapDescriptor.fromBytes(data.buffer.asUint8List());
+        if (_lastListings.isNotEmpty) {
+          _markers = _lastListings.map((l) => _buildMarker(l)).toSet();
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -64,13 +109,33 @@ class _MapViewState extends State<MapView> {
         oldWidget.freshnessGrade != widget.freshnessGrade) {
       _searchCurrentArea();
     }
+    
+    if ((oldWidget.initialLat != widget.initialLat || oldWidget.initialLng != widget.initialLng) &&
+        widget.initialLat != null && widget.initialLng != null) {
+      _moveToInitial();
+    }
+  }
+
+  Future<void> _moveToInitial() async {
+    if (widget.initialLat != null && widget.initialLng != null) {
+      final ll = LatLng(widget.initialLat!, widget.initialLng!);
+      await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(ll, 14));
+      _lastSearchCenter = ll;
+      await _searchCurrentArea();
+    }
   }
 
   // ── Map callbacks ────────────────────────────────────────────────────────
 
   void _onMapCreated(GoogleMapController c) {
     _mapController = c;
-    Future.delayed(const Duration(milliseconds: 600), _searchCurrentArea);
+    Future.delayed(const Duration(milliseconds: 600), () async {
+      if (widget.initialLat != null && widget.initialLng != null) {
+        await _moveToInitial();
+      } else {
+        await _searchCurrentArea();
+      }
+    });
   }
 
   void _onCameraMove(CameraPosition pos) {
@@ -166,6 +231,7 @@ class _MapViewState extends State<MapView> {
       _lastSearchCenter = mid;
 
       setState(() {
+        _lastListings = listings;
         _markers = listings.map(_buildMarker).toSet();
         _resultLabel =
             'Found ${listings.length} listing${listings.length == 1 ? '' : 's'}';
@@ -191,7 +257,7 @@ class _MapViewState extends State<MapView> {
   Marker _buildMarker(FoodListing l) => Marker(
         markerId: MarkerId(l.id),
         position: LatLng(l.lat, l.lng),
-        icon: BitmapDescriptor.defaultMarkerWithHue(_hue(l)),
+        icon: _customMarker ?? BitmapDescriptor.defaultMarkerWithHue(_hue(l)),
         infoWindow: InfoWindow(
           title: l.title,
           snippet:
@@ -305,9 +371,9 @@ class _MapViewState extends State<MapView> {
                   )
                 ],
               ),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
+                children: [
                   _LegendDot(color: Color(0xFF22C55E), label: 'A'),
                   SizedBox(width: 8),
                   _LegendDot(color: Color(0xFFF97316), label: 'B/C'),

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:anti_food_waste_app/core/network/api_client.dart';
+import 'package:anti_food_waste_app/core/utils/app_logger.dart';
 /// Raw HTTP calls to the merchant-related Django endpoints.
 ///
 /// Every method returns the decoded JSON body so callers can map it into
@@ -21,6 +22,104 @@ class MerchantRemoteSource {
   Future<Map<String, dynamic>> updateUserMe(Map<String, dynamic> data) async {
     final r = await _dio.patch('users/me/', data: data);
     return r.data as Map<String, dynamic>;
+  }
+
+  /// POST /merchants/me/logo/ — upload a local file as the merchant logo.
+  Future<Map<String, dynamic>> uploadLogo(String filePath) async {
+    AppLogger.info('MerchantRemoteSource: Uploading logo from $filePath');
+    final fileName = filePath.contains('/')
+        ? filePath.split('/').last
+        : filePath.split('\\').last;
+
+    // 1. Try merchants/me/logo/ with key 'logo'
+    try {
+      final formData = FormData.fromMap({
+        'logo': await MultipartFile.fromFile(filePath, filename: fileName),
+      });
+      final r = await _dio.post(
+        'merchants/me/logo/',
+        data: formData,
+        options: Options(contentType: null),
+      );
+      AppLogger.info('MerchantRemoteSource: Uploaded to merchants/me/logo/ (logo key)');
+      return r.data as Map<String, dynamic>;
+    } catch (e) {
+      AppLogger.info('MerchantRemoteSource: Attempt 1 (logo key) failed');
+    }
+
+    // 2. Try merchants/me/logo/ with key 'avatar'
+    try {
+      final formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(filePath, filename: fileName),
+      });
+      final r = await _dio.post(
+        'merchants/me/logo/',
+        data: formData,
+        options: Options(contentType: null),
+      );
+      AppLogger.info('MerchantRemoteSource: Uploaded to merchants/me/logo/ (avatar key)');
+      return r.data as Map<String, dynamic>;
+    } catch (e) {
+      AppLogger.info('MerchantRemoteSource: Attempt 2 (avatar key) failed');
+    }
+
+    // 3. Try users/me/avatar/ with key 'avatar' (POST)
+    try {
+      final formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(filePath, filename: fileName),
+      });
+      final r = await _dio.post(
+        'users/me/avatar/',
+        data: formData,
+        options: Options(contentType: null),
+      );
+      AppLogger.info('MerchantRemoteSource: Uploaded to users/me/avatar/ (POST)');
+      return r.data as Map<String, dynamic>;
+    } catch (e) {
+      AppLogger.info('MerchantRemoteSource: Attempt 3 (POST users/me/avatar/) failed');
+    }
+
+    // 4. Try users/me/ with key 'avatar' (PATCH)
+    try {
+      final formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(filePath, filename: fileName),
+      });
+      final r = await _dio.patch(
+        'users/me/',
+        data: formData,
+        options: Options(contentType: null),
+      );
+      AppLogger.info('MerchantRemoteSource: Uploaded to users/me/ (PATCH)');
+      final data = r.data as Map<String, dynamic>;
+      final profile = data['profile'] as Map<String, dynamic>?;
+      return {
+        'avatar_url': data['avatar_url'] ??
+            profile?['logo_url'] ??
+            profile?['avatar_url'],
+      };
+    } catch (e) {
+      AppLogger.info('MerchantRemoteSource: Attempt 4 (PATCH users/me/) failed');
+    }
+
+    // 5. Try merchants/me/ with key 'logo' (PATCH)
+    try {
+      final formData = FormData.fromMap({
+        'logo': await MultipartFile.fromFile(filePath, filename: fileName),
+      });
+      final r = await _dio.patch(
+        'merchants/me/',
+        data: formData,
+        options: Options(contentType: null),
+      );
+      AppLogger.info('MerchantRemoteSource: Uploaded to merchants/me/ (PATCH)');
+      final data = r.data as Map<String, dynamic>;
+      return {
+        'logo_url': data['logo_url'] ?? (data['profile'] as Map?)?['logo_url'],
+      };
+    } catch (e) {
+      AppLogger.error('MerchantRemoteSource: All 5 upload attempts failed', e);
+      rethrow;
+    }
   }
 
   // ── Analytics ─────────────────────────────────────────────────────────────
@@ -115,6 +214,7 @@ class MerchantRemoteSource {
     final r = await _dio.post(
       'listings/$listingId/photos/',
       data: formData,
+      options: Options(contentType: null), // Let Dio set the content-type with boundary
     );
     return r.data as Map<String, dynamic>;
   }
@@ -125,12 +225,29 @@ class MerchantRemoteSource {
     return r.data as Map<String, dynamic>;
   }
 
+  /// POST /listings/{id}/unmark-as-donation/
+  Future<Map<String, dynamic>> unmarkListingAsDonation(String id) async {
+    final r = await _dio.post('listings/$id/unmark-as-donation/');
+    return r.data as Map<String, dynamic>;
+  }
+
   // ── Orders ────────────────────────────────────────────────────────────────
 
-  /// GET /orders/ — when called as a merchant, returns all their orders.
   Future<List<Map<String, dynamic>>> fetchOrders() async {
     final r = await _dio.get('orders/');
     return _extractResults(r.data);
+  }
+
+  /// GET /donations/requests/ — Returns donation requests for this merchant.
+  Future<List<Map<String, dynamic>>> fetchDonationRequests() async {
+    final r = await _dio.get('donations/requests/');
+    return _extractResults(r.data);
+  }
+
+  /// POST /donations/{id}/approve/{request_id}/
+  Future<Map<String, dynamic>> approveDonationRequest(String donationId, String requestId) async {
+    final r = await _dio.post('donations/$donationId/approve/$requestId/');
+    return r.data as Map<String, dynamic>;
   }
 
   /// POST /orders/{id}/fulfill/ — merchant confirms pickup using the QR hash.
@@ -140,6 +257,18 @@ class MerchantRemoteSource {
   ) async {
     final r = await _dio.post(
       'orders/$orderId/fulfill/',
+      data: {'qr_hash': qrHash},
+    );
+    return r.data as Map<String, dynamic>;
+  }
+
+  /// POST /donations/{id}/fulfill/ — merchant confirms charity pickup using QR hash.
+  Future<Map<String, dynamic>> fulfillDonation(
+    String donationId,
+    String qrHash,
+  ) async {
+    final r = await _dio.post(
+      'donations/$donationId/fulfill/',
       data: {'qr_hash': qrHash},
     );
     return r.data as Map<String, dynamic>;
@@ -205,3 +334,6 @@ class MerchantRemoteSource {
     return [];
   }
 }
+
+
+

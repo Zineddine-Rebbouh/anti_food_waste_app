@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
 
-/// A coloured pill badge displaying a [PickupRequestStatus].
+/// A coloured pill badge displaying a [PickupRequestStatus]. 
+/// Used in the charity requests screen. 
 class CharityStatusBadge extends StatelessWidget {
   final PickupRequestStatus status;
 
@@ -53,18 +55,19 @@ class CharityStatusBadge extends StatelessWidget {
     }
   }
 
-  String get _label {
+  String _label(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     switch (status) {
       case PickupRequestStatus.pending:
-        return 'Pending';
+        return l10n.status_pending;
       case PickupRequestStatus.approved:
-        return 'Approved';
+        return l10n.status_approved;
       case PickupRequestStatus.enRoute:
-        return 'En Route';
+        return l10n.en_route;
       case PickupRequestStatus.collected:
-        return 'Collected';
+        return l10n.status_completed;
       case PickupRequestStatus.cancelled:
-        return 'Cancelled';
+        return l10n.status_cancelled;
     }
   }
 
@@ -83,7 +86,7 @@ class CharityStatusBadge extends StatelessWidget {
           Icon(_icon, size: 13, color: _fg),
           const SizedBox(width: 5),
           Text(
-            _label,
+            _label(context),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -95,3 +98,6 @@ class CharityStatusBadge extends StatelessWidget {
     );
   }
 }
+
+
+

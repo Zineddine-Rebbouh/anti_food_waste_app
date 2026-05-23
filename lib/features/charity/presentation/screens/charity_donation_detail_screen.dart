@@ -1,90 +1,97 @@
 import 'package:flutter/material.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_pickup_request_screen.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_cubit.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_state.dart';
+import 'package:animate_do/animate_do.dart';
+import 'package:anti_food_waste_app/core/config/app_config.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CharityDonationDetailScreen
-// ─────────────────────────────────────────────────────────────────────────────
 class CharityDonationDetailScreen extends StatelessWidget {
   final CharityDonation donation;
 
-  const CharityDonationDetailScreen({
-    super.key,
-    required this.donation,
-  });
+  const CharityDonationDetailScreen({super.key, required this.donation});
+
+  static const Color primaryGreen = Color(0xFF2D8659);
+  static const Color secondaryGreen = Color(0xFF2D8659);
+  static const Color textDark = Color(0xFF081C15);
+  static const Color accentBeige = Colors.white;
+  static const Color surfaceWhite = Colors.white;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F8),
+      backgroundColor: accentBeige,
       body: Stack(
         children: [
           CustomScrollView(
+            physics: const BouncingScrollPhysics(),
             slivers: [
-              _buildSliverAppBar(context),
+              _buildSliverAppBar(context, l10n),
               SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDonationHeader(),
-                    if (donation.urgency != UrgencyLevel.normal)
-                      _buildUrgencyBanner(),
-                    _buildKeyFacts(),
-                    _buildDescriptionCard(),
-                    _buildDietaryTagsCard(),
-                    _buildPickupWindowCard(),
-                    _buildMerchantCard(),
-                    // Bottom padding so the sticky button does not cover content
-                    const SizedBox(height: 100),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeaderSection(l10n),
+                      const SizedBox(height: 24),
+                      if (donation.urgency != UrgencyLevel.normal)
+                        _buildUrgencyBanner(l10n),
+                      const SizedBox(height: 8),
+                      _buildKeyStats(l10n),
+                      const SizedBox(height: 24),
+                      _buildDescriptionSection(l10n),
+                      const SizedBox(height: 24),
+                      _buildDietarySection(l10n),
+                      const SizedBox(height: 24),
+                      _buildPickupWindowSection(l10n),
+                      const SizedBox(height: 24),
+                      _buildMerchantSection(l10n),
+                      const SizedBox(height: 120),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
-          _buildStickyButton(context),
+          _buildStickyButton(context, l10n),
         ],
       ),
     );
   }
 
-  // ── SliverAppBar ────────────────────────────────────────────────────────────
-  Widget _buildSliverAppBar(BuildContext context) {
+  Widget _buildSliverAppBar(BuildContext context, AppLocalizations l10n) {
     return SliverAppBar(
-      expandedHeight: 220,
+      expandedHeight: 240,
       pinned: true,
-      backgroundColor: Colors.white,
+      elevation: 0,
+      backgroundColor: primaryGreen,
+      surfaceTintColor: primaryGreen,
       leading: Padding(
         padding: const EdgeInsets.all(8.0),
         child: CircleAvatar(
-          backgroundColor: Colors.white.withOpacity(0.9),
+          backgroundColor: Colors.black.withOpacity(0.2),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
             onPressed: () => Navigator.pop(context),
           ),
-        ),
-      ),
-      title: Text(
-        donation.title,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF1A1A2E),
         ),
       ),
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: CircleAvatar(
-            backgroundColor: Colors.white.withOpacity(0.9),
+            backgroundColor: Colors.black.withOpacity(0.2),
             child: IconButton(
-              icon: const Icon(Icons.share_outlined,
-                  color: Colors.black87, size: 20),
+              icon: const Icon(Icons.share_rounded, color: Colors.white, size: 20),
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Link copied to clipboard')),
+                  SnackBar(content: Text(l10n.link_copied_msg)),
                 );
               },
             ),
@@ -92,152 +99,144 @@ class CharityDonationDetailScreen extends StatelessWidget {
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
-        background: _buildSliverBackground(),
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (donation.imageUrl != null && donation.imageUrl!.isNotEmpty)
+              CachedNetworkImage(
+                imageUrl: _getFullImageUrl(donation.imageUrl!),
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: primaryGreen.withOpacity(0.05),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: primaryGreen,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+                errorWidget: (context, url, error) => _buildFallbackHeader(),
+              )
+            else
+              _buildFallbackHeader(),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.3),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.5),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSliverBackground() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppTheme.primary, Color(0xFF1B5E38)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  Widget _buildFallbackHeader() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [primaryGreen, secondaryGreen],
+            ),
+          ),
         ),
-      ),
-      child: Stack(
-        children: [
-          // Large faint category icon as background texture
-          Center(
+        Center(
+          child: FadeIn(
+            duration: const Duration(seconds: 1),
             child: Icon(
               _categoryIcon(donation.category),
               size: 140,
-              color: Colors.white.withOpacity(0.12),
+              color: Colors.white.withOpacity(0.1),
             ),
           ),
-          // Centered foreground icon inside a translucent white circle
-          Center(
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.20),
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: Colors.white.withOpacity(0.40), width: 1.5),
-              ),
-              child: Icon(
-                _categoryIcon(donation.category),
-                size: 38,
-                color: Colors.white,
-              ),
+        ),
+        Center(
+          child: Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
             ),
+            child: Icon(_categoryIcon(donation.category), size: 48, color: Colors.white),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  // ── Card 1: Donation Header ─────────────────────────────────────────────────
-  Widget _buildDonationHeader() {
+  Widget _buildHeaderSection(AppLocalizations l10n) {
     final diff = DateTime.now().difference(donation.postedAt);
     final postedText = diff.inMinutes < 60
-        ? 'Posted ${diff.inMinutes} min ago'
-        : 'Posted ${diff.inHours} h ago';
+        ? l10n.posted_min_ago(diff.inMinutes)
+        : l10n.posted_hours_ago(diff.inHours);
 
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            donation.title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A1A2E),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: primaryGreen.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                donation.categoryLabel,
+                style: const TextStyle(color: primaryGreen, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              const Icon(Icons.storefront_outlined,
-                  color: AppTheme.primary, size: 16),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  donation.merchantName,
-                  style: const TextStyle(
-                      fontSize: 13, color: Color(0xFF1A1A2E)),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.location_on_outlined,
-                  color: AppTheme.mutedForeground, size: 16),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  donation.merchantAddress,
-                  style: const TextStyle(
-                      fontSize: 13, color: AppTheme.mutedForeground),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            postedText,
-            style: const TextStyle(
-                fontSize: 11, color: AppTheme.mutedForeground),
-          ),
-        ],
-      ),
+            Text(
+              postedText,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey.shade400),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          donation.title,
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: textDark, letterSpacing: -0.5),
+        ),
+      ],
     );
   }
 
-  // ── Urgency Banner ──────────────────────────────────────────────────────────
-  Widget _buildUrgencyBanner() {
-    final Color color = donation.urgency == UrgencyLevel.critical
-        ? AppTheme.accent
-        : AppTheme.warning;
-    final int hoursLeft =
-        donation.expiresAt.difference(DateTime.now()).inHours;
-    final String label = donation.urgency == UrgencyLevel.critical
-        ? 'Expiring very soon — Act now!'
-        : 'Expiring in $hoursLeft hour${hoursLeft == 1 ? '' : 's'}';
+  Widget _buildUrgencyBanner(AppLocalizations l10n) {
+    final isCritical = donation.urgency == UrgencyLevel.critical;
+    final color = isCritical ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
+    final hoursLeft = donation.expiresAt.difference(DateTime.now()).inHours;
+    final label = isCritical ? l10n.expiring_soon_act_now : l10n.expiring_in_hours(hoursLeft);
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.30)),
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.1)),
       ),
       child: Row(
         children: [
-          Icon(Icons.access_time_filled_rounded, color: color, size: 18),
-          const SizedBox(width: 8),
+          Icon(Icons.bolt_rounded, color: color, size: 20),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 13,
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.w800),
             ),
           ),
         ],
@@ -245,203 +244,107 @@ class CharityDonationDetailScreen extends StatelessWidget {
     );
   }
 
-  // ── Card 2: Key Facts (2x2 grid) ───────────────────────────────────────────
-  Widget _buildKeyFacts() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _FactCell(
-                  icon: Icons.scale_outlined,
-                  label: 'Quantity',
-                  value: '${donation.quantityKg} kg',
-                ),
-              ),
-              Expanded(
-                child: _FactCell(
-                  icon: Icons.people_outline,
-                  label: 'Servings',
-                  value: '~${donation.estimatedServings}',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _FactCell(
-                  icon: _categoryIcon(donation.category),
-                  label: 'Category',
-                  value: donation.categoryLabel,
-                ),
-              ),
-              Expanded(
-                child: _FactCell(
-                  icon: Icons.near_me_outlined,
-                  label: 'Distance',
-                  value: '${donation.distanceKm} km away',
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+  Widget _buildKeyStats(AppLocalizations l10n) {
+    return Row(
+      children: [
+        Expanded(child: _StatBox(icon: Icons.scale_rounded, value: '${donation.quantityKg} kg', label: l10n.quantity_label)),
+        const SizedBox(width: 12),
+        Expanded(child: _StatBox(icon: Icons.groups_rounded, value: '~${donation.estimatedServings}', label: l10n.servings_label(donation.estimatedServings))),
+        const SizedBox(width: 12),
+        Expanded(child: _StatBox(icon: Icons.near_me_rounded, value: '${donation.distanceKm} km', label: l10n.distance_label)),
+      ],
     );
   }
 
-  // ── Card 3: Description ─────────────────────────────────────────────────────
-  Widget _buildDescriptionCard() {
+  Widget _buildDescriptionSection(AppLocalizations l10n) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
+        color: surfaceWhite,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'About This Donation',
-            style:
-                TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
+          Text(l10n.about_donation, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textDark)),
+          const SizedBox(height: 12),
           Text(
             donation.description,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-              height: 1.5,
-            ),
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade600, height: 1.6, fontWeight: FontWeight.w500),
           ),
         ],
       ),
     );
   }
 
-  // ── Card 4: Dietary Tags ────────────────────────────────────────────────────
-  Widget _buildDietaryTagsCard() {
+  Widget _buildDietarySection(AppLocalizations l10n) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
+        color: surfaceWhite,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Dietary Information',
-            style:
-                TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
+          Text(l10n.dietary_info, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textDark)),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: donation.dietaryTags
-                .map(
-                  (tag) => Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: AppTheme.primary.withOpacity(0.25)),
-                    ),
-                    child: Text(
-                      tag,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
+            children: donation.dietaryTags.map((tag) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: primaryGreen.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(tag, style: const TextStyle(color: primaryGreen, fontSize: 13, fontWeight: FontWeight.w800)),
+            )).toList(),
           ),
         ],
       ),
     );
   }
 
-  // ── Card 5: Pickup Window ───────────────────────────────────────────────────
-  Widget _buildPickupWindowCard() {
+  Widget _buildPickupWindowSection(AppLocalizations l10n) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
+        color: primaryGreen,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Icon(Icons.schedule_outlined,
-                  color: AppTheme.primary, size: 18),
-              SizedBox(width: 6),
-              Text(
-                'Pickup Window',
-                style: TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.bold),
-              ),
+            children: [
+              const Icon(Icons.access_time_filled_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Text(l10n.pickup_window, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           Text(
             '${donation.pickupWindowStart} – ${donation.pickupWindowEnd}',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primary,
-              letterSpacing: 0.5,
-            ),
+            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Today',
-            style: TextStyle(
-                fontSize: 13, color: AppTheme.mutedForeground),
-          ),
-          const SizedBox(height: 10),
+          Text(l10n.today, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white.withOpacity(0.6))),
+          const SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppTheme.inputBackground,
-              borderRadius: BorderRadius.circular(10),
-            ),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Icon(Icons.info_outline,
-                    size: 14, color: AppTheme.mutedForeground),
-                SizedBox(width: 6),
+              children: [
+                const Icon(Icons.info_rounded, color: Colors.white, size: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Please arrive within the pickup window. '
-                    'Late arrivals may miss the donation.',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.mutedForeground),
+                    l10n.pickup_window_warning,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.9), height: 1.4),
                   ),
                 ),
               ],
@@ -452,74 +355,49 @@ class CharityDonationDetailScreen extends StatelessWidget {
     );
   }
 
-  // ── Card 6: Merchant Info ───────────────────────────────────────────────────
-  Widget _buildMerchantCard() {
+  Widget _buildMerchantSection(AppLocalizations l10n) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
+        color: surfaceWhite,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'About the Merchant',
-            style:
-                TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
           Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.10),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.storefront_outlined,
-                    color: AppTheme.primary, size: 22),
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(color: primaryGreen.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
+                child: const Icon(Icons.storefront_rounded, color: primaryGreen, size: 28),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      donation.merchantName,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      donation.merchantAddress,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.mutedForeground),
-                    ),
+                    Text(donation.merchantName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textDark)),
+                    Text(l10n.about_merchant, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey.shade500)),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 10),
+          const SizedBox(height: 24),
+          _InfoRow(icon: Icons.location_on_rounded, label: l10n.pickup_location, value: donation.merchantAddress),
+          const SizedBox(height: 16),
           Row(
-            children: const [
-              Icon(Icons.verified_outlined,
-                  color: AppTheme.primary, size: 16),
-              SizedBox(width: 6),
-              Text('Verified Merchant',
-                  style: TextStyle(fontSize: 13)),
-              SizedBox(width: 20),
-              Icon(Icons.star_rounded,
-                  color: Colors.amber, size: 16),
-              SizedBox(width: 4),
-              Text('4.8 rating', style: TextStyle(fontSize: 13)),
+            children: [
+              const Icon(Icons.verified_rounded, color: Color(0xFF2D8659), size: 16),
+              const SizedBox(width: 8),
+              Text(l10n.verified_merchant, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF2D8659))),
+              const Spacer(),
+              const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
+              const SizedBox(width: 4),
+              Text('4.8', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: textDark)),
             ],
           ),
         ],
@@ -527,132 +405,137 @@ class CharityDonationDetailScreen extends StatelessWidget {
     );
   }
 
-  // ── Sticky bottom button ────────────────────────────────────────────────────
-  Widget _buildStickyButton(BuildContext context) {
-    final bool isAvailable =
-        donation.status == DonationStatus.available;
+  Widget _buildStickyButton(BuildContext context, AppLocalizations l10n) {
+    return BlocBuilder<CharityCubit, CharityState>(
+      builder: (context, state) {
+        var hasRequested = false;
+        if (state is CharityLoaded) {
+          hasRequested = state.myRequests.any((req) => req.donationId == donation.id);
+        }
 
-    final String buttonLabel;
-    if (donation.status == DonationStatus.claimed) {
-      buttonLabel = 'Already Claimed';
-    } else if (donation.status == DonationStatus.expired) {
-      buttonLabel = 'Expired';
-    } else if (donation.status == DonationStatus.collected) {
-      buttonLabel = 'Already Collected';
-    } else {
-      buttonLabel = 'Request Pickup';
-    }
+        final isAvailable = donation.status == DonationStatus.available && !hasRequested;
+        String buttonLabel = hasRequested ? l10n.already_requested : l10n.request_pickup;
 
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border:
-              Border(top: BorderSide(color: Colors.grey.shade200)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
-              offset: const Offset(0, -4),
+        return Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+            decoration: BoxDecoration(
+              color: surfaceWhite,
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+              boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, -8))],
             ),
-          ],
-        ),
-        child: SafeArea(
-          child: ElevatedButton(
-            onPressed: isAvailable
-                ? () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CharityPickupRequestScreen(
-                            donation: donation),
-                      ),
-                    )
-                : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  isAvailable ? AppTheme.primary : AppTheme.muted,
-              foregroundColor: isAvailable
-                  ? Colors.white
-                  : AppTheme.mutedForeground,
-              disabledBackgroundColor: AppTheme.muted,
-              disabledForegroundColor: AppTheme.mutedForeground,
-              minimumSize: const Size(double.infinity, 52),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
-            ),
-            child: Text(
-              buttonLabel,
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600),
+            child: ElevatedButton(
+              onPressed: isAvailable ? () => _handleRequest(context) : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 60),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 0,
+              ),
+              child: Text(buttonLabel, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
             ),
           ),
+        );
+      },
+    );
+  }
+
+  void _handleRequest(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: context.read<CharityCubit>(),
+          child: CharityPickupRequestScreen(donation: donation),
         ),
       ),
     );
   }
 }
 
-// ─── Fact Cell ────────────────────────────────────────────────────────────────
-class _FactCell extends StatelessWidget {
+class _StatBox extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+
+  const _StatBox({required this.icon, required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: CharityDonationDetailScreen.surfaceWhite, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: CharityDonationDetailScreen.primaryGreen.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
+      child: Column(
+        children: [
+          Icon(icon, size: 20, color: CharityDonationDetailScreen.primaryGreen),
+          const SizedBox(height: 8),
+          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: CharityDonationDetailScreen.textDark)),
+          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey.shade400, letterSpacing: 0.5)),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
 
-  const _FactCell({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(10),
+        Icon(icon, size: 18, color: Colors.grey.shade400),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.grey.shade400, letterSpacing: 0.5)),
+              Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: CharityDonationDetailScreen.textDark)),
+            ],
           ),
-          child: Icon(icon, color: AppTheme.primary, size: 20),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-              fontSize: 11, color: AppTheme.mutedForeground),
-          textAlign: TextAlign.center,
         ),
       ],
     );
   }
 }
 
-// ─── Category icon helper ─────────────────────────────────────────────────────
+
+
+String _getFullImageUrl(String path) {
+  if (path.isEmpty) return '';
+  if (path.startsWith('http')) return path;
+  
+  final uri = Uri.parse(AppConfig.baseUrl);
+  final baseUrl = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
+  
+  final cleanPath = path.startsWith('/') ? path : '/$path';
+  
+  if (!cleanPath.contains('/media/') && !cleanPath.contains('/static/')) {
+    return '$baseUrl/media$cleanPath';
+  }
+  
+  return '$baseUrl$cleanPath';
+}
+
 IconData _categoryIcon(DonationCategory c) {
   switch (c) {
-    case DonationCategory.bakery:
-      return Icons.breakfast_dining_outlined;
-    case DonationCategory.restaurant:
-      return Icons.restaurant_outlined;
-    case DonationCategory.grocery:
-      return Icons.local_grocery_store_outlined;
-    case DonationCategory.cafe:
-      return Icons.local_cafe_outlined;
-    case DonationCategory.hotel:
-      return Icons.hotel_outlined;
+    case DonationCategory.bakery: return Icons.breakfast_dining_rounded;
+    case DonationCategory.restaurant: return Icons.restaurant_rounded;
+    case DonationCategory.grocery: return Icons.local_grocery_store_rounded;
+    case DonationCategory.cafe: return Icons.local_cafe_rounded;
+    case DonationCategory.hotel: return Icons.hotel_rounded;
   }
 }
+
+
+

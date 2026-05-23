@@ -52,7 +52,7 @@ class AppTheme {
   // -------------------------
   static ThemeData getTheme(Locale locale) {
     final textTheme = _getTextTheme(locale.languageCode);
-    final String? fontFamily = locale.languageCode == 'ar'
+    final fontFamily = locale.languageCode == 'ar'
         ? GoogleFonts.tajawal().fontFamily
         : GoogleFonts.poppins().fontFamily;
 

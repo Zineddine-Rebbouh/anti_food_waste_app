@@ -1,4 +1,4 @@
-import '../models/food_listing.dart';
+import 'package:anti_food_waste_app/shared/models/food_listing.dart';
 
 final List<FoodListing> recommendedListings = [
   FoodListing(
@@ -16,13 +16,14 @@ final List<FoodListing> recommendedListings = [
     distance: 1.2,
     freshness: FreshnessGrade.A,
     category: FoodCategory.bakery,
-    pickupStart: '18:00',
-    pickupEnd: '20:00',
+    pickupStart: '08:00',
+    pickupEnd: '23:59',
     quantityLeft: 3,
     dietary: ['halal'],
     lat: 36.7638,
     lng: 3.0488,
     postedMinutesAgo: 15,
+    merchantLogoUrl: 'https://images.unsplash.com/photo-1556742044-3c52d6e88c62?w=100&h=100&fit=crop',
   ),
   FoodListing(
     id: 'r2',
@@ -39,13 +40,14 @@ final List<FoodListing> recommendedListings = [
     distance: 3.4,
     freshness: FreshnessGrade.A,
     category: FoodCategory.restaurant,
-    pickupStart: '21:00',
-    pickupEnd: '22:30',
+    pickupStart: '08:00',
+    pickupEnd: '23:59',
     quantityLeft: 4,
     dietary: ['halal'],
     lat: 36.7538,
     lng: 3.0588,
     postedMinutesAgo: 10,
+    merchantLogoUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=100&h=100&fit=crop',
   ),
 ];
 
@@ -65,13 +67,14 @@ final List<FoodListing> nearByListings = [
     distance: 0.5,
     freshness: FreshnessGrade.B,
     category: FoodCategory.bakery,
-    pickupStart: '19:00',
-    pickupEnd: '21:00',
+    pickupStart: '08:00',
+    pickupEnd: '23:59',
     quantityLeft: 8,
     dietary: ['halal'],
     lat: 36.7438,
     lng: 3.0688,
     postedMinutesAgo: 45,
+    merchantLogoUrl: 'https://images.unsplash.com/photo-1556742044-3c52d6e88c62?w=100&h=100&fit=crop',
   ),
   FoodListing(
     id: 'n2',
@@ -88,13 +91,14 @@ final List<FoodListing> nearByListings = [
     distance: 0.8,
     freshness: FreshnessGrade.A,
     category: FoodCategory.bakery,
-    pickupStart: '17:30',
-    pickupEnd: '19:30',
+    pickupStart: '08:00',
+    pickupEnd: '23:59',
     quantityLeft: 5,
     dietary: ['halal'],
     lat: 36.7588,
     lng: 3.0488,
     postedMinutesAgo: 20,
+    merchantLogoUrl: 'https://images.unsplash.com/photo-1556742044-3c52d6e88c62?w=100&h=100&fit=crop',
   ),
 ];
 
@@ -114,13 +118,14 @@ final List<FoodListing> closingSoonListings = [
     distance: 1.8,
     freshness: FreshnessGrade.A,
     category: FoodCategory.restaurant,
-    pickupStart: '15:00',
-    pickupEnd: '16:00',
+    pickupStart: '08:00',
+    pickupEnd: '23:59',
     quantityLeft: 2,
     dietary: ['halal'],
     lat: 36.7538,
     lng: 3.0388,
     postedMinutesAgo: 120,
+    merchantLogoUrl: 'https://images.unsplash.com/photo-1556742044-3c52d6e88c62?w=100&h=100&fit=crop',
   ),
   FoodListing(
     id: 'c2',
@@ -137,13 +142,14 @@ final List<FoodListing> closingSoonListings = [
     distance: 2.1,
     freshness: FreshnessGrade.B,
     category: FoodCategory.supermarket,
-    pickupStart: '19:30',
-    pickupEnd: '20:30',
+    pickupStart: '08:00',
+    pickupEnd: '23:59',
     quantityLeft: 3,
     dietary: ['vegan'],
     lat: 36.7738,
     lng: 3.0788,
     postedMinutesAgo: 30,
+    merchantLogoUrl: 'https://images.unsplash.com/photo-1556742044-3c52d6e88c62?w=100&h=100&fit=crop',
   ),
 ];
 

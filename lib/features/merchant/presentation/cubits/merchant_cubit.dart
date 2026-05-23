@@ -1,4 +1,4 @@
-﻿import 'package:equatable/equatable.dart';
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/core/utils/app_logger.dart';
 import 'package:anti_food_waste_app/features/merchant/data/repositories/merchant_repository.dart';
@@ -29,7 +29,9 @@ class MerchantLoaded extends MerchantState {
   final List<MerchantListing> soldOutListings;
   final List<MerchantListing> expiredListings;
   final List<MerchantListing> draftListings;
+  final List<MerchantListing> donationsListings;
   final List<MerchantOrder> pendingOrders;
+  final List<MerchantOrder> activeOrders;
   final List<MerchantOrder> completedOrders;
   final List<ActivityItem> activityFeed;
   final List<Map<String, dynamic>> categories;
@@ -40,13 +42,15 @@ class MerchantLoaded extends MerchantState {
     required this.soldOutListings,
     required this.expiredListings,
     required this.draftListings,
+    required this.donationsListings,
     required this.pendingOrders,
+    required this.activeOrders,
     required this.completedOrders,
     required this.activityFeed,
     this.categories = const [],
   });
 
-  int get pendingOrderCount => pendingOrders.length;
+  int get pendingOrderCount => pendingOrders.length + activeOrders.length;
 
   MerchantLoaded copyWith({
     MerchantProfile? profile,
@@ -54,7 +58,9 @@ class MerchantLoaded extends MerchantState {
     List<MerchantListing>? soldOutListings,
     List<MerchantListing>? expiredListings,
     List<MerchantListing>? draftListings,
+    List<MerchantListing>? donationsListings,
     List<MerchantOrder>? pendingOrders,
+    List<MerchantOrder>? activeOrders,
     List<MerchantOrder>? completedOrders,
     List<ActivityItem>? activityFeed,
     List<Map<String, dynamic>>? categories,
@@ -65,7 +71,9 @@ class MerchantLoaded extends MerchantState {
       soldOutListings: soldOutListings ?? this.soldOutListings,
       expiredListings: expiredListings ?? this.expiredListings,
       draftListings: draftListings ?? this.draftListings,
+      donationsListings: donationsListings ?? this.donationsListings,
       pendingOrders: pendingOrders ?? this.pendingOrders,
+      activeOrders: activeOrders ?? this.activeOrders,
       completedOrders: completedOrders ?? this.completedOrders,
       activityFeed: activityFeed ?? this.activityFeed,
       categories: categories ?? this.categories,
@@ -79,7 +87,9 @@ class MerchantLoaded extends MerchantState {
         soldOutListings,
         expiredListings,
         draftListings,
+        donationsListings,
         pendingOrders,
+        activeOrders,
         completedOrders,
         activityFeed,
         categories,
@@ -159,21 +169,34 @@ class MerchantCubit extends Cubit<MerchantState> {
     };
 
     try {
+      AppLogger.info('MerchantCubit: Creating listing with payload: $payload');
       var listing = await _repository.createListing(payload);
+      AppLogger.info('MerchantCubit: Listing created successfully. ID: ${listing.id}');
+      
       if (imagePath != null && imagePath.isNotEmpty && listing.id.isNotEmpty) {
+        AppLogger.info('MerchantCubit: Attempting to upload photo for ${listing.id} from $imagePath');
         try {
+          // The backend returns the photo object, extract the URL from it.
           final photoUrl = await _repository.uploadListingPhoto(listing.id, imagePath);
+          AppLogger.info('MerchantCubit: Photo upload response URL: $photoUrl');
           if (photoUrl.isNotEmpty) {
             listing = listing.copyWith(imageUrl: photoUrl);
           }
-        } catch (_) {
+        } catch (e) {
+          AppLogger.error('MerchantCubit.createListingAsync: Photo upload failed', e);
           // Photo upload is best-effort; don't fail the whole create.
         }
-      }
-      if (listing.status == ListingStatus.active) {
-        emit(s.copyWith(activeListings: [listing, ...s.activeListings]));
       } else {
-        emit(s.copyWith(draftListings: [listing, ...s.draftListings]));
+        AppLogger.info('MerchantCubit: Skipping photo upload. imagePath: $imagePath, listingId: ${listing.id}');
+      }
+
+      // Re-fetch the loaded state to ensure we have the latest list
+      final currentLoaded = state as MerchantLoaded;
+      AppLogger.info('MerchantCubit: Emitting updated state with listing ${listing.id}');
+      if (listing.status == ListingStatus.active) {
+        emit(currentLoaded.copyWith(activeListings: [listing, ...currentLoaded.activeListings]));
+      } else {
+        emit(currentLoaded.copyWith(draftListings: [listing, ...currentLoaded.draftListings]));
       }
     } catch (e, st) {
       AppLogger.error('MerchantCubit.createListingAsync', e, st);
@@ -192,16 +215,66 @@ class MerchantCubit extends Cubit<MerchantState> {
     }
   }
 
-  void pauseListing(String listingId) {
-    // "Paused" is a UI-only concept; no backend call needed until the server
-    // supports it.  Use sold_out semantics on next server sync.
+  Future<void> updateListingAsync(
+    String listingId, {
+    required String title,
+    required String description,
+    required double discountedPrice,
+    required int quantity,
+    required FreshnessGrade grade,
+    required List<DietaryTag> dietaryTags,
+    required DateTime pickupStart,
+    required DateTime pickupEnd,
+    String? imagePath,
+  }) async {
     if (state is! MerchantLoaded) return;
-    final s = state as MerchantLoaded;
-    final updated = s.activeListings.map((l) {
-      if (l.id == listingId) return l.copyWith(status: ListingStatus.paused);
-      return l;
-    }).toList();
-    emit(s.copyWith(activeListings: updated));
+    final payload = {
+      'title': title,
+      'description': description,
+      'discounted_price': discountedPrice.toStringAsFixed(2),
+      'quantity_available': quantity, // use available for updates usually
+      'freshness_grade': grade.name.toUpperCase(),
+      'pickup_start': pickupStart.toIso8601String(),
+      'pickup_end': pickupEnd.toIso8601String(),
+      'dietary_flags': MerchantListing.buildDietaryFlags(dietaryTags),
+      'allergens': <String>[],
+    };
+
+    try {
+      var listing = await _repository.updateListing(listingId, payload);
+      
+      if (imagePath != null && imagePath.isNotEmpty) {
+        try {
+          final photoUrl = await _repository.uploadListingPhoto(listingId, imagePath);
+          if (photoUrl.isNotEmpty) {
+            listing = listing.copyWith(imageUrl: photoUrl);
+          }
+        } catch (e) {
+          AppLogger.error('MerchantCubit.updateListingAsync: Photo update failed', e);
+        }
+      }
+      
+      await load(); // Reload to refresh everything completely.
+    } catch (e, st) {
+      AppLogger.error('MerchantCubit.updateListingAsync', e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> toggleListingStatusAsync(String listingId, ListingStatus newStatus) async {
+    if (state is! MerchantLoaded) return;
+    var statusStr = 'draft';
+    if (newStatus == ListingStatus.active) {
+      statusStr = 'active';
+    } else if (newStatus == ListingStatus.soldOut) statusStr = 'sold_out';
+    
+    try {
+      await _repository.updateListing(listingId, {'status': statusStr});
+      await load();
+    } catch (e, st) {
+      AppLogger.error('MerchantCubit.toggleListingStatusAsync', e, st);
+      rethrow;
+    }
   }
 
   Future<void> deleteListingAsync(String listingId) async {
@@ -217,6 +290,8 @@ class MerchantCubit extends Cubit<MerchantState> {
           s.expiredListings.where((l) => l.id != listingId).toList(),
       draftListings:
           s.draftListings.where((l) => l.id != listingId).toList(),
+      donationsListings:
+          s.donationsListings.where((l) => l.id != listingId).toList(),
     ));
     try {
       await _repository.deleteListing(listingId);
@@ -241,7 +316,7 @@ class MerchantCubit extends Cubit<MerchantState> {
       emit(s.copyWith(
         activeListings:
             s.activeListings.where((l) => l.id != listingId).toList(),
-        soldOutListings: [...s.soldOutListings, updated],
+        donationsListings: [updated, ...s.donationsListings],
       ));
     } catch (e, st) {
       AppLogger.error('MerchantCubit.markAsDonationAsync', e, st);
@@ -251,6 +326,22 @@ class MerchantCubit extends Cubit<MerchantState> {
 
   /// Kept for backwards compatibility.
   void markAsDonation(String listingId) => markAsDonationAsync(listingId);
+
+  Future<void> unmarkAsDonationAsync(String listingId) async {
+    if (state is! MerchantLoaded) return;
+    final s = state as MerchantLoaded;
+    try {
+      final updated = await _repository.unmarkAsDonation(listingId);
+      emit(s.copyWith(
+        donationsListings:
+            s.donationsListings.where((l) => l.id != listingId).toList(),
+        activeListings: [updated, ...s.activeListings],
+      ));
+    } catch (e, st) {
+      AppLogger.error('MerchantCubit.unmarkAsDonationAsync', e, st);
+      rethrow;
+    }
+  }
 
   void updateListingQuantity(String listingId, int newQuantity) {
     if (state is! MerchantLoaded) return;
@@ -277,6 +368,29 @@ class MerchantCubit extends Cubit<MerchantState> {
       ));
     } catch (e, st) {
       AppLogger.error('MerchantCubit.fulfillOrderAsync', e, st);
+      rethrow;
+    }
+  }
+
+  /// Confirms a donation pickup by validating the charity's QR code hash.
+  Future<void> fulfillDonationAsync(String donationId, String qrHash) async {
+    if (state is! MerchantLoaded) return;
+    final s = state as MerchantLoaded;
+    try {
+      await _repository.fulfillDonation(donationId, qrHash);
+      
+      // Find the local order object to move it to completed
+      final order = s.pendingOrders.where((o) => o.id == donationId).firstOrNull;
+      if (order != null) {
+        final fulfilled = order.copyWith(status: OrderStatus.completed);
+        emit(s.copyWith(
+          pendingOrders:
+              s.pendingOrders.where((o) => o.id != donationId).toList(),
+          completedOrders: [fulfilled, ...s.completedOrders],
+        ));
+      }
+    } catch (e, st) {
+      AppLogger.error('MerchantCubit.fulfillDonationAsync', e, st);
       rethrow;
     }
   }
@@ -345,11 +459,96 @@ class MerchantCubit extends Cubit<MerchantState> {
     ));
   }
 
+  Future<void> approveDonationRequestAsync(String donationId, String requestId) async {
+    if (state is! MerchantLoaded) return;
+    try {
+      await _repository.approveDonationRequest(donationId, requestId);
+      // Reload everything fully instead of maintaining state manually,
+      // as it forces the status of this request and cancels any others.
+      await load();
+    } catch (e, st) {
+      AppLogger.error('MerchantCubit.approveDonationRequestAsync', e, st);
+      rethrow;
+    }
+  }
+
   // â”€â”€ Profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   void updateProfile(MerchantProfile updatedProfile) {
     if (state is! MerchantLoaded) return;
     emit((state as MerchantLoaded).copyWith(profile: updatedProfile));
+  }
+
+  Future<void> updateProfileAsync({
+    required String businessName,
+    required String businessType,
+    required String phone,
+    required String address,
+    required String wilaya,
+    String? avatarUrl,
+    double? latitude,
+    double? longitude,
+  }) async {
+    if (state is! MerchantLoaded) return;
+    final s = state as MerchantLoaded;
+    try {
+      // 1. Update basic profile info
+      var updated = await _repository.updateProfile({
+        'profile': {
+          'business_name': businessName,
+          'business_type': businessType,
+          'phone': phone,
+          'address': address,
+          'wilaya': wilaya,
+        }
+      });
+
+      // 2. Update location if coordinates provided
+      if (latitude != null && longitude != null) {
+        try {
+          await _repository.updateLocation(
+            latitude: latitude,
+            longitude: longitude,
+            address: address,
+            wilaya: wilaya,
+          );
+        } catch (e) {
+          AppLogger.error('MerchantCubit.updateProfileAsync: Location update failed', e);
+        }
+      }
+
+      // 3. Merge logo logic
+      if (updated.avatarUrl.isEmpty) {
+        final fallbackUrl = avatarUrl ?? s.profile.avatarUrl;
+        if (fallbackUrl.isNotEmpty) {
+          updated = updated.copyWith(avatarUrl: fallbackUrl);
+        }
+      } else if (avatarUrl != null && avatarUrl.isNotEmpty) {
+        updated = updated.copyWith(avatarUrl: avatarUrl);
+      }
+      
+      emit(s.copyWith(profile: updated));
+    } catch (e, st) {
+      AppLogger.error('MerchantCubit.updateProfileAsync', e, st);
+      rethrow;
+    }
+  }
+
+  Future<String> uploadLogoAsync(String filePath) async {
+    if (state is! MerchantLoaded) return '';
+    final s = state as MerchantLoaded;
+    try {
+      final logoUrl = await _repository.uploadLogo(filePath);
+      if (logoUrl.isNotEmpty) {
+        final normalized = MerchantProfile.normalizeUrl(logoUrl);
+        emit(s.copyWith(profile: s.profile.copyWith(avatarUrl: normalized)));
+        return normalized;
+      }
+      return logoUrl;
+    } catch (e, st) {
+      AppLogger.error('MerchantCubit.uploadLogoAsync', e, st);
+      rethrow;
+    }
   }
 
   // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -362,7 +561,9 @@ class MerchantCubit extends Cubit<MerchantState> {
     List<Map<String, dynamic>> categories,
   ) {
     final active =
-        listings.where((l) => l.status == ListingStatus.active).toList();
+        listings.where((l) => l.status == ListingStatus.active && !l.isDonation).toList();
+    final donations =
+        listings.where((l) => l.status == ListingStatus.active && l.isDonation).toList();
     final soldOut =
         listings.where((l) => l.status == ListingStatus.soldOut).toList();
     final expired =
@@ -372,6 +573,8 @@ class MerchantCubit extends Cubit<MerchantState> {
 
     final pending =
         orders.where((o) => o.status == OrderStatus.pending).toList();
+    final activeOrders =
+        orders.where((o) => o.status == OrderStatus.active).toList();
     final completed =
         orders.where((o) => o.status == OrderStatus.completed).toList();
 
@@ -393,7 +596,9 @@ class MerchantCubit extends Cubit<MerchantState> {
       soldOutListings: soldOut,
       expiredListings: expired,
       draftListings: drafts,
+      donationsListings: donations,
       pendingOrders: pending,
+      activeOrders: activeOrders,
       completedOrders: completed,
       activityFeed: feed,
       categories: categories,
@@ -403,10 +608,13 @@ class MerchantCubit extends Cubit<MerchantState> {
   static String _friendlyError(Object e) {
     final msg = e.toString();
     if (msg.contains('SocketException') || msg.contains('Connection refused')) {
-      return 'Could not reach the server. Check your network and the backend URL.';
+      return 'error_no_connection';
     }
-    if (msg.contains('401')) return 'Session expired. Please log in again.';
-    if (msg.contains('403')) return 'Your account is not yet verified.';
-    return 'Something went wrong. Please try again.';
+    if (msg.contains('401')) return 'error_unauthorized';
+    if (msg.contains('403')) return 'error_forbidden';
+    return 'error_generic';
   }
 }
+
+
+

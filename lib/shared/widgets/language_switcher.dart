@@ -11,7 +11,7 @@ class LanguageSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
     final localeProvider = Provider.of<LocaleProvider>(context);
-    Locale currentLocale = localeProvider.locale;
+    var currentLocale = localeProvider.locale;
 
     return TextButton.icon(
       onPressed: () {

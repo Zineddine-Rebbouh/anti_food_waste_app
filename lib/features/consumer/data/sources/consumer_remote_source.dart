@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'package:anti_food_waste_app/core/network/api_client.dart';
 
 /// Raw HTTP calls to the consumer-related Django endpoints.
@@ -56,6 +56,20 @@ class ConsumerRemoteSource {
     });
     final r = await _dio.post('users/me/avatar/', data: formData);
     return (r.data as Map<String, dynamic>)['avatar_url'] as String;
+  }
+
+  // ── Eco Score ─────────────────────────────────────────────────────────────
+
+  /// GET /users/me/eco-score/ — current score, tier and privileges.
+  Future<Map<String, dynamic>> fetchEcoScore() async {
+    final r = await _dio.get('users/me/eco-score/');
+    return r.data as Map<String, dynamic>;
+  }
+
+  /// GET /users/me/eco-score/history/ — log of all score events.
+  Future<List<Map<String, dynamic>>> fetchEcoScoreHistory() async {
+    final r = await _dio.get('users/me/eco-score/history/');
+    return _extractResults(r.data);
   }
 
   // ── Addresses ─────────────────────────────────────────────────────────────
@@ -154,6 +168,28 @@ class ConsumerRemoteSource {
     return r.data as Map<String, dynamic>;
   }
 
+  // ── Merchants ─────────────────────────────────────────────────────────────
+
+  /// GET /merchants/{id}/ — merchant public profile.
+  Future<Map<String, dynamic>> fetchMerchantDetail(String id) async {
+    final encodedId = Uri.encodeComponent(id.trim());
+    final r = await _dio.get('merchants/$encodedId/');
+    return r.data as Map<String, dynamic>;
+  }
+
+  /// GET /merchants/{id}/listings/ — active listings for this merchant.
+  Future<List<Map<String, dynamic>>> fetchMerchantListings(String id) async {
+    final encodedId = Uri.encodeComponent(id.trim());
+    final r = await _dio.get('merchants/$encodedId/listings/');
+    return _extractResults(r.data);
+  }
+
+  /// GET /reviews/?merchant={id} — public reviews for a merchant.
+  Future<List<Map<String, dynamic>>> fetchMerchantReviews(String id) async {
+    final r = await _dio.get('reviews/', queryParameters: {'merchant': id});
+    return _extractResults(r.data);
+  }
+
   // ── Favorites ─────────────────────────────────────────────────────────────
 
   /// GET /users/me/favorites/ids/ — quick favorite listing IDs.
@@ -225,6 +261,70 @@ class ConsumerRemoteSource {
     );
     return r.data as Map<String, dynamic>;
   }
+
+  // ── Reviews ───────────────────────────────────────────────────────────────
+
+  /// POST /reviews/ — submit a review for an order
+  Future<Map<String, dynamic>> submitReview({
+    required String orderId,
+    required int rating,
+    String? comment,
+  }) async {
+    final data = <String, dynamic>{
+      'order_id': orderId,
+      'overall_rating': rating,
+    };
+    if (comment != null && comment.isNotEmpty) {
+      data['comment'] = comment;
+    }
+    
+    final r = await _dio.post('reviews/', data: data);
+    return r.data as Map<String, dynamic>;
+  }
+
+  // ── Proximity & Wilaya Helpers ─────────────────────────────────────────────
+
+  /// GET /listings/feed/ — Wilaya-scoped proximity listing feed.
+  Future<Map<String, dynamic>> fetchFeed({
+    double? lat,
+    double? lng,
+    int? wilayaCode,
+    bool expand = false,
+    int? radiusKm,
+    String? category,
+    String sort = 'distance',
+    int page = 1,
+  }) async {
+    final params = <String, dynamic>{
+      'expand': expand,
+      'sort': sort,
+      'page': page,
+    };
+    if (lat != null) params['lat'] = lat;
+    if (lng != null) params['lng'] = lng;
+    if (wilayaCode != null) params['wilaya_code'] = wilayaCode;
+    if (radiusKm != null) params['radius_km'] = radiusKm;
+    if (category != null) params['category'] = category;
+
+    final r = await _dio.get('listings/feed/', queryParameters: params);
+    return r.data as Map<String, dynamic>;
+  }
+
+  /// GET /utils/wilaya-from-coords/ — Detect wilaya from GPS.
+  Future<Map<String, dynamic>> fetchWilayaFromCoords(double lat, double lng) async {
+    final r = await _dio.get(
+      'utils/wilaya-from-coords/',
+      queryParameters: {'lat': lat, 'lng': lng},
+    );
+    return r.data as Map<String, dynamic>;
+  }
+
+  /// GET /utils/wilayas/ — List all 48 wilayas.
+  Future<List<Map<String, dynamic>>> fetchWilayas() async {
+    final r = await _dio.get('utils/wilayas/');
+    return (r.data as List).cast<Map<String, dynamic>>();
+  }
+
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 

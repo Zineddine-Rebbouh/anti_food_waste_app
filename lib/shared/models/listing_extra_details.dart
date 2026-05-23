@@ -31,22 +31,40 @@ class ListingFAQ {
 }
 
 class MerchantDetails {
+  final String id;
   final String name;
   final String? logoUrl;
+  final String? coverImageUrl;
+  final String address;
+  final double lat;
+  final double lng;
   final List<String> badges;
+  final String? phone;
+  final String? wilaya;
   final String bio;
   final int mealsSaved;
   final int fulfillmentRate;
   final String memberSince;
+  final double averageRating;
+  final int totalReviews;
 
   MerchantDetails({
+    required this.id,
     required this.name,
     this.logoUrl,
+    this.coverImageUrl,
+    required this.address,
+    this.phone,
+    this.wilaya,
+    required this.lat,
+    required this.lng,
     required this.badges,
     required this.bio,
     required this.mealsSaved,
     required this.fulfillmentRate,
     required this.memberSince,
+    required this.averageRating,
+    required this.totalReviews,
   });
 }
 
@@ -77,14 +95,23 @@ class ListingExtraDetails {
 
   /// Builds a [ListingExtraDetails] from a backend [ListingDetailSerializer] response.
   factory ListingExtraDetails.fromDetailJson(Map<String, dynamic> json) {
-    final merchantInfo = json['merchant_info'] as Map<String, dynamic>? ?? {};
+    final merchantInfo = (json['merchant_info'] as Map<String, dynamic>?) ?? 
+                         (json['merchant'] as Map<String, dynamic>?) ?? 
+                         {};
     final userHasReserved = json['user_has_reserved'] as bool? ?? false;
 
 
     String normalizeUrl(String url) {
       if (url.isEmpty) return '';
-      final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
+      
+      // Check for known broken Unsplash URLs from mock data or backend
+      if (url.contains('photo-1610832958506-aa56338406cd') || 
+          url.contains('photo-1550583724-125581f77833')) {
+        return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
+      }
 
+      final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
+      
       if (url.startsWith('http')) {
         // If it's a localhost/127.0.0.1 URL from the backend, 
         // replace it with our configured baseAppUrl to ensure it works on emulators/devices.
@@ -94,7 +121,7 @@ class ListingExtraDetails {
         }
         return url;
       }
-
+      
       final cleanUrl = url.startsWith('/') ? url : '/$url';
       return '$baseAppUrl$cleanUrl';
     }
@@ -122,7 +149,7 @@ class ListingExtraDetails {
 
     // ── Images: from photos array ─────────────────────────────────────────
     final photosRaw = json['photos'] as List<dynamic>? ?? [];
-    List<String> images = photosRaw
+    var images = photosRaw
         .map((p) => (p as Map<String, dynamic>)['photo_url'] as String? ?? '')
         .where((url) => url.isNotEmpty)
         .map(normalizeUrl)
@@ -176,21 +203,57 @@ class ListingExtraDetails {
       );
     }).toList();
     
+    final merchantLoc = merchantInfo['location'] as Map<String, dynamic>? ?? {};
+    final lat = (merchantLoc['latitude'] as num?)?.toDouble() ?? 0.0;
+    final lng = (merchantLoc['longitude'] as num?)?.toDouble() ?? 0.0;
+    final merchantAddress = merchantInfo['address']?.toString() ?? merchantInfo['wilaya']?.toString() ?? json['merchant_address']?.toString() ?? '';
+
+    String? getString(Map<String, dynamic> m, String key) {
+      final v = m[key]?.toString();
+      return (v != null && v.isNotEmpty) ? v : null;
+    }
+
+    final merchantId = getString(merchantInfo, 'id') ?? getString(json, 'merchant_id') ?? '';
+    final merchantName = getString(merchantInfo, 'business_name') ?? 
+                         getString(merchantInfo, 'name') ?? 
+                         getString(json, 'merchant_name') ?? 
+                         'Merchant';
+    final merchantLogo = normalizeUrl(getString(merchantInfo, 'logo_url') ?? 
+                                    getString(merchantInfo, 'logo') ?? 
+                                    getString(merchantInfo, 'business_logo') ?? 
+                                    getString(merchantInfo, 'avatar_url') ?? 
+                                    getString(json, 'merchant_logo_url') ?? 
+                                    '');
+    final merchantPhone = getString(merchantInfo, 'phone') ?? getString(json, 'merchant_phone') ?? '';
+    final merchantWilaya = getString(merchantInfo, 'wilaya') ?? getString(json, 'merchant_wilaya') ?? '';
+
     return ListingExtraDetails(
       id: json['id']?.toString() ?? '',
       description: description,
       images: images,
-      phone: '',
-      address: address,
+      phone: merchantPhone,
+      address: merchantAddress,
       whatYouGet: whatYouGet,
       merchant: MerchantDetails(
-        name: merchantInfo['business_name']?.toString() ?? '',
-        logoUrl: normalizeUrl(merchantInfo['logo_url']?.toString() ?? ''),
+        id: merchantId,
+        name: merchantName,
+        logoUrl: merchantLogo,
+        coverImageUrl: normalizeUrl(getString(merchantInfo, 'cover_image_url') ?? 
+                                   getString(merchantInfo, 'cover_image') ?? 
+                                   getString(merchantInfo, 'banner_url') ?? 
+                                   ''),
+        address: merchantAddress,
+        phone: merchantPhone,
+        wilaya: merchantWilaya,
+        lat: lat,
+        lng: lng,
         badges: badges,
-        bio: merchantInfo['business_type']?.toString() ?? '',
-        mealsSaved: 0,
+        bio: merchantInfo['description']?.toString() ?? merchantInfo['business_type']?.toString() ?? '',
+        mealsSaved: (merchantInfo['meals_saved'] as num? ?? merchantInfo['total_orders_fulfilled'] as num? ?? 0).toInt(),
         fulfillmentRate: (trustScore * 20).clamp(0, 100).toInt(),
         memberSince: '',
+        averageRating: (merchantInfo['average_rating'] as num? ?? 0.0).toDouble(),
+        totalReviews: (merchantInfo['total_reviews'] as num? ?? 0).toInt(),
       ),
       reviews: reviews,
       faqs: faqs,

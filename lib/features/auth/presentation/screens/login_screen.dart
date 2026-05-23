@@ -83,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
           title: Text(
             l10n.login,
             style: const TextStyle(
-              color: Color(0xFF212121), 
+              color: Color(0xFF212121),
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
@@ -120,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: Center(
                         child: Image.asset(
-                          'assets/images/logo.png',
+                          'assets/images/logo_premium.png',
                           width: 54,
                           height: 54,
                           fit: BoxFit.contain,
@@ -182,8 +182,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               : Icons.visibility_off_outlined,
                           color: AppTheme.mutedForeground,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
+                        onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
                       ),
                     ),
                     validator: (v) {
@@ -254,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Center(
                     child: GestureDetector(
                       onTap: () =>
-                          Navigator.of(context).pushNamed(AppRoutes.signUp),
+                          Navigator.of(context).pushNamed(AppRoutes.welcome),
                       child: RichText(
                         text: TextSpan(
                           style: const TextStyle(
@@ -262,7 +262,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontSize: 14,
                           ),
                           children: [
-                            TextSpan(text: l10n.dont_have_account + "  "),
+                            TextSpan(text: "${l10n.dont_have_account}  "),
                             TextSpan(
                               text: l10n.create_account,
                               style: const TextStyle(

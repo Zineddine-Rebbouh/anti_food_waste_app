@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:anti_food_waste_app/shared/widgets/notification_bell_button.dart';
 import 'package:flutter/cupertino.dart';
@@ -15,6 +15,7 @@ import 'package:anti_food_waste_app/shared/models/food_listing.dart';
 import 'package:anti_food_waste_app/features/consumer/data/repositories/consumer_repository.dart';
 import 'package:anti_food_waste_app/features/home/presentation/screens/listing_detail_screen.dart';
 import 'package:anti_food_waste_app/core/utils/error_handler.dart';
+import 'package:anti_food_waste_app/core/services/location_service.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -38,12 +39,25 @@ class _SearchScreenState extends State<SearchScreen>
 
   // Debounce timer id so rapid typing doesn't spam the API
   Timer? _debounce;
+  double? _userLat;
+  double? _userLng;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _fetchListings();
+    _initLocationAndFetch();
+  }
+
+  Future<void> _initLocationAndFetch() async {
+    final pos = await LocationService.getCurrentPosition();
+    if (mounted) {
+      setState(() {
+        _userLat = pos?.lat;
+        _userLng = pos?.lng;
+      });
+      _fetchListings();
+    }
   }
 
   @override
@@ -70,13 +84,17 @@ class _SearchScreenState extends State<SearchScreen>
         ordering: _mapOrdering(f),
         minRating: f?['minRating'] as double?,
         radius: f != null ? (f['radius'] as double) : null,
+        lat: _userLat,
+        lng: _userLng,
       );
       if (mounted) setState(() => _listings = results);
 } catch (e) {
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _hasError = true;
         _errorMessage = AppErrorHandler.getMessage(e);
       });
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -314,7 +332,8 @@ class _SearchScreenState extends State<SearchScreen>
                     ),
                   ),
                   category: _mapCategory(_activeFilters),
-                  // minRating: _activeFilters != null ? (_activeFilters!['minRating'] as double) : null,
+                  initialLat: _userLat,
+                  initialLng: _userLng,
                 ),
 
                 // List View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

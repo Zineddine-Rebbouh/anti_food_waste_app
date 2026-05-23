@@ -1,3 +1,4 @@
+import 'package:anti_food_waste_app/core/config/app_config.dart';
 enum ListingStatus { draft, active, soldOut, expired, paused }
 
 enum MerchantFoodCategory { bakery, restaurant, supermarket, cafe, other }
@@ -23,6 +24,7 @@ class MerchantListing {
   final FreshnessGrade grade;
   final int views;
   final DateTime createdAt;
+  final bool isDonation;
 
   const MerchantListing({
     required this.id,
@@ -41,6 +43,7 @@ class MerchantListing {
     required this.grade,
     required this.views,
     required this.createdAt,
+    this.isDonation = false,
   });
 
   // ── JSON deserialization ─────────────────────────────────────────────────
@@ -62,7 +65,7 @@ class MerchantListing {
     // -- photo ----------------------------------------------------------------
     // Detail serializer: photos = [{photo_url, is_primary, ...}]
     // List serializer:   primary_photo_url = "https://..."
-    String imageUrl = '';
+    var imageUrl = '';
     final photos = json['photos'];
     if (photos is List && photos.isNotEmpty) {
       final primary = photos.firstWhere(
@@ -89,7 +92,7 @@ class MerchantListing {
       id: json['id']?.toString() ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      imageUrl: imageUrl,
+      imageUrl: _normalizeUrl(imageUrl),
       category: category,
       dietaryTags: dietaryTags,
       originalPrice: double.tryParse(json['original_price'].toString()) ?? 0,
@@ -104,7 +107,26 @@ class MerchantListing {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'].toString())
           : DateTime.now(),
+      isDonation: json['is_donation'] as bool? ?? false,
     );
+  }
+
+  static String _normalizeUrl(String url) {
+    if (url.isEmpty) return '';
+    
+    // If it's already a full URL that's not localhost, keep it
+    if (url.startsWith('http') && !url.contains('://127.0.0.1') && !url.contains('://localhost')) {
+      return url;
+    }
+    
+    // Import AppConfig inside the method to avoid top-level issues if needed, 
+    // but better to just use the constant if it's available.
+    // We'll need to add the import at the top.
+    
+    final baseUrl = AppConfig.baseUrl.split('/api/').first;
+    final path = url.startsWith('http') ? Uri.parse(url).path : (url.startsWith('/') ? url : '/$url');
+    
+    return '$baseUrl$path';
   }
 
   /// Payload for POST /listings/  (create).
@@ -292,6 +314,7 @@ class MerchantListing {
     FreshnessGrade? grade,
     int? views,
     DateTime? createdAt,
+    bool? isDonation,
   }) {
     return MerchantListing(
       id: id ?? this.id,
@@ -310,6 +333,10 @@ class MerchantListing {
       grade: grade ?? this.grade,
       views: views ?? this.views,
       createdAt: createdAt ?? this.createdAt,
+      isDonation: isDonation ?? this.isDonation,
     );
   }
 }
+
+
+

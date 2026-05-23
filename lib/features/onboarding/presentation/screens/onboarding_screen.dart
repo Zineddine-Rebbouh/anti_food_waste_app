@@ -4,6 +4,7 @@ import 'package:anti_food_waste_app/core/navigation/app_router.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/features/onboarding/domain/models/onboarding_slide.dart';
 import 'package:anti_food_waste_app/features/onboarding/presentation/widgets/onboarding_slide_view.dart';
+import 'package:anti_food_waste_app/core/services/preferences_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -58,6 +59,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _navigateToWelcome() {
+    PreferencesService.setHasSeenOnboarding(true);
     Navigator.of(context).pushReplacementNamed(AppRoutes.welcome);
   }
 
@@ -157,7 +159,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                         const SizedBox(width: 8),
                         Icon(
-                          isRTL ? Icons.chevron_left : Icons.chevron_right,
+                          Localizations.localeOf(context).languageCode == 'ar'
+                              ? Icons.chevron_left
+                              : Icons.chevron_right,
+                          size: 20,
+                          color: Colors.white,
                         ),
                       ],
                     ),

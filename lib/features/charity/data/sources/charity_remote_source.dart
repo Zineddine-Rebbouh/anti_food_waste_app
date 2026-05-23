@@ -45,8 +45,28 @@ class CharityRemoteSource {
       }
       return response.data as List<dynamic>;
     } catch (e) {
-      // Fallback if endpoint doesn't exist, we'll map empty list for now
       return [];
     }
   }
+
+  /// PATCH /api/v1/donations/requests/{id}/
+  Future<Map<String, dynamic>> updateRequestStatus(String id, String status) async {
+    final response = await _dio.patch(
+      'donations/requests/$id/',
+      data: {'status': status},
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// POST /api/v1/donations/{id}/impact-report/
+  Future<Map<String, dynamic>> submitImpactReport(String donationId, Map<String, dynamic> data) async {
+    final response = await _dio.post(
+      'donations/$donationId/impact-report/',
+      data: data,
+    );
+    return response.data as Map<String, dynamic>;
+  }
 }
+
+
+

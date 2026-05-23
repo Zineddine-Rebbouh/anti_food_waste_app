@@ -21,6 +21,8 @@ class AppUser {
   final double co2Reduced;
   final double moneySaved;
   final double ecoScore;
+  final String ecoTier;
+  final DateTime? ecoScoreUpdatedAt;
 
   const AppUser({
     required this.id,
@@ -35,6 +37,8 @@ class AppUser {
     required this.co2Reduced,
     required this.moneySaved,
     required this.ecoScore,
+    required this.ecoTier,
+    this.ecoScoreUpdatedAt,
   });
 
   /// Returns a copy of this [AppUser] with the given fields replaced.
@@ -51,6 +55,8 @@ class AppUser {
     double? co2Reduced,
     double? moneySaved,
     double? ecoScore,
+    String? ecoTier,
+    DateTime? ecoScoreUpdatedAt,
   }) {
     return AppUser(
       id: id ?? this.id,
@@ -65,6 +71,8 @@ class AppUser {
       co2Reduced: co2Reduced ?? this.co2Reduced,
       moneySaved: moneySaved ?? this.moneySaved,
       ecoScore: ecoScore ?? this.ecoScore,
+      ecoTier: ecoTier ?? this.ecoTier,
+      ecoScoreUpdatedAt: ecoScoreUpdatedAt ?? this.ecoScoreUpdatedAt,
     );
   }
 
@@ -82,6 +90,7 @@ class AppUser {
     co2Reduced: 14.4,
     moneySaved: 4800.0,
     ecoScore: 78.0,
+    ecoTier: 'reliable',
   );
 
   /// Builds an [AppUser] from a backend [UserDetailSerializer] JSON response.
@@ -106,7 +115,7 @@ class AppUser {
     }
 
     // Formatted join date from ISO-8601 date_joined
-    String joinDate = '';
+    var joinDate = '';
     final dateJoinedStr = json['date_joined'] as String?;
     if (dateJoinedStr != null) {
       try {
@@ -119,15 +128,15 @@ class AppUser {
       } catch (_) {}
     }
 
-    // Eco level from eco_score
+    // Eco level from backend or fallback calculation
     final ecoScore = _toDoubleUser(profile['eco_score']);
-    final String level;
-    if (ecoScore >= 80) {
-      level = 'Gold';
-    } else if (ecoScore >= 40) {
-      level = 'Silver';
-    } else {
-      level = 'Bronze';
+    final level = (profile['eco_tier'] as String? ?? '').toLowerCase();
+    
+    DateTime? scoreUpdatedAt;
+    if (profile['eco_score_updated_at'] != null) {
+      try {
+        scoreUpdatedAt = DateTime.parse(profile['eco_score_updated_at']);
+      } catch (_) {}
     }
 
     // ~0.5 kg food saved per order; ~2.5 kg CO2 per kg food
@@ -160,6 +169,8 @@ class AppUser {
       co2Reduced: foodSavedKg * 2.5,
       moneySaved: 0,
       ecoScore: ecoScore,
+      ecoTier: level,
+      ecoScoreUpdatedAt: scoreUpdatedAt,
     );
   }
 

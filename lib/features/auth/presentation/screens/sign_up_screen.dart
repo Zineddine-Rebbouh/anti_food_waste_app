@@ -315,7 +315,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           text: TextSpan(
             style: const TextStyle(color: Color(0xFF757575), fontSize: 14),
             children: [
-              TextSpan(text: l10n.already_have_account + " "),
+              TextSpan(text: "${l10n.already_have_account} "),
               TextSpan(
                 text: l10n.login,
                 style: const TextStyle(

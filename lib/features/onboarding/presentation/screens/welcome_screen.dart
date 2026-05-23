@@ -44,161 +44,179 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ],
               ),
             ),
-            
+
             SafeArea(
-              child: Column(
-                children: [
-                  // Language Switcher
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16, right: 16),
-                    child: Align(
-                      alignment: AlignmentDirectional.topEnd,
-                      child: LanguageSwitcher(),
-                    ),
-                  ),
-
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Header
-                          Text(
-                            l10n.welcome,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF212121),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            l10n.welcomeSubtitle,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF757575),
-                              height: 1.5,
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 48),
-                          
-                          // Logo Illustration
-                          Container(
-                            width: 140,
-                            height: 140,
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                width: 90,
-                                height: 90,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-                        ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                    ),
-                  ),
-
-                  // Auth Buttons
-                  Padding(
-                    padding: const EdgeInsets.all(32.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SocialAuthButton(
-                          type: SocialAuthType.google,
-                          text: l10n.continueWithGoogle,
-                          onPressed: () {
-                            // Link social auth logic if needed
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        SocialAuthButton(
-                          type: SocialAuthType.facebook,
-                          text: l10n.continueWithFacebook,
-                          onPressed: () {
-                            // Link social auth logic if needed
-                          },
-                        ),
-                        
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Row(
-                            children: [
-                              const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: Text(
-                                  l10n.orText,
-                                  style: const TextStyle(
-                                    color: Color(0xFF9E9E9E),
-                                    fontSize: 14,
-                                  ),
-                                ),
+                      child: IntrinsicHeight(
+                        child: Column(
+                          children: [
+                            // Language Switcher
+                            const Padding(
+                              padding: EdgeInsets.only(top: 16, right: 16),
+                              child: Align(
+                                alignment: AlignmentDirectional.topEnd,
+                                child: LanguageSwitcher(),
                               ),
-                              const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
-                            ],
-                          ),
-                        ),
-                        
-                        SocialAuthButton(
-                          type: SocialAuthType.email,
-                          text: l10n.continueWithEmail,
-                          onPressed: () {
-                            Navigator.of(context).pushNamed(AppRoutes.signUp);
-                          },
-                        ),
-                        
-                        const SizedBox(height: 24),
-                        
-                        Text(
-                          l10n.termsText,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF9E9E9E),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 24),
-                        
-                        // Already have an account? Log in
-                        Center(
-                          child: GestureDetector(
-                            onTap: () => Navigator.of(context).pushNamed(AppRoutes.login),
-                            child: RichText(
-                              text: TextSpan(
-                                style: const TextStyle(
-                                  color: Color(0xFF757575),
-                                  fontSize: 14,
-                                ),
+                            ),
+
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                              child: Column(
                                 children: [
-                                  TextSpan(text: l10n.already_have_account + " "),
-                                  TextSpan(
-                                    text: l10n.login,
+                                  const SizedBox(height: 20),
+                                  // Header
+                                  Text(
+                                    l10n.welcome,
+                                    textAlign: TextAlign.center,
                                     style: const TextStyle(
-                                      color: AppTheme.primary,
+                                      fontSize: 32,
                                       fontWeight: FontWeight.bold,
+                                      color: Color(0xFF212121),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    l10n.welcomeSubtitle,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Color(0xFF757575),
+                                      height: 1.4,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 32),
+
+                                  // Logo Illustration
+                                  Container(
+                                    width: 120,
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primary.withOpacity(0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Center(
+                                      child: Image.asset(
+                                        'assets/images/logo_premium.png',
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.contain,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
+
+                            const Spacer(),
+
+                            // Auth Buttons
+                            Padding(
+                              padding: const EdgeInsets.all(32.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  SocialAuthButton(
+                                    type: SocialAuthType.google,
+                                    text: l10n.continueWithGoogle,
+                                    onPressed: () {
+                                      // Link social auth logic if needed
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+                                  SocialAuthButton(
+                                    type: SocialAuthType.facebook,
+                                    text: l10n.continueWithFacebook,
+                                    onPressed: () {
+                                      // Link social auth logic if needed
+                                    },
+                                  ),
+
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    child: Row(
+                                      children: [
+                                        const Expanded(
+                                            child: Divider(color: Color(0xFFE0E0E0))),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16),
+                                          child: Text(
+                                            l10n.orText,
+                                            style: const TextStyle(
+                                              color: Color(0xFF9E9E9E),
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                        const Expanded(
+                                            child: Divider(color: Color(0xFFE0E0E0))),
+                                      ],
+                                    ),
+                                  ),
+
+                                  SocialAuthButton(
+                                    type: SocialAuthType.email,
+                                    text: l10n.continueWithEmail,
+                                    onPressed: () {
+                                      Navigator.of(context).pushNamed(AppRoutes.signUp);
+                                    },
+                                  ),
+
+                                  const SizedBox(height: 32),
+
+                                  // Already have an account? Log in
+                                  Center(
+                                    child: GestureDetector(
+                                      onTap: () => Navigator.of(context).pushNamed(AppRoutes.login),
+                                      child: RichText(
+                                        text: TextSpan(
+                                          style: const TextStyle(
+                                            color: Color(0xFF757575),
+                                            fontSize: 15,
+                                          ),
+                                          children: [
+                                            TextSpan(text: "${l10n.already_have_account} "),
+                                            TextSpan(
+                                              text: l10n.login,
+                                              style: const TextStyle(
+                                                color: AppTheme.primary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 24),
+
+                                  Text(
+                                    l10n.termsText,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF9E9E9E),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ],

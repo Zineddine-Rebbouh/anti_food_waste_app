@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:animate_do/animate_do.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/core/providers/locale_provider.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/about_screen.dart';
@@ -23,314 +24,228 @@ class _SettingsPageState extends State<SettingsPage> {
       _vibration = true;
   bool _shareLocation = false, _analytics = true, _darkMode = false;
 
+  static const Color forestGreen = AppTheme.primary;
+  static const Color accentBeige = Colors.white;
+  static const Color textNavy = Color(0xFF1A1A2E);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final localeProvider = Provider.of<LocaleProvider>(context);
-    final String currentLocale = localeProvider.locale.languageCode;
+    final currentLocale = localeProvider.locale.languageCode;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: CustomScrollView(
-        slivers: [
-          // ─── Sliver App Bar ────────────────────────────────────────────
-          SliverAppBar(
-            pinned: true,
-            floating: true,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
-            foregroundColor: AppTheme.foreground,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              l10n.settings,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppTheme.foreground,
-              ),
-            ),
-          ),
-          // ─── Settings Sections ─────────────────────────────────────────
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // ── Section 1: Notifications ──────────────────────────────
-                _SettingsSection(
-                  icon: Icons.notifications_outlined,
-                  title: l10n.notifications,
-                  children: [
-                    _SettingToggle(
-                      label: l10n.new_deal,
-                      subtitle: 'Get notified about deals near you',
-                      value: _newDeals,
-                      onChanged: (v) => setState(() => _newDeals = v),
-                    ),
-                    _SettingToggle(
-                      label: l10n.pickup_reminder,
-                      subtitle: 'Remind me before my pickup time',
-                      value: _reminders,
-                      onChanged: (v) => setState(() => _reminders = v),
-                    ),
-                    _SettingToggle(
-                      label: 'Promotional offers',
-                      subtitle: 'Receive special promotions and discounts',
-                      value: _promotions,
-                      onChanged: (v) => setState(() => _promotions = v),
-                    ),
-                    _SettingToggle(
-                      label: 'Sound',
-                      subtitle: 'Play sounds for notifications',
-                      value: _sounds,
-                      onChanged: (v) => setState(() => _sounds = v),
-                    ),
-                    _SettingToggle(
-                      label: 'Vibration',
-                      subtitle: 'Vibrate on incoming notifications',
-                      value: _vibration,
-                      onChanged: (v) => setState(() => _vibration = v),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // ── Section 2: Language ────────────────────────────────────
-                _SettingsSection(
-                  icon: Icons.language_outlined,
-                  title: l10n.language,
-                  addDividers: false,
-                  children: [
-                    _LanguageTile(
-                      flag: '🇬🇧',
-                      label: 'English',
-                      langCode: 'en',
-                      currentCode: currentLocale,
-                      onTap: () => localeProvider.setLocale(const Locale('en')),
-                    ),
-                    const SizedBox(height: 8),
-                    _LanguageTile(
-                      flag: '🇩🇿',
-                      label: 'العربية',
-                      langCode: 'ar',
-                      currentCode: currentLocale,
-                      onTap: () => localeProvider.setLocale(const Locale('ar')),
-                    ),
-                    const SizedBox(height: 8),
-                    _LanguageTile(
-                      flag: '🇫🇷',
-                      label: 'Français',
-                      langCode: 'fr',
-                      currentCode: currentLocale,
-                      onTap: () => localeProvider.setLocale(const Locale('fr')),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // ── Section 3: Privacy ─────────────────────────────────────
-                _SettingsSection(
-                  icon: Icons.shield_outlined,
-                  title: l10n.privacy_security,
-                  children: [
-                    _SettingToggle(
-                      label: 'Share location',
-                      subtitle:
-                          'Share your location to improve nearby recommendations',
-                      value: _shareLocation,
-                      onChanged: (v) => setState(() => _shareLocation = v),
-                    ),
-                    _SettingToggle(
-                      label: 'Usage analytics',
-                      subtitle: 'Help us improve the app with anonymous data',
-                      value: _analytics,
-                      onChanged: (v) => setState(() => _analytics = v),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // ── Section 4: Display ─────────────────────────────────────
-                _SettingsSection(
-                  icon: Icons.palette_outlined,
-                  title: 'Display',
-                  addDividers: false,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.dark_mode,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF1A1A2E),
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.shade50,
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: Colors.orange.shade200,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Coming soon',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.orange.shade700,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          CupertinoSwitch(
-                            value: _darkMode,
-                            onChanged: null,
-                            activeColor: AppTheme.primary,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // ── Section 5: About / Information ─────────────────────────
-                _SettingsSection(
-                  icon: Icons.info_outline_rounded,
-                  title: l10n.information_section,
-                  children: [
-                    _SettingNav(
-                      label: l10n.about_app,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AboutScreen(),
+      backgroundColor: accentBeige,
+      body: Column(
+        children: [
+          _buildHeader(context, l10n),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 400),
+                    child: _SettingsSection(
+                      icon: CupertinoIcons.bell,
+                      title: l10n.notifications,
+                      children: [
+                        _SettingToggle(
+                          label: l10n.new_deal,
+                          subtitle: 'Get notified about deals near you',
+                          value: _newDeals,
+                          onChanged: (v) => setState(() => _newDeals = v),
                         ),
-                      ),
-                    ),
-                    _SettingNav(
-                      label: l10n.privacy_policy,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const PrivacyPolicyScreen(),
+                        _SettingToggle(
+                          label: l10n.pickup_reminder,
+                          subtitle: 'Remind me before my pickup time',
+                          value: _reminders,
+                          onChanged: (v) => setState(() => _reminders = v),
                         ),
-                      ),
-                    ),
-                    _SettingNav(
-                      label: l10n.terms_service,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const TermsScreen(),
+                        _SettingToggle(
+                          label: 'Promotional offers',
+                          subtitle: 'Receive special promotions and discounts',
+                          value: _promotions,
+                          onChanged: (v) => setState(() => _promotions = v),
                         ),
-                      ),
+                      ],
                     ),
-                    // App Version — no navigation, no chevron
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              l10n.app_version_label,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF1A1A2E),
-                              ),
-                            ),
-                          ),
-                          Text(
-                            '1.0.0',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // ── Danger Zone: Account ───────────────────────────────────
-                _SettingsSection(
-                  icon: Icons.manage_accounts_outlined,
-                  iconColor: Colors.red.shade700,
-                  iconBgColor: Colors.red.shade50,
-                  title: 'Account',
-                  titleColor: Colors.red.shade700,
-                  children: [
-                    _SettingNav(
-                      label: l10n.delete_account,
-                      labelColor: Colors.red.shade700,
-                      leadingIcon: Icons.delete_outline_rounded,
-                      leadingIconColor: Colors.red.shade700,
-                      onTap: () => _showDeleteDialog(context, l10n),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 32),
-
-                // Footer version watermark
-                Center(
-                  child: Column(
-                    children: [
-                      Text(
-                        'SaveFood DZ',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade400,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'v1.0.0',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade400,
-                        ),
-                      ),
-                    ],
                   ),
-                ),
-
-                const SizedBox(height: 40),
-              ]),
+                  const SizedBox(height: 24),
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 400),
+                    delay: const Duration(milliseconds: 100),
+                    child: _SettingsSection(
+                      icon: CupertinoIcons.globe,
+                      title: l10n.language,
+                      addDividers: false,
+                      children: [
+                        _LanguageTile(
+                          flag: '🇬🇧',
+                          label: 'English',
+                          langCode: 'en',
+                          currentCode: currentLocale,
+                          onTap: () => localeProvider.setLocale(const Locale('en')),
+                        ),
+                        const SizedBox(height: 12),
+                        _LanguageTile(
+                          flag: '🇩🇿',
+                          label: 'العربية',
+                          langCode: 'ar',
+                          currentCode: currentLocale,
+                          onTap: () => localeProvider.setLocale(const Locale('ar')),
+                        ),
+                        const SizedBox(height: 12),
+                        _LanguageTile(
+                          flag: '🇫🇷',
+                          label: 'Français',
+                          langCode: 'fr',
+                          currentCode: currentLocale,
+                          onTap: () => localeProvider.setLocale(const Locale('fr')),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 400),
+                    delay: const Duration(milliseconds: 200),
+                    child: _SettingsSection(
+                      icon: CupertinoIcons.shield,
+                      title: l10n.privacy_security,
+                      children: [
+                        _SettingToggle(
+                          label: 'Share location',
+                          subtitle: 'Share your location to improve nearby recommendations',
+                          value: _shareLocation,
+                          onChanged: (v) => setState(() => _shareLocation = v),
+                        ),
+                        _SettingToggle(
+                          label: 'Usage analytics',
+                          subtitle: 'Help us improve the app with anonymous data',
+                          value: _analytics,
+                          onChanged: (v) => setState(() => _analytics = v),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 400),
+                    delay: const Duration(milliseconds: 300),
+                    child: _SettingsSection(
+                      icon: CupertinoIcons.info,
+                      title: l10n.information_section,
+                      children: [
+                        _SettingNav(
+                          label: l10n.about_app,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
+                        ),
+                        _SettingNav(
+                          label: l10n.privacy_policy,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen())),
+                        ),
+                        _SettingNav(
+                          label: l10n.terms_service,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen())),
+                        ),
+                        _buildVersionRow(l10n),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 400),
+                    delay: const Duration(milliseconds: 400),
+                    child: _SettingsSection(
+                      icon: CupertinoIcons.trash,
+                      iconColor: const Color(0xFFEF4444),
+                      iconBgColor: const Color(0xFFEF4444).withOpacity(0.08),
+                      title: 'Account',
+                      titleColor: const Color(0xFFEF4444),
+                      children: [
+                        _SettingNav(
+                          label: l10n.delete_account,
+                          labelColor: const Color(0xFFEF4444),
+                          onTap: () => _showDeleteDialog(context, l10n),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                  _buildFooter(),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: forestGreen,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 16, 24, 32),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n.settings,
+                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVersionRow(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              l10n.app_version_label,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textNavy),
+            ),
+          ),
+          Text('1.0.0', style: TextStyle(fontSize: 14, color: Colors.grey[400], fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Column(
+      children: [
+        Text(
+          'SaveFood DZ'.toUpperCase(),
+          style: TextStyle(fontSize: 10, color: forestGreen.withOpacity(0.3), fontWeight: FontWeight.w900, letterSpacing: 2),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'v1.0.0',
+          style: TextStyle(fontSize: 11, color: Colors.grey[400], fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 
@@ -338,59 +253,31 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: Text(
+          l10n.delete_account,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFFEF4444)),
         ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: Colors.red.shade700,
-              size: 24,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                l10n.delete_account,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red.shade700,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: const Text(
-          'Are you sure you want to permanently delete your account? '
-          'All your data, orders, and favorites will be removed forever. '
-          'This action cannot be undone.',
-          style: TextStyle(fontSize: 14, height: 1.5),
+        content: Text(
+          'Are you sure you want to permanently delete your account? This action cannot be undone.',
+          style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5, fontWeight: FontWeight.w500),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              l10n.cancel,
-              style: const TextStyle(color: Color(0xFF6B7280)),
-            ),
+            child: Text(l10n.cancel, style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w700)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
+              backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,
-              minimumSize: Size.zero,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
               elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text(
-              'Delete',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w900)),
           ),
         ],
       ),
@@ -398,12 +285,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Private Helper Widgets
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// A card-style section container with an icon+title header and a list
-/// of children, with optional dividers inserted between them.
 class _SettingsSection extends StatelessWidget {
   final IconData icon;
   final Color? iconColor;
@@ -411,8 +292,6 @@ class _SettingsSection extends StatelessWidget {
   final String title;
   final Color? titleColor;
   final List<Widget> children;
-
-  /// When true (default), thin grey dividers are inserted between children.
   final bool addDividers;
 
   const _SettingsSection({
@@ -427,59 +306,48 @@ class _SettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color effectiveIconColor = iconColor ?? AppTheme.primary;
-    final Color effectiveIconBg =
-        iconBgColor ?? const Color(0xFF2D8659).withOpacity(0.08);
+    const forestGreen = AppTheme.primary;
+    const textNavy = Color(0xFF1A1A2E);
 
-    // Build children list with optional dividers between items.
-    final List<Widget> dividedChildren = [];
-    for (int i = 0; i < children.length; i++) {
+    final dividedChildren = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
       dividedChildren.add(children[i]);
       if (addDividers && i < children.length - 1) {
-        dividedChildren.add(
-          Divider(
-            height: 1,
-            thickness: 0.8,
-            color: Colors.grey.shade100,
-          ),
-        );
+        dividedChildren.add(Divider(height: 1, thickness: 1, color: Colors.grey[50]));
       }
     }
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100, width: 1.2),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(color: forestGreen.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8)),
+        ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section header row: icon + title
           Row(
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: effectiveIconBg,
-                  shape: BoxShape.circle,
+                  color: iconBgColor ?? forestGreen.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(icon, color: effectiveIconColor, size: 20),
+                child: Icon(icon, color: iconColor ?? forestGreen, size: 20),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: titleColor ?? const Color(0xFF1A1A2E),
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: titleColor ?? textNavy),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           ...dividedChildren,
         ],
       ),
@@ -487,58 +355,39 @@ class _SettingsSection extends StatelessWidget {
   }
 }
 
-/// A row with a label, optional subtitle, and a green Switch toggle.
 class _SettingToggle extends StatelessWidget {
   final String label;
   final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const _SettingToggle({
-    required this.label,
-    this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
+  const _SettingToggle({required this.label, this.subtitle, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
+    const forestGreen = AppTheme.primary;
+    const textNavy = Color(0xFF1A1A2E);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF1A1A2E),
-                  ),
-                ),
+                Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textNavy)),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade500,
-                      height: 1.3,
-                    ),
-                  ),
+                  const SizedBox(height: 4),
+                  Text(subtitle!, style: TextStyle(fontSize: 12, color: Colors.grey[500], fontWeight: FontWeight.w500)),
                 ],
               ],
             ),
           ),
-          Switch(
+          CupertinoSwitch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppTheme.primary,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            activeColor: forestGreen,
           ),
         ],
       ),
@@ -546,55 +395,29 @@ class _SettingToggle extends StatelessWidget {
   }
 }
 
-/// A tappable navigation row with an optional leading icon and a trailing
-/// chevron. Used for items that push a new screen.
 class _SettingNav extends StatelessWidget {
   final String label;
   final Color? labelColor;
-  final IconData? leadingIcon;
-  final Color? leadingIconColor;
   final VoidCallback onTap;
 
-  const _SettingNav({
-    required this.label,
-    this.labelColor,
-    this.leadingIcon,
-    this.leadingIconColor,
-    required this.onTap,
-  });
+  const _SettingNav({required this.label, this.labelColor, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    const textNavy = Color(0xFF1A1A2E);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 13),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(
           children: [
-            if (leadingIcon != null) ...[
-              Icon(
-                leadingIcon,
-                color: leadingIconColor ?? const Color(0xFF1A1A2E),
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-            ],
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: labelColor ?? const Color(0xFF1A1A2E),
-                ),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: labelColor ?? textNavy),
               ),
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: labelColor?.withOpacity(0.55) ?? Colors.grey.shade400,
-              size: 20,
-            ),
+            Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey[300], size: 14),
           ],
         ),
       ),
@@ -602,7 +425,6 @@ class _SettingNav extends StatelessWidget {
   }
 }
 
-/// An animated language selection tile with a radio button indicator.
 class _LanguageTile extends StatelessWidget {
   final String flag;
   final String label;
@@ -610,63 +432,35 @@ class _LanguageTile extends StatelessWidget {
   final String currentCode;
   final VoidCallback onTap;
 
-  const _LanguageTile({
-    required this.flag,
-    required this.label,
-    required this.langCode,
-    required this.currentCode,
-    required this.onTap,
-  });
+  const _LanguageTile({required this.flag, required this.label, required this.langCode, required this.currentCode, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final bool isSelected = langCode == currentCode;
+    final isSelected = langCode == currentCode;
+    const forestGreen = AppTheme.primary;
+    const textNavy = Color(0xFF1A1A2E);
 
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppTheme.primary : Colors.grey.shade200,
-            width: isSelected ? 1.8 : 1,
-          ),
-          color: isSelected
-              ? AppTheme.primary.withOpacity(0.04)
-              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          color: isSelected ? forestGreen.withOpacity(0.04) : Colors.white,
+          border: Border.all(color: isSelected ? forestGreen.withOpacity(0.1) : Colors.grey[100]!, width: 1.5),
         ),
         child: Row(
           children: [
-            Radio<String>(
-              value: langCode,
-              groupValue: currentCode,
-              onChanged: (_) => onTap(),
-              activeColor: AppTheme.primary,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-            ),
-            const SizedBox(width: 8),
-            Text(flag, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 10),
+            Text(flag, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 14),
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color:
-                      isSelected ? AppTheme.primary : const Color(0xFF1A1A2E),
-                ),
+                style: TextStyle(fontSize: 15, fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700, color: isSelected ? forestGreen : textNavy),
               ),
             ),
-            if (isSelected)
-              const Icon(
-                Icons.check_circle_rounded,
-                color: AppTheme.primary,
-                size: 18,
-              ),
+            if (isSelected) const Icon(CupertinoIcons.checkmark_alt_circle_fill, color: forestGreen, size: 22),
           ],
         ),
       ),

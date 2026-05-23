@@ -1,5 +1,6 @@
 /// Request / response models for the auth API.
 /// No code-generation required — plain Dart classes.
+library;
 
 class LoginRequest {
   final String email;

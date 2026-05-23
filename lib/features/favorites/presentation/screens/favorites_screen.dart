@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +7,7 @@ import 'package:anti_food_waste_app/core/providers/favorites_provider.dart';
 import 'package:anti_food_waste_app/shared/models/food_listing.dart';
 import 'package:anti_food_waste_app/shared/widgets/listing_card.dart';
 import 'package:anti_food_waste_app/features/home/presentation/screens/listing_detail_screen.dart';
+import 'package:anti_food_waste_app/shared/widgets/tawfir_loading_indicator.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -64,7 +66,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final favoritesProvider = context.watch<FavoritesProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           l10n.favorites,
@@ -81,7 +83,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         future: _favoritesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: TawfirLoadingIndicator(message: 'Loading favorites...'));
           }
 
           if (snapshot.hasError) {
@@ -102,9 +104,61 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           final favorites = snapshot.data ?? const <FoodListing>[];
           if (favorites.isEmpty) {
             return Center(
-              child: const Text(
-                'No favorites yet.',
-                style: TextStyle(color: Colors.grey),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.favorite_border_rounded,
+                          size: 64,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        l10n.no_favorites_yet,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black87,
+                          letterSpacing: -0.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        l10n.favorites_description,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.grey[600],
+                          height: 1.4,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             );
           }

@@ -1,7 +1,7 @@
 /// Centralised configuration for the app environment.
 ///
 /// Override values at build time with `--dart-define`:
-///   flutter run --dart-define=BASE_URL=http://10.0.2.2:8000/api/v1/
+///   flutter run --dart-define=BASE_URL=http://10.0.2.2:8080/api/v1/
 ///   flutter run --dart-define=BASE_URL=https://api.savefood.dz/api/v1/
 ///   flutter run --dart-define=ENV=prod
 class AppConfig {
@@ -20,6 +20,6 @@ class AppConfig {
   /// • Production:                      set ENV=prod and BASE_URL accordingly.
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://192.168.1.10:8080/api/v1/',
+    defaultValue: 'http://192.168.1.13:8000/api/v1/',
   );
 }

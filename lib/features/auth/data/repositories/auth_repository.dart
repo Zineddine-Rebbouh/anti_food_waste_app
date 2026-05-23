@@ -122,9 +122,9 @@ String dioErrorMessage(DioException e) {
       final error = data['error'];
       if (error is Map) {
         final details = error['details'];
-        if (details is Map && (details as Map).isNotEmpty) {
+        if (details is Map && (details).isNotEmpty) {
           final msgs = details.values.map((v) {
-            if (v is List) return (v as List).join(' ');
+            if (v is List) return (v).join(' ');
             return v.toString();
           });
           return msgs.join(' ');
@@ -134,7 +134,7 @@ String dioErrorMessage(DioException e) {
       }
       // DRF field-level errors: {"field": ["error"]}
       final values = data.values.map((v) {
-        if (v is List) return (v as List).join(' ');
+        if (v is List) return (v).join(' ');
         return v.toString();
       });
       return values.join(' ');

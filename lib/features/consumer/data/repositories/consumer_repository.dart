@@ -1,6 +1,7 @@
-﻿import 'package:anti_food_waste_app/features/consumer/data/sources/consumer_remote_source.dart';
+import 'package:anti_food_waste_app/features/consumer/data/sources/consumer_remote_source.dart';
 import 'package:anti_food_waste_app/features/consumer/domain/models/consumer_order.dart';
 import 'package:anti_food_waste_app/features/profile/domain/models/app_user.dart';
+import 'package:anti_food_waste_app/features/profile/domain/models/eco_score_event.dart';
 import 'package:anti_food_waste_app/features/profile/domain/models/user_address.dart';
 import 'package:anti_food_waste_app/shared/models/food_listing.dart';
 import 'package:anti_food_waste_app/shared/models/listing_extra_details.dart';
@@ -54,6 +55,17 @@ class ConsumerRepository {
   /// Uploads an avatar image file and returns the public URL.
   Future<String> uploadAvatar(String filePath) async {
     return _source.uploadAvatar(filePath);
+  }
+
+  // ── Eco Score ─────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> fetchEcoScore() {
+    return _source.fetchEcoScore();
+  }
+
+  Future<List<EcoScoreEvent>> fetchEcoScoreHistory() async {
+    final raw = await _source.fetchEcoScoreHistory();
+    return raw.map(EcoScoreEvent.fromJson).toList();
   }
 
   // ── Listings ──────────────────────────────────────────────────────────────
@@ -112,6 +124,32 @@ class ConsumerRepository {
     return ListingExtraDetails.fromDetailJson(json);
   }
 
+  // ── Merchants ─────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> fetchMerchantDetail(String id) async {
+    return _source.fetchMerchantDetail(id);
+  }
+
+  Future<List<FoodListing>> fetchMerchantListings(String id) async {
+    final raw = await _source.fetchMerchantListings(id);
+    return raw.map(FoodListing.fromJson).toList();
+  }
+
+  Future<List<ListingReview>> fetchMerchantReviews(String id) async {
+    final raw = await _source.fetchMerchantReviews(id);
+    return raw.map((r) {
+      return ListingReview(
+        id: r['id']?.toString() ?? '',
+        userName: r['consumer_name']?.toString() ?? 'Anonymous',
+        rating: (r['overall_rating'] as num?)?.toDouble() ?? 5.0,
+        date: r['created_at']?.toString() ?? '',
+        comment: r['comment']?.toString() ?? '',
+        helpfulCount: 0,
+        merchantReply: r['merchant_reply']?.toString(),
+      );
+    }).toList();
+  }
+
   // ── Favorites ─────────────────────────────────────────────────────────────
 
   Future<List<String>> fetchFavoriteIds() {
@@ -164,6 +202,20 @@ class ConsumerRepository {
     return ConsumerOrder.fromJson(json);
   }
 
+  // ── Reviews ───────────────────────────────────────────────────────────────
+
+  Future<void> submitReview({
+    required String orderId,
+    required int rating,
+    String? comment,
+  }) async {
+    await _source.submitReview(
+      orderId: orderId,
+      rating: rating,
+      comment: comment,
+    );
+  }
+
   // ── Addresses ─────────────────────────────────────────────────────────────
 
   Future<List<UserAddress>> fetchAddresses() async {
@@ -200,6 +252,47 @@ class ConsumerRepository {
 
   Future<void> deleteAddress(String id) async {
     await _source.deleteAddress(id);
+  }
+
+  // ── Proximity & Feed ──────────────────────────────────────────────────────
+
+  /// Fetches the intelligent proximity-aware feed.
+  Future<Map<String, dynamic>> fetchFeed({
+    double? lat,
+    double? lng,
+    int? wilayaCode,
+    bool expand = false,
+    int? radiusKm,
+    String? category,
+    String sort = 'distance',
+    int page = 1,
+  }) async {
+    final raw = await _source.fetchFeed(
+      lat: lat,
+      lng: lng,
+      wilayaCode: wilayaCode,
+      expand: expand,
+      radiusKm: radiusKm,
+      category: category,
+      sort: sort,
+      page: page,
+    );
+
+    final List<dynamic> listingsJson = raw['results'] ?? [];
+    final meta = raw['meta'] as Map<String, dynamic>? ?? {};
+
+    return {
+      'listings': listingsJson.map((j) => FoodListing.fromJson(j)).toList(),
+      'meta': meta,
+    };
+  }
+
+  Future<Map<String, dynamic>> fetchWilayaFromCoords(double lat, double lng) {
+    return _source.fetchWilayaFromCoords(lat, lng);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchWilayas() {
+    return _source.fetchWilayas();
   }
 }
 

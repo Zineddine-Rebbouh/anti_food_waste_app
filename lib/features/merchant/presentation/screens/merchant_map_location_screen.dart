@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:anti_food_waste_app/core/services/location_service.dart';
 import 'package:anti_food_waste_app/features/merchant/data/sources/merchant_remote_source.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 /// Result returned when the merchant confirms a location on the map.
 class MapLocationResult {
@@ -59,7 +61,7 @@ class _MerchantMapLocationScreenState extends State<MerchantMapLocationScreen> {
   bool _loadingAddress = false;
   Timer? _reverseGeocodeDebounce;
 
-  static const _green = Color(0xFF2D8659);
+  static const _green = AppTheme.primary;
 
   @override
   void initState() {
@@ -142,7 +144,7 @@ class _MerchantMapLocationScreenState extends State<MerchantMapLocationScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to save location: $e'),
+          content: Text(AppLocalizations.of(context)!.failed_save_location('$e')),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -163,9 +165,9 @@ class _MerchantMapLocationScreenState extends State<MerchantMapLocationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Set Business Location',
-          style: TextStyle(color: Colors.white, fontSize: 18),
+        title: Text(
+          AppLocalizations.of(context)!.set_location_title,
+          style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
         backgroundColor: _green,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -197,7 +199,7 @@ class _MerchantMapLocationScreenState extends State<MerchantMapLocationScreen> {
           ),
 
           // Fixed pin overlay (pin stays centered while the map moves).
-          Positioned.fill(
+          const Positioned.fill(
             child: IgnorePointer(
               child: Center(
                 child: Icon(
@@ -218,7 +220,11 @@ class _MerchantMapLocationScreenState extends State<MerchantMapLocationScreen> {
               onTap: () async {
                 final result = await showSearch<MapLocationResult?>(
                   context: context,
-                  delegate: _AddressSearchDelegate(),
+                  delegate: _AddressSearchDelegate(
+                    searchLabel: AppLocalizations.of(context)!.search_algeria_hint,
+                    typeAddressDesc: AppLocalizations.of(context)!.type_address_desc,
+                    noResultsMsg: AppLocalizations.of(context)!.no_results_found_map,
+                  ),
                 );
                 if (result != null && mounted) {
                   final pos = LatLng(result.latitude, result.longitude);
@@ -246,11 +252,11 @@ class _MerchantMapLocationScreenState extends State<MerchantMapLocationScreen> {
                   children: [
                     const Icon(Icons.search, color: _green, size: 20),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Search address...',
+                        AppLocalizations.of(context)!.search_address_hint,
                         style:
-                            TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+                            const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                       ),
                     ),
                   ],
@@ -278,9 +284,9 @@ class _MerchantMapLocationScreenState extends State<MerchantMapLocationScreen> {
                         ),
                       )
                     : const Icon(Icons.check, color: Colors.white),
-                label: const Text(
-                  'Confirm Location',
-                  style: TextStyle(
+                label: Text(
+                  AppLocalizations.of(context)!.confirm_location_action,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -356,11 +362,21 @@ class _MerchantMapLocationScreenState extends State<MerchantMapLocationScreen> {
 }
 
 class _AddressSearchDelegate extends SearchDelegate<MapLocationResult?> {
+  final String searchLabel;
+  final String typeAddressDesc;
+  final String noResultsMsg;
+
+  _AddressSearchDelegate({
+    required this.searchLabel,
+    required this.typeAddressDesc,
+    required this.noResultsMsg,
+  });
+
   final _dio = Dio();
   final String _apiKey = 'AIzaSyBCKrWP8YeyfXUNeX4PJxaSL__bJpqxxO0';
 
   @override
-  String get searchFieldLabel => 'Search in Algeria...';
+  String get searchFieldLabel => searchLabel;
 
   @override
   List<Widget>? buildActions(BuildContext context) {
@@ -426,7 +442,7 @@ class _AddressSearchDelegate extends SearchDelegate<MapLocationResult?> {
   @override
   Widget buildSuggestions(BuildContext context) {
     if (query.isEmpty) {
-      return const Center(child: Text('Type an address...'));
+      return Center(child: Text(typeAddressDesc));
     }
 
     return FutureBuilder<List<dynamic>>(
@@ -436,7 +452,7 @@ class _AddressSearchDelegate extends SearchDelegate<MapLocationResult?> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No results found.'));
+          return Center(child: Text(noResultsMsg));
         }
 
         final results = snapshot.data!;
@@ -450,7 +466,7 @@ class _AddressSearchDelegate extends SearchDelegate<MapLocationResult?> {
               subtitle:
                   Text(place['structured_formatting']['secondary_text'] ?? ''),
               onTap: () async {
-                final MapLocationResult? res =
+                final res =
                     await _getPlaceDetails(place['place_id']);
                 close(context, res);
               },
@@ -461,3 +477,6 @@ class _AddressSearchDelegate extends SearchDelegate<MapLocationResult?> {
     );
   }
 }
+
+
+

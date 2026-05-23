@@ -92,8 +92,8 @@ class BottomNavigation extends StatelessWidget {
     required IconData activeIcon,
     required String label,
   }) {
-    bool isActive = currentIndex == index;
-    Color color = isActive ? AppTheme.primary : Colors.grey;
+    var isActive = currentIndex == index;
+    var color = isActive ? AppTheme.primary : Colors.grey;
 
     return GestureDetector(
       onTap: () => onTap(index),

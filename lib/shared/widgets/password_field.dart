@@ -74,8 +74,8 @@ class _PasswordFieldState extends State<PasswordField> {
 
   Widget _buildPasswordStrengthIndicator(
       String password, AppLocalizations l10n) {
-    double strength = 0;
-    String label = l10n.weak;
+    var strength = 0.0;
+    var label = l10n.weak;
     Color color = Colors.red;
 
     if (password.length >= 8) {

@@ -5,6 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_order.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/cubits/merchant_cubit.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_order_verification_screen.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class MerchantQrScannerScreen extends StatefulWidget {
   final MerchantOrder? preloadedOrder;
@@ -29,6 +30,8 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
   String? _errorMsg;
   late final MobileScannerController _controller;
 
+  static const Color primaryGreen = Color(0xFF2D8659);
+
   @override
   void initState() {
     super.initState();
@@ -40,10 +43,6 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
     _laserAnim = CurvedAnimation(parent: _laserCtrl, curve: Curves.easeInOut);
-
-    // If a preloaded order is passed (e.g., from a Scan button in order card),
-    // we still require an actual QR scan (or manual pickup code) so we can
-    // obtain the `qr_hash` and call the backend fulfilment endpoint.
   }
 
   @override
@@ -59,6 +58,7 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
     final raw = capture.barcodes.firstOrNull?.rawValue;
     if (raw == null) return;
 
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isScanned = true;
       _isValidating = true;
@@ -75,7 +75,7 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
         setState(() {
           _isScanned = false;
           _isValidating = false;
-          _errorMsg = 'Invalid QR code format';
+          _errorMsg = l10n.invalid_qr_format;
         });
         _controller.start();
         return;
@@ -96,19 +96,17 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
         setState(() {
           _isScanned = false;
           _isValidating = false;
-          _errorMsg = 'Order not found or already completed';
+          _errorMsg = l10n.order_not_found_completed;
         });
         _controller.start();
         return;
       }
 
-      // If the merchant opened the scanner from a specific order card, we
-      // should only accept QR codes for that order.
       if (widget.preloadedOrder != null && match.id != widget.preloadedOrder!.id) {
         setState(() {
           _isScanned = false;
           _isValidating = false;
-          _errorMsg = 'Scanned QR does not match the selected order.';
+          _errorMsg = l10n.qr_mismatch;
         });
         _controller.start();
         return;
@@ -131,7 +129,7 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
       setState(() {
         _isScanned = false;
         _isValidating = false;
-        _errorMsg = 'Cannot read QR code';
+        _errorMsg = l10n.cannot_read_qr;
       });
       _controller.start();
     } catch (e) {
@@ -144,13 +142,11 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
     }
   }
 
-  // NOTE: We intentionally do not auto-navigate to verification without a
-  // QR scan because backend fulfilment requires `qr_hash` verification.
-
   Future<void> _verifyManual(String input) async {
     final code = input.trim().toUpperCase();
     if (code.length < 4) return;
 
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isValidating = true;
       _errorMsg = null;
@@ -159,65 +155,62 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
       await context.read<MerchantCubit>().fulfillByPickupCodeAsync(code);
       if (!mounted) return;
       setState(() => _isValidating = false);
-      Navigator.pop(context); // order fulfilled — return to orders list.
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isValidating = false;
-        _errorMsg = 'Invalid or already used pickup code';
+        _errorMsg = l10n.invalid_pickup_code;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Real camera feed via mobile_scanner
           MobileScanner(
             controller: _controller,
             onDetect: _onQrDetected,
           ),
-
-          // Subtle dark overlay to improve frame readability
-          Container(
-            color: Colors.black26,
+          // Darker overlay outside frame
+          ColorFiltered(
+            colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.5), BlendMode.srcOut),
+            child: Stack(
+              children: [
+                Container(decoration: const BoxDecoration(color: Colors.black, backgroundBlendMode: BlendMode.dstOut)),
+                Align(
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: 260,
+                    height: 260,
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)),
+                  ),
+                ),
+              ],
+            ),
           ),
-
-          // UI Overlay
           SafeArea(
             child: Column(
               children: [
-                // Top bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.close,
-                            color: Colors.white, size: 28),
+                      _CircleIconButton(
+                        icon: Icons.close_rounded,
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Text(
-                        'Scan QR Code',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Text(
+                        l10n.scan_qr.toUpperCase(),
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 2),
                       ),
-                      IconButton(
-                        icon: Icon(
-                          _torchOn
-                              ? Icons.flash_off_outlined
-                              : Icons.flash_on_outlined,
-                          color: Colors.white,
-                          size: 24,
-                        ),
+                      _CircleIconButton(
+                        icon: _torchOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
                         onPressed: () {
                           _controller.toggleTorch();
                           setState(() => _torchOn = !_torchOn);
@@ -226,205 +219,117 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
                     ],
                   ),
                 ),
-
-                // Instructions
-                const Text(
-                  'Position QR code in the frame',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
+                const SizedBox(height: 20),
+                Text(
+                  l10n.align_qr_frame,
+                  style: const TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w500),
                 ),
-
                 const Spacer(),
-
-                // Scanning frame
                 Center(
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Frame
-                      SizedBox(
-                        width: 240,
-                        height: 240,
-                        child: CustomPaint(
-                          painter: _FramePainter(),
+                      Container(
+                        width: 260,
+                        height: 260,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+                          borderRadius: BorderRadius.circular(32),
                         ),
                       ),
-                      // Laser line
                       if (!_isValidating)
                         AnimatedBuilder(
                           animation: _laserAnim,
                           builder: (_, __) {
                             return Positioned(
-                              top: 120 * _laserAnim.value,
+                              top: 20 + 220 * _laserAnim.value,
                               child: Container(
                                 width: 220,
-                                height: 2,
+                                height: 3,
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.transparent,
-                                      const Color(0xFF2D8659),
-                                      Colors.transparent,
-                                    ],
-                                  ),
+                                  boxShadow: [BoxShadow(color: const Color(0xFF2D8659).withOpacity(0.5), blurRadius: 10, spreadRadius: 2)],
+                                  gradient: const LinearGradient(colors: [Colors.transparent, Color(0xFF2D8659), Colors.transparent]),
                                 ),
                               ),
                             );
                           },
                         ),
-                      // Validating
-                      if (_isValidating) ...[
-                        Container(
-                          width: 240,
-                          height: 240,
-                          color: Colors.black54,
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
-                              SizedBox(height: 12),
-                              Text(
-                                'Validating...',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 14),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      if (_isValidating)
+                        const CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
                     ],
                   ),
                 ),
-
                 const Spacer(),
-
-                // Error banner
                 if (_errorMsg != null)
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 24),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.warning_outlined,
-                            color: Colors.white, size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _errorMsg!,
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                const SizedBox(height: 16),
-
-                const SizedBox(height: 12),
-
-                // Manual entry (pickup code fallback)
-                GestureDetector(
-                  onTap: () => setState(
-                      () => _showManualEntry = !_showManualEntry),
-                  child: const Text(
-                    "Can't scan? Enter pickup code manually",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                      decoration: TextDecoration.underline,
-                      decorationColor: Colors.white70,
-                    ),
-                  ),
+                  _ErrorPill(message: _errorMsg!),
+                const SizedBox(height: 32),
+                _EditorialAction(
+                  label: l10n.cant_scan_enter_code,
+                  onTap: () => setState(() => _showManualEntry = true),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 40),
               ],
             ),
           ),
         ],
       ),
-      bottomSheet: _showManualEntry ? _buildManualEntry() : null,
+      bottomSheet: _showManualEntry ? _buildManualEntry(l10n) : null,
     );
   }
 
-  Widget _buildManualEntry() {
+  Widget _buildManualEntry(AppLocalizations l10n) {
     return Container(
-      padding: EdgeInsets.fromLTRB(
-          24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+      padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 40),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE5E7EB),
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(10)))),
+          const SizedBox(height: 32),
+          Text(
+            l10n.enter_pickup_code,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827), letterSpacing: -0.5),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Enter Pickup Code',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF111827)),
+          const SizedBox(height: 8),
+          Text(
+            l10n.ask_customer_code,
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 32),
           TextField(
             controller: _manualCtrl,
             autofocus: true,
             textCapitalization: TextCapitalization.characters,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 4),
             decoration: InputDecoration(
-              hintText: 'e.g. AB12CD',
-              prefixText: '',
+              hintText: l10n.code_label.toUpperCase(),
+              hintStyle: TextStyle(color: Colors.grey.shade200, letterSpacing: 4),
               filled: true,
-              fillColor: const Color(0xFFF3F3F5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: Color(0xFF2D8659), width: 2),
-              ),
-              errorText: _errorMsg,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             ),
             onSubmitted: _verifyManual,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
-            height: 52,
+            height: 60,
             child: ElevatedButton(
-              onPressed: _isValidating
-                  ? null
-                  : () => _verifyManual(_manualCtrl.text),
+              onPressed: _isValidating ? null : () => _verifyManual(_manualCtrl.text),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2D8659),
+                backgroundColor: primaryGreen,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
               child: _isValidating
-                  ? const CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2)
-                  : const Text('Verify Order',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                  : Text(l10n.verify_order_action.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
             ),
           ),
         ],
@@ -433,54 +338,57 @@ class _MerchantQrScannerScreenState extends State<MerchantQrScannerScreen>
   }
 }
 
-// ── Frame Painter ──────────────────────────────────────────────────────────────
+class _CircleIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  const _CircleIconButton({required this.icon, required this.onPressed});
 
-class _FramePainter extends CustomPainter {
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-
-    const cornerLen = 24.0;
-    const r = 6.0;
-
-    // Top-left
-    canvas.drawLine(const Offset(0, cornerLen), const Offset(0, r), paint);
-    canvas.drawArc(const Rect.fromLTWH(0, 0, r * 2, r * 2), 3.14, 1.57, false, paint);
-    canvas.drawLine(Offset(r, 0), Offset(cornerLen, 0), paint);
-
-    // Top-right
-    canvas.drawLine(
-        Offset(size.width - cornerLen, 0), Offset(size.width - r, 0), paint);
-    canvas.drawArc(Rect.fromLTWH(size.width - r * 2, 0, r * 2, r * 2), -1.57,
-        1.57, false, paint);
-    canvas.drawLine(Offset(size.width, r),
-        Offset(size.width, cornerLen), paint);
-
-    // Bottom-left
-    canvas.drawLine(Offset(0, size.height - cornerLen),
-        Offset(0, size.height - r), paint);
-    canvas.drawArc(Rect.fromLTWH(0, size.height - r * 2, r * 2, r * 2), 3.14,
-        -1.57, false, paint);
-    canvas.drawLine(Offset(r, size.height),
-        Offset(cornerLen, size.height), paint);
-
-    // Bottom-right
-    canvas.drawLine(Offset(size.width - cornerLen, size.height),
-        Offset(size.width - r, size.height), paint);
-    canvas.drawArc(
-        Rect.fromLTWH(
-            size.width - r * 2, size.height - r * 2, r * 2, r * 2),
-        0,
-        1.57,
-        false,
-        paint);
-    canvas.drawLine(Offset(size.width, size.height - r),
-        Offset(size.width, size.height - cornerLen), paint);
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
+      child: IconButton(icon: Icon(icon, color: Colors.white, size: 22), onPressed: onPressed),
+    );
   }
+}
+
+class _ErrorPill extends StatelessWidget {
+  final String message;
+  const _ErrorPill({required this.message});
 
   @override
-  bool shouldRepaint(_FramePainter oldDelegate) => false;
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(color: Colors.red.withOpacity(0.9), borderRadius: BorderRadius.circular(16)),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+          const SizedBox(width: 12),
+          Expanded(child: Text(message, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
+        ],
+      ),
+    );
+  }
 }
+
+class _EditorialAction extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _EditorialAction({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, decoration: TextDecoration.underline),
+      ),
+    );
+  }
+}
+
+
+

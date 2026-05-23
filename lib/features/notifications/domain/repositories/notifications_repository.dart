@@ -1,4 +1,4 @@
-import '../models/app_notification.dart';
+import 'package:anti_food_waste_app/features/notifications/domain/models/app_notification.dart';
 
 abstract class NotificationsRepository {
   Future<List<AppNotification>> getNotifications({String? cursor, int limit = 20});

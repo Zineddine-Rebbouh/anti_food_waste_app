@@ -1,9 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/shared/widgets/notification_bell_button.dart';
-
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
@@ -19,6 +17,8 @@ import 'package:anti_food_waste_app/features/home/presentation/screens/listing_d
 import 'package:anti_food_waste_app/features/home/presentation/screens/consumer_map_screen.dart';
 import 'package:anti_food_waste_app/features/home/presentation/screens/location_picker_map_screen.dart';
 import 'package:anti_food_waste_app/features/search/presentation/screens/search_screen.dart' as anti_search;
+import 'package:anti_food_waste_app/core/services/wilaya_service.dart';
+import 'package:anti_food_waste_app/shared/widgets/tawfir_loading_indicator.dart';
 
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
@@ -53,30 +53,39 @@ class _HomeContentState extends State<HomeContent> {
           final l10n = AppLocalizations.of(context)!;
           final favorites = context.watch<FavoritesProvider>();
 
-          // Determine greeting name and listing data from cubit state
           final String userName;
           final List<FoodListing> recommended;
           final List<FoodListing> nearBy;
+          final List<FoodListing> borderListings;
           final String locationLabel;
+          final String? wilayaName;
+          final bool isExpanded;
           final bool isLoading;
 
           if (state is HomeLoaded) {
             userName = state.userName;
             recommended = state.recommended;
             nearBy = state.nearBy;
+            borderListings = state.borderListings;
             locationLabel = state.locationLabel;
+            wilayaName = state.wilayaName;
+            isExpanded = state.isExpanded;
             isLoading = false;
           } else {
             userName = '';
             recommended = [];
             nearBy = [];
-            locationLabel = 'Current Location';
+            borderListings = [];
+            locationLabel = _cubit.currentLocationLabel;
+            wilayaName = null;
+            isExpanded = false;
             isLoading = state is HomeLoading || state is HomeInitial;
           }
 
-          final offers = nearBy.isNotEmpty ? nearBy : recommended;
+          final offers = nearBy;
 
           return Scaffold(
+            backgroundColor: Colors.white,
             appBar: AppBar(
               backgroundColor: Colors.white,
               elevation: 0,
@@ -132,11 +141,10 @@ class _HomeContentState extends State<HomeContent> {
               ],
             ),
             body: isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: TawfirLoadingIndicator(message: 'Loading deals...'))
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Welcome Section
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                         child: Column(
@@ -146,7 +154,7 @@ class _HomeContentState extends State<HomeContent> {
                               userName.isNotEmpty
                                   ? l10n.welcome_back(userName)
                                   : l10n.find_deals_near_you,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.foreground,
@@ -163,8 +171,6 @@ class _HomeContentState extends State<HomeContent> {
                           ],
                         ),
                       ),
-
-                      // Search Bar
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                         child: GestureDetector(
@@ -199,13 +205,35 @@ class _HomeContentState extends State<HomeContent> {
                           ),
                         ),
                       ),
-
                       Expanded(
                         child: RefreshIndicator(
                           onRefresh: () => _cubit.load(),
                           child: ListView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             children: [
+                              if (isExpanded)
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                                  color: AppTheme.primary.withOpacity(0.1),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.info_outline, size: 16, color: AppTheme.primary),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          "Showing national results. Results may be far away.",
+                                          style: TextStyle(fontSize: 12, color: Colors.grey[800], fontWeight: FontWeight.w500),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => _cubit.resetToMyArea(),
+                                        style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                                        child: const Text("Back to my area"),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               const SizedBox(height: 8),
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -213,11 +241,85 @@ class _HomeContentState extends State<HomeContent> {
                                   borderRadius: BorderRadius.circular(16),
                                   child: SizedBox(
                                     height: 220,
-                                    child: const ConsumerMapScreen(),
+                                    child: ConsumerMapScreen(
+                                      initialLat: state is HomeLoaded ? (state).userLat : null,
+                                      initialLng: state is HomeLoaded ? (state).userLng : null,
+                                    ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 20),
+                              if (wilayaName != null)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[50],
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: Colors.grey[200]!),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.location_city, size: 14, color: Colors.grey[600]),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          "WILAYA: $wilayaName".toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1.0,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 8),
+                              if (recommended.isNotEmpty) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        l10n.recommended_for_you,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                SizedBox(
+                                  height: 380,
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                                    itemCount: recommended.length,
+                                    itemBuilder: (context, index) {
+                                      final listing = recommended[index];
+                                      return SizedBox(
+                                        width: 310,
+                                        child: ListingCard(
+                                          listing: listing,
+                                          isFavorite: favorites.isFavorite(listing.id),
+                                          onFavoriteToggle: (next) => favorites.toggleFavorite(listing.id, desiredState: next),
+                                          onTap: () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (_) => ListingDetailScreen(listing: listing)),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
                                 child: Row(
@@ -231,7 +333,7 @@ class _HomeContentState extends State<HomeContent> {
                                       ),
                                     ),
                                     Text(
-                                      '${offers.length} offers',
+                                      l10n.offers_count(offers.length),
                                       style: TextStyle(
                                         color: Colors.grey[600],
                                         fontSize: 12,
@@ -242,43 +344,104 @@ class _HomeContentState extends State<HomeContent> {
                               ),
                               const SizedBox(height: 6),
                               if (offers.isEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Text(
-                                    l10n.no_deals_nearby,
-                                    style: TextStyle(color: Colors.grey[600]),
+                                Container(
+                                  width: double.infinity,
+                                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 15,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primary.withOpacity(0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.storefront_outlined,
+                                          size: 48,
+                                          color: AppTheme.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      Text(
+                                        l10n.no_deals_nearby,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black87,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ...offers.map(
                                 (listing) => ListingCard(
                                   listing: listing,
                                   isFavorite: favorites.isFavorite(listing.id),
-                                  onFavoriteToggle: (next) {
-                                    favorites.toggleFavorite(
-                                      listing.id,
-                                      desiredState: next,
-                                    );
-                                  },
-                                  onTap: () {
-                                    if (listing.id.isEmpty) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Invalid offer ID.'),
-                                        ),
-                                      );
-                                      return;
-                                    }
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            ListingDetailScreen(listing: listing),
-                                      ),
-                                    );
-                                  },
+                                  onFavoriteToggle: (next) => favorites.toggleFavorite(listing.id, desiredState: next),
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => ListingDetailScreen(listing: listing)),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 12),
+                              const SizedBox(height: 32),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.grey[200]!),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const Icon(Icons.explore_outlined, size: 32, color: AppTheme.primary),
+                                      const SizedBox(height: 12),
+                                      const Text(
+                                        "Want to see more?",
+                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        "Explore listings in other wilayas or expand your search radius.",
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          onPressed: () => _showExploreSheet(),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppTheme.primary,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            elevation: 0,
+                                          ),
+                                          child: const Text("Explore National Feed"),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 40),
                             ],
                           ),
                         ),
@@ -287,6 +450,75 @@ class _HomeContentState extends State<HomeContent> {
                   ),
           );
         },
+      ),
+    );
+  }
+
+  void _showExploreSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text("Explore Algeria", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            ),
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  const Text("Quick Radius Search", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [10, 25, 50, 100].map((km) => ActionChip(
+                      label: Text("$km km"),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _cubit.expandToRadius(km);
+                      },
+                    )).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text("Search by Wilaya", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _repository.fetchWilayas(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const Center(child: TawfirLoadingIndicator(size: 40, strokeWidth: 2.5));
+                      final wilayas = snapshot.data!;
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: wilayas.length,
+                        itemBuilder: (context, i) {
+                          final w = wilayas[i];
+                          return ListTile(
+                            title: Text("${w['code']} - ${w['name_fr']}"),
+                            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _cubit.expandToWilaya(w['code'], w['name_fr']);
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -306,7 +538,7 @@ class _HomeContentState extends State<HomeContent> {
               ListTile(
                 leading: const Icon(Icons.my_location),
                 title: Text(l10n.enable_location_btn),
-                subtitle: const Text('Use Current Location (Default)'),
+                subtitle: Text(l10n.use_current_location),
                 onTap: () async {
                   Navigator.pop(context);
                   await _cubit.useCurrentLocation();
@@ -314,7 +546,7 @@ class _HomeContentState extends State<HomeContent> {
               ),
               ListTile(
                 leading: const Icon(Icons.home_outlined),
-                title: const Text('Select Saved Address'),
+                title: Text(l10n.select_saved_address),
                 onTap: () async {
                   Navigator.pop(context);
                   await _showSavedAddressesModal();
@@ -322,7 +554,7 @@ class _HomeContentState extends State<HomeContent> {
               ),
               ListTile(
                 leading: const Icon(Icons.map_outlined),
-                title: const Text('Choose on Map'),
+                title: Text(l10n.choose_on_map),
                 onTap: () async {
                   Navigator.pop(context);
                   await _pickLocationOnMap();
@@ -336,13 +568,14 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   Future<void> _showSavedAddressesModal() async {
-    List<UserAddress> addresses = [];
+    final l10n = AppLocalizations.of(context)!;
+    var addresses = <UserAddress>[];
     try {
       addresses = await _repository.fetchAddresses();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not load saved addresses.')),
+        SnackBar(content: Text(l10n.could_not_load_addresses)),
       );
       return;
     }
@@ -350,7 +583,7 @@ class _HomeContentState extends State<HomeContent> {
     if (!mounted) return;
     if (addresses.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No saved addresses found.')),
+        SnackBar(content: Text(l10n.no_saved_addresses)),
       );
       return;
     }
@@ -384,6 +617,7 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   Future<void> _setAddressAsSelectedLocation(UserAddress address) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final results = await locationFromAddress(address.fullAddress);
       if (results.isEmpty) {
@@ -399,7 +633,7 @@ class _HomeContentState extends State<HomeContent> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not resolve this address location.')),
+        SnackBar(content: Text(l10n.could_not_resolve_address)),
       );
     }
   }
@@ -431,5 +665,3 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 }
-
-

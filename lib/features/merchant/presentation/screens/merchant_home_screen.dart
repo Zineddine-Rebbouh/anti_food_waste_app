@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_stats.dart';
+import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/cubits/merchant_cubit.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/create_listing/merchant_create_listing_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_qr_scanner_screen.dart';
-import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_order_detail_screen.dart';
-import 'package:anti_food_waste_app/features/merchant/presentation/widgets/merchant_metric_card.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:anti_food_waste_app/core/utils/l10n_utils.dart';
+import 'package:anti_food_waste_app/core/navigation/app_router.dart';
 
 class MerchantHomeScreen extends StatelessWidget {
   const MerchantHomeScreen({super.key});
+
+  static const Color primaryGreen = Color(0xFF2D8659);
+  static const Color accentBeige = Colors.white;
 
   @override
   Widget build(BuildContext context) {
@@ -18,11 +21,13 @@ class MerchantHomeScreen extends StatelessWidget {
       builder: (context, state) {
         if (state is MerchantLoading) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            backgroundColor: accentBeige,
+            body: Center(child: CircularProgressIndicator(color: primaryGreen)),
           );
         }
         if (state is MerchantError) {
           return Scaffold(
+            backgroundColor: accentBeige,
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -31,16 +36,16 @@ class MerchantHomeScreen extends StatelessWidget {
                   children: [
                     const Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey),
                     const SizedBox(height: 16),
-                    Text(
-                      state.message,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 16),
-                    ),
+                    Text(L10nUtils.translateError(state.message, l10n), textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
                     const SizedBox(height: 24),
-                    ElevatedButton.icon(
+                    ElevatedButton(
                       onPressed: () => context.read<MerchantCubit>().load(),
-                      icon: const Icon(Icons.refresh),
-                      label: Text(l10n.retry),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(l10n.retry),
                     ),
                   ],
                 ),
@@ -50,536 +55,343 @@ class MerchantHomeScreen extends StatelessWidget {
         }
         if (state is! MerchantLoaded) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            backgroundColor: accentBeige,
+            body: Center(child: CircularProgressIndicator(color: primaryGreen)),
           );
         }
 
         return Scaffold(
-          body: CustomScrollView(
-            slivers: [
-              _buildHeader(context, state, l10n),
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    _buildMetricCards(context, state, l10n),
-                    _buildQuickActions(context, l10n),
-                    _buildActivityFeed(context, state, l10n),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            ],
+          backgroundColor: accentBeige,
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context, state, l10n),
+                _buildStats(context, state, l10n),
+                _buildQuickActions(context, l10n),
+                _buildRecentActivity(context, state, l10n),
+                const SizedBox(height: 100),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  // ── Header ──────────────────────────────────────────────────────────────────
-
   Widget _buildHeader(BuildContext context, MerchantLoaded state, AppLocalizations l10n) {
-    final now = DateTime.now();
-    final dateStr = _formatDate(now, l10n);
-
-    return SliverAppBar(
-      expandedHeight: 90,
-      pinned: true,
-      backgroundColor: const Color(0xFF2D8659),
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF2D8659), Color(0xFF1A5E3C)],
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: primaryGreen,
+        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(48), bottomRight: Radius.circular(48)),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Avatar
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: const BoxDecoration(
-                      color: Colors.white24,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      state.profile.initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          state.profile.businessName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          dateStr,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.75),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Notification Bell
-                  Stack(
+                  Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.notifications_outlined,
-                            color: Colors.white, size: 26),
-                        onPressed: () {},
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(color: const Color(0xFFFFD54F), borderRadius: BorderRadius.circular(16)),
+                        alignment: Alignment.center,
+                        child: const Text("LP", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black)),
                       ),
-                      Positioned(
-                        right: 8,
-                        top: 8,
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(state.profile.businessName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                          Text(l10n.today, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.verified_user_rounded, color: Color(0xFF2D8659), size: 14),
+                            const SizedBox(width: 4),
+                            Text("Trust 73", style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      InkWell(
+                        onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
+                        borderRadius: BorderRadius.circular(12),
                         child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFEF4444),
-                            shape: BoxShape.circle,
-                          ),
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 22),
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 32),
+              Text(
+                l10n.merchant_overview,
+                style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
+              ),
+              Text(
+                l10n.your_impact,
+                style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 15, fontWeight: FontWeight.w500),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // ── Metric Cards ─────────────────────────────────────────────────────────────
-
-  Widget _buildMetricCards(BuildContext context, MerchantLoaded state, AppLocalizations l10n) {
+  Widget _buildStats(BuildContext context, MerchantLoaded state, AppLocalizations l10n) {
     final stats = state.profile.dailyStats;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-          child: Text(
-            l10n.merchant_overview,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF111827),
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 140,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+    return Transform.translate(
+      offset: const Offset(0, -25),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              MerchantMetricCard(
-                icon: Icons.inventory_2_outlined,
-                number: '${stats.ordersToday}',
-                label: l10n.orders_label,
-                sublabel:
-                    '${stats.ordersDelta >= 0 ? '+' : ''}${stats.ordersDelta} ${l10n.vs_yesterday}',
-                gradientColors: const [Color(0xFF2D8659), Color(0xFF1A5E3C)],
-                onTap: () {},
-              ),
+              Expanded(child: _StatCard(icon: Icons.shopping_bag_rounded, color: const Color(0xFF2D8659), value: "${stats.ordersToday}", label: l10n.orders_label, delta: l10n.today)),
               const SizedBox(width: 12),
-              MerchantMetricCard(
-                icon: Icons.monetization_on_outlined,
-                number: '${stats.revenueToday.toStringAsFixed(0)} ${l10n.dzd}',
-                label: l10n.merchant_revenue,
-                sublabel:
-                    '${stats.netRevenueToday.toStringAsFixed(0)} ${l10n.dzd} ${l10n.net_label}',
-                gradientColors: const [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-                onTap: () {},
-              ),
+              Expanded(child: _StatCard(icon: Icons.payments_rounded, color: const Color(0xFF3B82F6), value: "${stats.revenueToday.toInt()}", label: l10n.merchant_revenue, badge: l10n.net_label)),
               const SizedBox(width: 12),
-              MerchantMetricCard(
-                icon: Icons.eco_outlined,
-                number: '${stats.foodSavedKgToday.toStringAsFixed(0)} kg',
-                label: l10n.merchant_food_saved,
-                sublabel:
-                    '${stats.co2AvoidedKgToday.toStringAsFixed(0)} kg ${l10n.co2_avoided}',
-                gradientColors: const [Color(0xFF059669), Color(0xFF047857)],
-                onTap: () {},
-              ),
-              const SizedBox(width: 16),
+              Expanded(child: _StatCard(icon: Icons.eco_rounded, color: AppTheme.primary, value: "${stats.foodSavedKgToday.toInt()} kg", label: l10n.merchant_food_saved, delta: l10n.co2_avoided)),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 
-  // ── Quick Actions ─────────────────────────────────────────────────────────────
-
   Widget _buildQuickActions(BuildContext context, AppLocalizations l10n) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Add New Listing — primary CTA
-          _PrimaryActionButton(
-            icon: Icons.add_circle_outline,
-            title: l10n.add_listing,
-            subtitle: l10n.add_listing_desc,
-            backgroundColor: const Color(0xFF2D8659),
-            textColor: Colors.white,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  fullscreenDialog: true,
-                  builder: (_) => BlocProvider.value(
-                    value: context.read<MerchantCubit>(),
-                    child: const MerchantCreateListingScreen(),
+          Text(l10n.quick_actions.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5)),
+          const SizedBox(height: 16),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _ActionCard(
+                    title: l10n.add_listing,
+                    subtitle: l10n.add_listing_desc,
+                    icon: Icons.add_rounded,
+                    color: Colors.white.withOpacity(0.4),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => BlocProvider.value(value: context.read<MerchantCubit>(), child: const MerchantCreateListingScreen()))),
                   ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 10),
-          // Scan QR Code — secondary CTA
-          _PrimaryActionButton(
-            icon: Icons.qr_code_scanner,
-            title: l10n.scan_qr,
-            subtitle: l10n.scan_qr_desc,
-            backgroundColor: Colors.white,
-            textColor: const Color(0xFF374151),
-            border: Border.all(color: const Color(0xFFE5E7EB), width: 1.5),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  fullscreenDialog: true,
-                  builder: (_) => BlocProvider.value(
-                    value: context.read<MerchantCubit>(),
-                    child: const MerchantQrScannerScreen(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _ActionCard(
+                    title: l10n.scan_qr,
+                    subtitle: l10n.scan_qr_desc,
+                    icon: Icons.qr_code_scanner_rounded,
+                    color: const Color(0xFF2D8659).withOpacity(0.08),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => BlocProvider.value(value: context.read<MerchantCubit>(), child: const MerchantQrScannerScreen()))),
                   ),
                 ),
-              );
-            },
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  // ── Activity Feed ─────────────────────────────────────────────────────────────
-
-  Widget _buildActivityFeed(BuildContext context, MerchantLoaded state, AppLocalizations l10n) {
-    final feed = state.activityFeed;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-          child: Text(
-            l10n.recent_activity,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF111827),
-            ),
+  Widget _buildRecentActivity(BuildContext context, MerchantLoaded state, AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(l10n.recent_activity.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5)),
+              Text(l10n.see_all, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: primaryGreen)),
+            ],
           ),
-        ),
-        if (feed.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(32),
-            child: Center(
-              child: Column(
-                children: [
-                  const Icon(Icons.inbox_outlined, size: 56, color: Color(0xFFD1D5DB)),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.no_activity_today,
-                    style: const TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.orders_appear_here,
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
-                  ),
-                ],
-              ),
-            ),
-          )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: feed.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (ctx, i) {
-              final item = feed[i];
-              return _ActivityCard(
-                item: item,
-                l10n: l10n,
-                onTap: item.orderId != null
-                    ? () {
-                        // Find order by id from pending or completed
-                        final s = context.read<MerchantCubit>().state;
-                        if (s is MerchantLoaded) {
-                          final allOrders = [
-                            ...s.pendingOrders,
-                            ...s.completedOrders
-                          ];
-                          final order = allOrders.where(
-                              (o) => o.id == item.orderId).toList();
-                          if (order.isNotEmpty) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => BlocProvider.value(
-                                  value: context.read<MerchantCubit>(),
-                                  child: MerchantOrderDetailScreen(
-                                      order: order.first),
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                      }
-                    : null,
-              );
-            },
-          ),
-      ],
+          const SizedBox(height: 20),
+          _ActivityTile(title: "Plat Chorba Frik", status: "Picked up", quantity: "1x", price: "150 DZD", time: "Just now", color: const Color(0xFF2D8659)),
+          const SizedBox(height: 12),
+          _ActivityTile(title: "Traditional Bread Basket", status: "Reserved", quantity: "1x", price: "350 DZD", time: "13h ago", color: const Color(0xFFF59E0B)),
+          const SizedBox(height: 12),
+          _ActivityTile(title: "Menu Loubia / Adas", status: "Completed", quantity: "1x", price: "150 DZD", time: "17d ago", color: Colors.grey.shade200),
+        ],
+      ),
     );
-  }
-
-  String _formatDate(DateTime dt, AppLocalizations l10n) {
-    return '${_getWeekday(dt.weekday, l10n)}, ${_getMonth(dt.month, l10n)} ${dt.day}';
-  }
-
-  String _getWeekday(int weekday, AppLocalizations l10n) {
-    switch (weekday) {
-      case 1: return 'Monday';
-      case 2: return 'Tuesday';
-      case 3: return 'Wednesday';
-      case 4: return 'Thursday';
-      case 5: return 'Friday';
-      case 6: return 'Saturday';
-      case 7: return 'Sunday';
-      default: return '';
-    }
-  }
-
-  String _getMonth(int month, AppLocalizations l10n) {
-    switch (month) {
-      case 1: return 'Jan';
-      case 2: return 'Feb';
-      case 3: return 'Mar';
-      case 4: return 'Apr';
-      case 5: return 'May';
-      case 6: return 'Jun';
-      case 7: return 'Jul';
-      case 8: return 'Aug';
-      case 9: return 'Sep';
-      case 10: return 'Oct';
-      case 11: return 'Nov';
-      case 12: return 'Dec';
-      default: return '';
-    }
   }
 }
 
-// ── Supporting Widgets ────────────────────────────────────────────────────────
-
-class _PrimaryActionButton extends StatelessWidget {
+class _StatCard extends StatelessWidget {
   final IconData icon;
+  final Color color;
+  final String value;
+  final String label;
+  final String? delta;
+  final String? badge;
+
+  const _StatCard({required this.icon, required this.color, required this.value, required this.label, this.delta, this.badge});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withOpacity(0.08), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(height: 16),
+          Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.grey.shade400), textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          if (delta != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(100)),
+              child: Text(delta!, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF16A34A))),
+            ),
+          if (badge != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(100)),
+              child: Text(badge!, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF3B82F6))),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final Color backgroundColor;
-  final Color textColor;
-  final BoxBorder? border;
+  final IconData icon;
+  final Color color;
   final VoidCallback onTap;
 
-  const _PrimaryActionButton({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.backgroundColor,
-    required this.textColor,
-    required this.onTap,
-    this.border,
-  });
+  const _ActionCard({required this.title, required this.subtitle, required this.icon, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 72,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(12),
-          border: border,
-          boxShadow: backgroundColor == Colors.white
-              ? null
-              : [
-                  BoxShadow(
-                    color: backgroundColor.withOpacity(0.35),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            Icon(icon, color: textColor, size: 28),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: textColor.withOpacity(0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right,
-                color: textColor.withOpacity(0.6), size: 22),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActivityCard extends StatelessWidget {
-  final ActivityItem item;
-  final VoidCallback? onTap;
-  final AppLocalizations l10n;
-
-  const _ActivityCard({required this.item, required this.l10n, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    IconData icon;
-    Color iconColor;
-
-    switch (item.type) {
-      case 'new_order':
-        icon = Icons.shopping_cart_outlined;
-        iconColor = const Color(0xFF3B82F6);
-        break;
-      case 'completed':
-        icon = Icons.check_circle_outline;
-        iconColor = const Color(0xFF10B981);
-        break;
-      case 'donation':
-        icon = Icons.volunteer_activism_outlined;
-        iconColor = const Color(0xFF2D8659);
-        break;
-      case 'cancelled':
-        icon = Icons.cancel_outlined;
-        iconColor = const Color(0xFFEF4444);
-        break;
-      default:
-        icon = Icons.circle_outlined;
-        iconColor = const Color(0xFF6B7280);
-    }
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: iconColor, size: 18),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
+              child: Icon(icon, color: const Color(0xFF2D8659), size: 22),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.primaryText,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF111827),
-                    ),
-                  ),
-                  Text(
-                    item.secondaryText,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF6B7280),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              _timeAgo(item.timestamp, l10n),
-              style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
-            ),
+            const SizedBox(height: 20),
+            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+            const SizedBox(height: 2),
+            Text(subtitle, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey.shade400)),
           ],
         ),
       ),
     );
   }
+}
 
-  String _timeAgo(DateTime dt, AppLocalizations l10n) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return l10n.just_now;
-    if (diff.inMinutes < 60) return l10n.minutes_ago(diff.inMinutes);
-    if (diff.inHours < 24) return l10n.hours_ago(diff.inHours);
-    return '${diff.inDays}d ago';
+class _ActivityTile extends StatelessWidget {
+  final String title;
+  final String status;
+  final String quantity;
+  final String price;
+  final String time;
+  final Color color;
+
+  const _ActivityTile({required this.title, required this.status, required this.quantity, required this.price, required this.time, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: Icon(Icons.shopping_bag_rounded, color: color == Colors.grey.shade200 ? Colors.grey : color, size: 22),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.circle, color: color == Colors.grey.shade200 ? Colors.grey : color, size: 8),
+                    const SizedBox(width: 6),
+                    Text("$status · $quantity", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade400)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(price, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              Text(time, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.grey.shade400)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
+
+
+

@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_listing.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/cubits/merchant_cubit.dart';
 import 'package:anti_food_waste_app/shared/widgets/confetti_overlay.dart';
@@ -11,6 +13,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class _ListingFormData {
   String imagePath = '';
+  String originalImageUrl = '';
   FreshnessGrade grade = FreshnessGrade.a;
   String title = '';
   MerchantFoodCategory category = MerchantFoodCategory.bakery;
@@ -33,7 +36,8 @@ class _ListingFormData {
 // ── Main Container ─────────────────────────────────────────────────────────────
 
 class MerchantCreateListingScreen extends StatefulWidget {
-  const MerchantCreateListingScreen({super.key});
+  final MerchantListing? existingListing;
+  const MerchantCreateListingScreen({super.key, this.existingListing});
 
   @override
   State<MerchantCreateListingScreen> createState() =>
@@ -42,11 +46,16 @@ class MerchantCreateListingScreen extends StatefulWidget {
 
 class _MerchantCreateListingScreenState
     extends State<MerchantCreateListingScreen> {
+  static const Color primaryGreen = Color(0xFF2D8659);
+  static const Color backgroundColor = Colors.white;
+
   final _pageController = PageController();
   final _form = _ListingFormData();
   int _currentStep = 0;
   bool _isPublishing = false;
   bool _showSuccess = false;
+
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
 
   List<String> _getStepLabels(AppLocalizations l10n) => [
         l10n.step_photo,
@@ -55,6 +64,26 @@ class _MerchantCreateListingScreenState
         l10n.step_pickup,
         l10n.step_preview
       ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingListing != null) {
+      final listing = widget.existingListing!;
+      _form.title = listing.title;
+      _form.description = listing.description;
+      _form.category = listing.category;
+      _form.dietaryTags = [...listing.dietaryTags];
+      _form.originalPrice = listing.originalPrice;
+      _form.discountedPrice = listing.discountedPrice;
+      _form.quantity = listing.totalQuantity;
+      _form.grade = listing.grade;
+      _form.pickupStart = TimeOfDay.fromDateTime(listing.pickupStart);
+      _form.pickupEnd = TimeOfDay.fromDateTime(listing.pickupEnd);
+      _form.originalImageUrl = listing.imageUrl;
+      _form.safetyConfirmed = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -93,18 +122,19 @@ class _MerchantCreateListingScreenState
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(l10n.discard_listing,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
         content: Text(
           l10n.discard_listing_desc,
-          style: const TextStyle(color: Color(0xFF6B7280)),
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.keep_editing,
-                style: const TextStyle(color: Color(0xFF2D8659))),
+            child: Text(l10n.keep_editing.toUpperCase(),
+                style: const TextStyle(color: primaryGreen, fontWeight: FontWeight.w800, fontSize: 12)),
           ),
           TextButton(
             onPressed: () {
@@ -112,8 +142,8 @@ class _MerchantCreateListingScreenState
               _saveDraft();
               Navigator.pop(context);
             },
-            child: Text(l10n.save_draft,
-                style: const TextStyle(color: Color(0xFF6B7280))),
+            child: Text(l10n.save_draft.toUpperCase(),
+                style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w800, fontSize: 12)),
           ),
         ],
       ),
@@ -124,10 +154,7 @@ class _MerchantCreateListingScreenState
     setState(() => _isPublishing = true);
     final now = DateTime.now();
 
-    // Build a DateTime from a TimeOfDay on today's date.
-    // If the result is already in the past (or within 5 min), push to tomorrow
-    // so Django's "pickup_start must be in the future" validation passes.
-    DateTime _toFutureDateTime(TimeOfDay tod, {DateTime? mustBeAfter}) {
+    DateTime toFutureDateTime(TimeOfDay tod, {DateTime? mustBeAfter}) {
       var dt = DateTime(now.year, now.month, now.day, tod.hour, tod.minute);
       if (!dt.isAfter(now.add(const Duration(minutes: 5)))) {
         dt = dt.add(const Duration(days: 1));
@@ -138,23 +165,38 @@ class _MerchantCreateListingScreenState
       return dt;
     }
 
-    final pickupStart = _toFutureDateTime(_form.pickupStart);
-    final pickupEnd = _toFutureDateTime(_form.pickupEnd, mustBeAfter: pickupStart);
+    final pickupStart = toFutureDateTime(_form.pickupStart);
+    final pickupEnd = toFutureDateTime(_form.pickupEnd, mustBeAfter: pickupStart);
 
     try {
-      await context.read<MerchantCubit>().createListingAsync(
-            category: _form.category,
-            title: _form.title,
-            description: _form.description,
-            originalPrice: _form.originalPrice,
-            discountedPrice: _form.discountedPrice,
-            quantity: _form.quantity,
-            grade: _form.grade,
-            dietaryTags: _form.dietaryTags,
-            pickupStart: pickupStart,
-            pickupEnd: pickupEnd,
-            imagePath: _form.imagePath.isNotEmpty ? _form.imagePath : null,
-          );
+      if (widget.existingListing != null) {
+        await context.read<MerchantCubit>().updateListingAsync(
+              widget.existingListing!.id,
+              title: _form.title,
+              description: _form.description,
+              discountedPrice: _form.discountedPrice,
+              quantity: _form.quantity,
+              grade: _form.grade,
+              dietaryTags: _form.dietaryTags,
+              pickupStart: pickupStart,
+              pickupEnd: pickupEnd,
+              imagePath: _form.imagePath.isNotEmpty ? _form.imagePath : null,
+            );
+      } else {
+        await context.read<MerchantCubit>().createListingAsync(
+              category: _form.category,
+              title: _form.title,
+              description: _form.description,
+              originalPrice: _form.originalPrice,
+              discountedPrice: _form.discountedPrice,
+              quantity: _form.quantity,
+              grade: _form.grade,
+              dietaryTags: _form.dietaryTags,
+              pickupStart: pickupStart,
+              pickupEnd: pickupEnd,
+              imagePath: _form.imagePath.isNotEmpty ? _form.imagePath : null,
+            );
+      }
       setState(() {
         _isPublishing = false;
         _showSuccess = true;
@@ -164,10 +206,10 @@ class _MerchantCreateListingScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              e.toString().replaceFirst('Exception: ', ''),
-            ),
-            backgroundColor: Colors.red.shade700,
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -179,7 +221,7 @@ class _MerchantCreateListingScreenState
     final now = DateTime.now();
     final listing = MerchantListing(
       id: 'draft_${DateTime.now().millisecondsSinceEpoch}',
-      title: _form.title.isEmpty ? 'Untitled Draft' : _form.title,
+      title: _form.title.isEmpty ? l10n.untitled_draft : _form.title,
       description: _form.description,
       imageUrl: '',
       category: _form.category,
@@ -228,12 +270,13 @@ class _MerchantCreateListingScreenState
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: backgroundColor,
         elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Color(0xFF374151)),
+          icon: const Icon(Icons.arrow_back_ios_new, color: primaryGreen, size: 20),
           onPressed: _prevStep,
         ),
         title: _StepProgressHeader(
@@ -296,32 +339,35 @@ class _StepProgressHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const primaryGreen = Color(0xFF2D8659);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          labels[currentStep],
+          labels[currentStep].toUpperCase(),
           style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF111827),
+            fontSize: 12,
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w900,
+            color: primaryGreen,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(labels.length, (i) {
             final isActive = i == currentStep;
             final isDone = i < currentStep;
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: isActive ? 20 : 8,
-              height: 8,
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: isActive ? 24 : 12,
+              height: 6,
               decoration: BoxDecoration(
                 color: isDone || isActive
-                    ? const Color(0xFF2D8659)
-                    : const Color(0xFFD1D5DB),
-                borderRadius: BorderRadius.circular(50),
+                    ? primaryGreen
+                    : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(100),
               ),
             );
           }),
@@ -365,101 +411,78 @@ class _Step1PhotoState extends State<_Step1Photo> {
 
   @override
   Widget build(BuildContext context) {
-    final hasPhoto = widget.form.imagePath.isNotEmpty;
+    final hasPhoto = widget.form.imagePath.isNotEmpty || widget.form.originalImageUrl.isNotEmpty;
 
     final l10n = AppLocalizations.of(context)!;
+    const primaryGreen = Color(0xFF2D8659);
+    const accentBeige = Colors.white;
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.add_photo,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF111827),
-            ),
+            l10n.add_photo_title,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF111827), letterSpacing: -0.5),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             l10n.add_photo_desc,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           // Photo area
           GestureDetector(
             onTap: hasPhoto ? null : () => _pickImage(ImageSource.camera),
             child: Container(
               width: double.infinity,
-              height: 260,
+              height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: hasPhoto
-                      ? const Color(0xFF2D8659)
-                      : const Color(0xFFD1D5DB),
-                  width: 2,
-                  style: hasPhoto ? BorderStyle.solid : BorderStyle.none,
-                ),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8)),
+                ],
               ),
               child: hasPhoto
                   ? Stack(
                       children: [
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.file(
-                            File(widget.form.imagePath),
-                            width: double.infinity,
-                            height: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        // Grade badge
-                        Positioned(
-                          top: 10,
-                          right: 10,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981),
-                              borderRadius: BorderRadius.circular(50),
+                          borderRadius: BorderRadius.circular(32),
+                          child: widget.form.imagePath.isNotEmpty
+                            ? Image.file(
+                                File(widget.form.imagePath),
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                              )
+                            : CachedNetworkImage(
+                                imageUrl: widget.form.originalImageUrl,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
                             ),
-                            child: const Text(
-                              '✓ Grade A',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ),
                         ),
                         // Retake button
                         Positioned(
-                          bottom: 10,
-                          right: 10,
+                          bottom: 16,
+                          right: 16,
                           child: GestureDetector(
-                            onTap: () =>
-                                _pickImage(ImageSource.camera),
+                            onTap: () => _pickImage(ImageSource.camera),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
-                                color: Colors.black54,
-                                borderRadius: BorderRadius.circular(8),
+                                color: Colors.black.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.refresh,
-                                      color: Colors.white, size: 14),
-                                  SizedBox(width: 4),
-                                  Text('Retake',
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 12)),
+                                  const Icon(Icons.refresh, color: Colors.white, size: 16),
+                                  const SizedBox(width: 8),
+                                  Text(l10n.retake_label.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
                                 ],
                               ),
                             ),
@@ -471,34 +494,22 @@ class _Step1PhotoState extends State<_Step1Photo> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 72,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2D8659).withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.camera_alt_outlined,
-                              color: Color(0xFF2D8659), size: 32),
+                          width: 84,
+                          height: 84,
+                          decoration: const BoxDecoration(color: accentBeige, shape: BoxShape.circle),
+                          child: const Icon(Icons.camera_alt_outlined, color: primaryGreen, size: 36),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
                         Text(
-                          l10n.add_photo,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF374151),
-                          ),
+                          l10n.snap_photo_label,
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
                         ),
                         const SizedBox(height: 8),
                         GestureDetector(
                           onTap: () => _pickImage(ImageSource.gallery),
-                          child: const Text(
-                            'or choose from gallery',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF2D8659),
-                              decoration: TextDecoration.underline,
-                            ),
+                          child: Text(
+                            l10n.choose_from_gallery.toUpperCase(),
+                            style: const TextStyle(fontSize: 12, color: primaryGreen, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                           ),
                         ),
                       ],
@@ -507,44 +518,29 @@ class _Step1PhotoState extends State<_Step1Photo> {
           ),
 
           if (_validating) ...[
-            const SizedBox(height: 12),
-            const Row(
+            const SizedBox(height: 20),
+            Row(
               children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Color(0xFF2D8659),
-                  ),
-                ),
-                SizedBox(width: 8),
-                Text('Validating photo quality...',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+                const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: primaryGreen)),
+                const SizedBox(width: 12),
+                Text(l10n.analyzing_photo, style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w600)),
               ],
             ),
           ],
 
           if (hasPhoto) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD1FAE5),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF10B981)),
-              ),
-              child: const Row(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(20)),
+              child: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Color(0xFF059669), size: 18),
-                  SizedBox(width: 8),
+                  const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 20),
+                  const SizedBox(width: 12),
                   Flexible(
                     child: Text(
-                      'Photo Approved! Freshness Grade: A • Confidence: 92%',
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF059669),
-                          fontWeight: FontWeight.w500),
+                      l10n.photo_quality_passed,
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF16A34A), fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -553,18 +549,16 @@ class _Step1PhotoState extends State<_Step1Photo> {
           ],
 
           const Spacer(),
-          SizedBox(
-            height: 52,
-            child: ElevatedButton(
-              onPressed: hasPhoto ? widget.onNext : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2D8659),
-                minimumSize: const Size(double.infinity, 52),
-                disabledBackgroundColor: const Color(0xFFD1D5DB),
-              ),
-              child: Text(l10n.next,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ElevatedButton(
+            onPressed: hasPhoto ? widget.onNext : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryGreen,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 60),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              elevation: 0,
             ),
+            child: Text(l10n.continue_label.toUpperCase(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
           ),
         ],
       ),
@@ -607,8 +601,8 @@ class _Step2DetailsState extends State<_Step2Details> {
         (DietaryTag.vegan, l10n.vegan),
         (DietaryTag.vegetarian, l10n.vegetarian),
         (DietaryTag.glutenFree, l10n.gluten_free),
-        (DietaryTag.nutFree, 'Nut-Free'),
-        (DietaryTag.dairyFree, 'Dairy-Free'),
+        (DietaryTag.nutFree, l10n.nut_free),
+        (DietaryTag.dairyFree, l10n.dairy_free),
       ];
 
   @override
@@ -634,43 +628,40 @@ class _Step2DetailsState extends State<_Step2Details> {
     final categories = _getCategories(l10n);
     final tags = _getTags(l10n);
 
+    const primaryGreen = Color(0xFF2D8659);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.step_details,
-            style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF111827)),
+            l10n.item_details_title,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF111827), letterSpacing: -0.5),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             l10n.item_details_desc,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           // Title
-          _FieldLabel(text: l10n.item_title),
-          const SizedBox(height: 6),
+          Text(l10n.title_label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: 1)),
+          const SizedBox(height: 8),
           TextField(
             controller: _titleCtrl,
             maxLength: 60,
+            style: const TextStyle(fontWeight: FontWeight.w700),
             decoration: InputDecoration(
-              hintText: l10n.item_title_hint,
+              hintText: l10n.title_hint,
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w500),
               filled: true,
-              fillColor: const Color(0xFFF3F3F5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF2D8659), width: 2),
-              ),
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.all(20),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: Colors.grey.shade100)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: primaryGreen, width: 2)),
               counterStyle: const TextStyle(fontSize: 11),
             ),
             onChanged: (v) {
@@ -679,47 +670,14 @@ class _Step2DetailsState extends State<_Step2Details> {
               widget.onFormChanged();
             },
           ),
-
-          // AI Suggestion chip
-          if (_titleCtrl.text.isEmpty) ...[
-            const SizedBox(height: 4),
-            GestureDetector(
-              onTap: () {
-                _titleCtrl.text = 'Fresh Baguettes';
-                widget.form.title = 'Fresh Baguettes';
-                setState(() {});
-                widget.onFormChanged();
-              },
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD1FAE5),
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.lightbulb_outline,
-                        size: 12, color: Color(0xFF059669)),
-                    SizedBox(width: 4),
-                    Text('Detected: Bread → Tap to auto-fill',
-                        style: TextStyle(
-                            fontSize: 11, color: Color(0xFF059669))),
-                  ],
-                ),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
           // Category
-          _FieldLabel(text: l10n.item_category),
-          const SizedBox(height: 8),
+          Text(l10n.category_label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: 1)),
+          const SizedBox(height: 12),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 10,
+            runSpacing: 10,
             children: categories.map((cat) {
               final selected = widget.form.category == cat.$1;
               return GestureDetector(
@@ -729,55 +687,41 @@ class _Step2DetailsState extends State<_Step2Details> {
                   widget.onFormChanged();
                 },
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 8),
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: selected
-                        ? const Color(0xFF2D8659)
-                        : const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(
-                      color: selected
-                          ? const Color(0xFF2D8659)
-                          : const Color(0xFFE5E7EB),
-                    ),
+                    color: selected ? primaryGreen : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: selected ? primaryGreen : Colors.grey.shade100),
+                    boxShadow: selected ? [BoxShadow(color: primaryGreen.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))] : [],
                   ),
                   child: Text(
                     '${cat.$3} ${cat.$2}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color:
-                          selected ? Colors.white : const Color(0xFF374151),
-                    ),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: selected ? Colors.white : const Color(0xFF374151)),
                   ),
                 ),
               );
             }).toList(),
           ),
-
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
           // Description
-          _FieldLabel(text: l10n.item_description),
-          const SizedBox(height: 6),
+          Text(l10n.description_label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: 1)),
+          const SizedBox(height: 8),
           TextField(
             controller: _descCtrl,
-            maxLines: 3,
+            maxLines: 4,
             maxLength: 300,
+            style: const TextStyle(fontWeight: FontWeight.w600),
             decoration: InputDecoration(
-              hintText: l10n.item_description_hint,
+              hintText: l10n.description_hint,
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w500),
               filled: true,
-              fillColor: const Color(0xFFF3F3F5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF2D8659), width: 2),
-              ),
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.all(20),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: Colors.grey.shade100)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: primaryGreen, width: 2)),
               counterStyle: const TextStyle(fontSize: 11),
             ),
             onChanged: (v) {
@@ -785,12 +729,11 @@ class _Step2DetailsState extends State<_Step2Details> {
               widget.onFormChanged();
             },
           ),
-
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
           // Dietary Tags
-          _FieldLabel(text: l10n.dietary_tags),
-          const SizedBox(height: 8),
+          Text(l10n.dietary_info_label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: 1)),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -808,36 +751,21 @@ class _Step2DetailsState extends State<_Step2Details> {
                   widget.onFormChanged();
                 },
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 7),
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: selected
-                        ? const Color(0xFF2D8659)
-                        : const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(
-                      color: selected
-                          ? const Color(0xFF2D8659)
-                          : const Color(0xFFE5E7EB),
-                    ),
+                    color: selected ? const Color(0xFFDCFCE7) : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: selected ? const Color(0xFF16A34A) : Colors.grey.shade100),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (selected)
-                        const Icon(Icons.check,
-                            size: 12, color: Colors.white),
-                      if (selected) const SizedBox(width: 4),
+                      if (selected) const Icon(Icons.check, size: 14, color: Color(0xFF16A34A)),
+                      if (selected) const SizedBox(width: 6),
                       Text(
                         tag.$2,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: selected
-                              ? Colors.white
-                              : const Color(0xFF374151),
-                        ),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: selected ? const Color(0xFF16A34A) : Colors.grey.shade600),
                       ),
                     ],
                   ),
@@ -845,21 +773,20 @@ class _Step2DetailsState extends State<_Step2Details> {
               );
             }).toList(),
           ),
+          const SizedBox(height: 40),
 
-          const SizedBox(height: 32),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
                   onPressed: widget.onBack,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF6B7280),
-                    side: const BorderSide(color: Color(0xFFD1D5DB)),
-                    minimumSize: const Size(0, 52),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    foregroundColor: Colors.grey.shade600,
+                    side: BorderSide(color: Colors.grey.shade200),
+                    minimumSize: const Size(0, 60),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
-                  child: const Text('Back'),
+                  child: Text(l10n.back_label.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -868,20 +795,18 @@ class _Step2DetailsState extends State<_Step2Details> {
                 child: ElevatedButton(
                   onPressed: _canContinue ? widget.onNext : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2D8659),
-                    minimumSize: const Size(0, 52),
-                    disabledBackgroundColor: const Color(0xFFD1D5DB),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    backgroundColor: primaryGreen,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 60),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    elevation: 0,
                   ),
-                  child: const Text('Continue',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: Text(l10n.continue_label.toUpperCase(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -907,63 +832,29 @@ class _Step3Pricing extends StatefulWidget {
 }
 
 class _Step3PricingState extends State<_Step3Pricing> {
-  late final TextEditingController _origCtrl;
-  late final TextEditingController _discCtrl;
+  late final TextEditingController _origPriceCtrl;
+  late final TextEditingController _discPriceCtrl;
 
   @override
   void initState() {
     super.initState();
-    _origCtrl = TextEditingController(
-        text: widget.form.originalPrice > 0
-            ? widget.form.originalPrice.toStringAsFixed(0)
-            : '');
-    _discCtrl = TextEditingController(
-        text: widget.form.discountedPrice > 0
-            ? widget.form.discountedPrice.toStringAsFixed(0)
-            : '');
+    _origPriceCtrl = TextEditingController(text: widget.form.originalPrice > 0 ? widget.form.originalPrice.toStringAsFixed(0) : '');
+    _discPriceCtrl = TextEditingController(text: widget.form.discountedPrice > 0 ? widget.form.discountedPrice.toStringAsFixed(0) : '');
   }
 
   @override
   void dispose() {
-    _origCtrl.dispose();
-    _discCtrl.dispose();
+    _origPriceCtrl.dispose();
+    _discPriceCtrl.dispose();
     super.dispose();
   }
 
-  double get _orig => double.tryParse(_origCtrl.text) ?? 0;
-  double get _disc => double.tryParse(_discCtrl.text) ?? 0;
-
-  bool get _canContinue =>
-      _orig > 0 && _disc > 0 && _disc < _orig && _disc >= 10;
-
-  String? get _discError {
-    if (_disc <= 0) return null;
-    if (_disc >= _orig && _orig > 0) return 'Must be less than original price';
-    if (_disc < 10) return 'Minimum listing price is 10 DZD';
-    if (_orig > 0 && (_disc / _orig) > 0.8) {
-      return 'Minimum 20% discount required';
-    }
-    return null;
-  }
-
-  void _applyAiSuggestion() {
-    if (_orig > 0) {
-      final suggestion = (_orig * 0.5).roundToDouble();
-      _discCtrl.text = suggestion.toStringAsFixed(0);
-      widget.form.discountedPrice = suggestion;
-      setState(() {});
-      widget.onFormChanged();
-    }
-  }
+  bool get _canContinue => widget.form.originalPrice > 0 && widget.form.discountedPrice > 0 && widget.form.discountedPrice < widget.form.originalPrice;
 
   @override
   Widget build(BuildContext context) {
+    const primaryGreen = Color(0xFF2D8659);
     final l10n = AppLocalizations.of(context)!;
-    final discount = _orig > 0 && _disc > 0
-        ? ((_orig - _disc) / _orig * 100).round()
-        : 0;
-    final net = _disc * 0.88;
-    final fee = _disc * 0.12;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -971,224 +862,103 @@ class _Step3PricingState extends State<_Step3Pricing> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.set_prices,
-            style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF111827)),
+            l10n.pricing_inventory_title,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF111827), letterSpacing: -0.5),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
-            l10n.pricing_desc,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+            l10n.pricing_inventory_desc,
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
-          // Original Price
-          _FieldLabel(text: '${l10n.pricing} *'),
-          const SizedBox(height: 6),
-          TextField(
-            controller: _origCtrl,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: '100',
-              prefixText: '${l10n.dzd}  ',
-              prefixStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-              helperText: l10n.regular_price,
-              filled: true,
-              fillColor: const Color(0xFFF3F3F5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.original_price_label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: 1)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _origPriceCtrl,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                      decoration: InputDecoration(
+                        suffixText: l10n.currency_label,
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.all(16),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade100)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: primaryGreen, width: 2)),
+                      ),
+                      onChanged: (v) {
+                        setState(() => widget.form.originalPrice = double.tryParse(v) ?? 0);
+                        widget.onFormChanged();
+                      },
+                    ),
+                  ],
+                ),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF2D8659), width: 2),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.discounted_label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: 1)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _discPriceCtrl,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: primaryGreen),
+                      decoration: InputDecoration(
+                        suffixText: l10n.currency_label,
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.all(16),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade100)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: primaryGreen, width: 2)),
+                      ),
+                      onChanged: (v) {
+                        setState(() => widget.form.discountedPrice = double.tryParse(v) ?? 0);
+                        widget.onFormChanged();
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-            onChanged: (v) {
-              widget.form.originalPrice = double.tryParse(v) ?? 0;
-              setState(() {});
-              widget.onFormChanged();
-            },
+            ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 32),
 
-          // Discounted Price
-          const _FieldLabel(text: 'Discounted Price *'),
-          const SizedBox(height: 6),
-          TextField(
-            controller: _discCtrl,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: '50',
-              prefixText: 'DZD  ',
-              prefixStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-              helperText: 'Price for SaveFood customers',
-              errorText: _discError,
-              filled: true,
-              fillColor: const Color(0xFFF3F3F5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF2D8659), width: 2),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
-              ),
+          // Summary Card
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: primaryGreen, borderRadius: BorderRadius.circular(28)),
+            child: Column(
+              children: [
+                _SummaryRow(label: l10n.your_discount_label, value: "${widget.form.discount.toStringAsFixed(0)}%", color: Colors.white),
+                const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Colors.white24)),
+                _SummaryRow(label: l10n.estimated_earnings_label, value: "${widget.form.netEarnings.toStringAsFixed(0)} ${l10n.currency_label}", color: Colors.white, isBold: true),
+              ],
             ),
-            onChanged: (v) {
-              widget.form.discountedPrice = double.tryParse(v) ?? 0;
-              setState(() {});
-              widget.onFormChanged();
-            },
           ),
+          const SizedBox(height: 40),
 
-          if (discount > 0) ...[
-            const SizedBox(height: 8),
-            Text(
-              '$discount% discount',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF10B981),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 16),
-
-          // AI Suggestion
-          if (_orig > 0) ...[
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD1FAE5),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF10B981)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.auto_awesome,
-                          size: 16, color: Color(0xFF059669)),
-                      SizedBox(width: 6),
-                      Text(
-                        'AI Price Suggestion',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF059669),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Based on similar items, we suggest:',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF374151)),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${(_orig * 0.5).toStringAsFixed(0)} DZD (50% off)',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF059669),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: _applyAiSuggestion,
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF059669),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
-                        ),
-                        child: const Text('Use This Price',
-                            style: TextStyle(fontSize: 12)),
-                      ),
-                    ],
-                  ),
-                  const Text(
-                    'This price typically sells out fast!',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          // Commission Breakdown
-          if (_disc > 0) ...[
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.receipt_outlined,
-                          size: 16, color: Color(0xFF374151)),
-                      SizedBox(width: 6),
-                      Text(
-                        'Your Earnings (88% commission)',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF374151),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  _BreakdownRow(
-                      label: 'Sale price',
-                      value:
-                          '${_disc.toStringAsFixed(0)} DZD'),
-                  _BreakdownRow(
-                      label: 'Platform fee (12%)',
-                      value: '${fee.toStringAsFixed(2)} DZD',
-                      color: const Color(0xFF6B7280)),
-                  _BreakdownRow(
-                    label: 'You keep (88%)',
-                    value: '${net.toStringAsFixed(2)} DZD',
-                    color: const Color(0xFF10B981),
-                    bold: true,
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
                   onPressed: widget.onBack,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF6B7280),
-                    side: const BorderSide(color: Color(0xFFD1D5DB)),
-                    minimumSize: const Size(0, 52),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    foregroundColor: Colors.grey.shade600,
+                    side: BorderSide(color: Colors.grey.shade200),
+                    minimumSize: const Size(0, 60),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
-                  child: const Text('Back'),
+                  child: Text(l10n.back_label.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1197,22 +967,40 @@ class _Step3PricingState extends State<_Step3Pricing> {
                 child: ElevatedButton(
                   onPressed: _canContinue ? widget.onNext : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2D8659),
-                    minimumSize: const Size(0, 52),
-                    disabledBackgroundColor: const Color(0xFFD1D5DB),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    backgroundColor: primaryGreen,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 60),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    elevation: 0,
                   ),
-                  child: const Text('Continue',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: Text(l10n.continue_label.toUpperCase(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  final bool isBold;
+
+  const _SummaryRow({required this.label, required this.value, required this.color, this.isBold = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: color.withOpacity(0.7), fontSize: 14, fontWeight: FontWeight.w600)),
+        Text(value, style: TextStyle(color: color, fontSize: isBold ? 20 : 16, fontWeight: FontWeight.w900)),
+      ],
     );
   }
 }
@@ -1236,38 +1024,32 @@ class _Step4Pickup extends StatefulWidget {
 }
 
 class _Step4PickupState extends State<_Step4Pickup> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool get _canContinue {
     final start = widget.form.pickupStart;
     final end = widget.form.pickupEnd;
-    final diff =
-        (end.hour * 60 + end.minute) - (start.hour * 60 + start.minute);
+    final diff = (end.hour * 60 + end.minute) - (start.hour * 60 + start.minute);
     return widget.form.quantity >= 1 && diff >= 30;
   }
 
   Future<void> _selectTime(bool isStart) async {
-    final initial =
-        isStart ? widget.form.pickupStart : widget.form.pickupEnd;
+    final initial = isStart ? widget.form.pickupStart : widget.form.pickupEnd;
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: Color(0xFF2D8659)),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: Color(0xFF2D8659))),
+        child: child!,
+      ),
     );
-    if (picked == null) return;
-    setState(() {
-      if (isStart) {
-        widget.form.pickupStart = picked;
-      } else {
-        widget.form.pickupEnd = picked;
-      }
-    });
-    widget.onFormChanged();
+    if (picked != null) {
+      setState(() {
+        if (isStart) widget.form.pickupStart = picked;
+        else widget.form.pickupEnd = picked;
+      });
+      widget.onFormChanged();
+    }
   }
 
   void _applyPreset(int startH, int startM, int endH, int endM) {
@@ -1281,256 +1063,84 @@ class _Step4PickupState extends State<_Step4Pickup> {
   String _fmtTime(TimeOfDay t) {
     final h = t.hour.toString().padLeft(2, '0');
     final m = t.minute.toString().padLeft(2, '0');
-    final period = t.hour < 12 ? 'AM' : 'PM';
-    final h12 = t.hour == 0
-        ? 12
-        : t.hour > 12
-            ? t.hour - 12
-            : t.hour;
-    return '$h:$m ($h12:$m $period)';
-  }
-
-  String _durationLabel() {
-    final start = widget.form.pickupStart;
-    final end = widget.form.pickupEnd;
-    final diff =
-        (end.hour * 60 + end.minute) - (start.hour * 60 + start.minute);
-    if (diff <= 0) return 'Invalid window';
-    if (diff < 60) return '$diff minutes';
-    return '${diff ~/ 60}h ${diff % 60}min';
+    final period = t.hour < 12 ? l10n.am_label : l10n.pm_label;
+    final h12 = t.hour == 0 ? 12 : t.hour > 12 ? t.hour - 12 : t.hour;
+    return '$h12:$m $period';
   }
 
   @override
   Widget build(BuildContext context) {
-    final start = widget.form.pickupStart;
-    final end = widget.form.pickupEnd;
-    final diff =
-        (end.hour * 60 + end.minute) - (start.hour * 60 + start.minute);
-    final windowError = diff < 30 && diff > 0
-        ? 'Pickup window must be at least 30 minutes'
-        : null;
+    const primaryGreen = Color(0xFF2D8659);
+    const accentBeige = Colors.white;
+    final l10n = AppLocalizations.of(context)!;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Quantity & Pickup',
-            style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF111827)),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'When and how much?',
-            style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-          ),
-          const SizedBox(height: 28),
-
-          // Quantity
-          const Text(
-            'How Many Available?',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF111827)),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _StepperButton(
-                icon: Icons.remove,
-                color: const Color(0xFF6B7280),
-                onTap: () {
-                  if (widget.form.quantity > 1) {
-                    setState(() => widget.form.quantity--);
-                    widget.onFormChanged();
-                  }
-                },
-              ),
-              const SizedBox(width: 16),
-              GestureDetector(
-                onTap: () async {
-                  final ctrl = TextEditingController(
-                      text: '${widget.form.quantity}');
-                  await showDialog(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      title: const Text('Enter Quantity'),
-                      content: TextField(
-                        controller: ctrl,
-                        keyboardType: TextInputType.number,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          filled: true,
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            final v = int.tryParse(ctrl.text);
-                            if (v != null && v >= 1) {
-                              setState(() => widget.form.quantity = v);
-                              widget.onFormChanged();
-                            }
-                            Navigator.pop(ctx);
-                          },
-                          child: const Text('OK',
-                              style: TextStyle(color: Color(0xFF2D8659))),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 80,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${widget.form.quantity}',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF111827),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              _StepperButton(
-                icon: Icons.add,
-                color: const Color(0xFF2D8659),
-                onTap: () {
-                  setState(() => widget.form.quantity++);
-                  widget.onFormChanged();
-                },
-              ),
-            ],
+          Text(
+            l10n.quantity_pickup_title,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF111827), letterSpacing: -0.5),
           ),
           const SizedBox(height: 8),
-          const Center(
-            child: Text(
-              'bags/items available',
-              style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-            ),
+          Text(
+            l10n.quantity_pickup_desc,
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
           ),
+          const SizedBox(height: 32),
 
-          const SizedBox(height: 28),
-
-          // Pickup Window
-          const Text(
-            'When Can Customers Collect?',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF111827)),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _TimeSelector(
-                  label: 'Start Time',
-                  time: _fmtTime(widget.form.pickupStart),
-                  onTap: () => _selectTime(true),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _TimeSelector(
-                  label: 'End Time',
-                  time: _fmtTime(widget.form.pickupEnd),
-                  onTap: () => _selectTime(false),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (windowError != null)
-            Row(
+          Text(l10n.quantity_label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: 1)),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.shade100)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.warning_outlined,
-                    size: 14, color: Color(0xFFEF4444)),
-                const SizedBox(width: 4),
-                Text(
-                  windowError,
-                  style: const TextStyle(
-                      fontSize: 12, color: Color(0xFFEF4444)),
-                ),
+                _StepperButton(icon: Icons.remove, color: Colors.grey, onTap: () { if (widget.form.quantity > 1) setState(() => widget.form.quantity--); widget.onFormChanged(); }),
+                Text(l10n.count_bags(widget.form.quantity), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                _StepperButton(icon: Icons.add, color: primaryGreen, onTap: () { setState(() => widget.form.quantity++); widget.onFormChanged(); }),
               ],
-            )
-          else if (diff > 0)
-            Text(
-              'Duration: ${_durationLabel()}',
-              style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF2D8659),
-                  fontWeight: FontWeight.w500),
             ),
+          ),
+          const SizedBox(height: 32),
 
-          const SizedBox(height: 20),
-
-          // Presets
-          const Text(
-            'Quick Presets',
-            style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF374151)),
+          Text(l10n.pickup_window_label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: 1)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _TimeSelector(label: l10n.from_label.toUpperCase(), time: _fmtTime(widget.form.pickupStart), onTap: () => _selectTime(true))),
+              const SizedBox(width: 16),
+              Expanded(child: _TimeSelector(label: l10n.until_label.toUpperCase(), time: _fmtTime(widget.form.pickupEnd), onTap: () => _selectTime(false))),
+            ],
           ),
-          const SizedBox(height: 8),
-          _PresetButton(
-            label: 'Tonight (18:00-20:00)',
-            onTap: () => _applyPreset(18, 0, 20, 0),
-            isSelected: start.hour == 18 &&
-                start.minute == 0 &&
-                end.hour == 20 &&
-                end.minute == 0,
-          ),
-          const SizedBox(height: 6),
-          _PresetButton(
-            label: 'Tomorrow Morning (08:00-10:00)',
-            onTap: () => _applyPreset(8, 0, 10, 0),
-            isSelected: start.hour == 8 &&
-                start.minute == 0 &&
-                end.hour == 10 &&
-                end.minute == 0,
-          ),
-          const SizedBox(height: 6),
-          _PresetButton(
-            label: 'Tomorrow Evening (18:00-20:00)',
-            onTap: () => _applyPreset(18, 0, 20, 0),
-            isSelected: false,
-          ),
-
           const SizedBox(height: 24),
+
+          Text(l10n.quick_presets_label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: 1)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _PresetChip(label: l10n.preset_tonight, onTap: () => _applyPreset(18, 0, 20, 0)),
+              _PresetChip(label: l10n.preset_morning, onTap: () => _applyPreset(8, 0, 10, 0)),
+            ],
+          ),
+          const SizedBox(height: 40),
+
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
                   onPressed: widget.onBack,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF6B7280),
-                    side: const BorderSide(color: Color(0xFFD1D5DB)),
-                    minimumSize: const Size(0, 52),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    foregroundColor: Colors.grey.shade600,
+                    side: BorderSide(color: Colors.grey.shade200),
+                    minimumSize: const Size(0, 60),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
-                  child: const Text('Back'),
+                  child: Text(l10n.back_label.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1539,22 +1149,37 @@ class _Step4PickupState extends State<_Step4Pickup> {
                 child: ElevatedButton(
                   onPressed: _canContinue ? widget.onNext : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2D8659),
-                    minimumSize: const Size(0, 52),
-                    disabledBackgroundColor: const Color(0xFFD1D5DB),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    backgroundColor: primaryGreen,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 60),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    elevation: 0,
                   ),
-                  child: const Text('Continue',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: Text(l10n.continue_label.toUpperCase(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+}
+
+class _PresetChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _PresetChip({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      onPressed: onTap,
+      label: Text(label),
+      labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF2D8659)),
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100), side: const BorderSide(color: Color(0xFF2D8659), width: 0.5)),
     );
   }
 }
@@ -1582,169 +1207,90 @@ class _Step5Preview extends StatefulWidget {
 }
 
 class _Step5PreviewState extends State<_Step5Preview> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   @override
   Widget build(BuildContext context) {
+    const primaryGreen = Color(0xFF2D8659);
+    const accentBeige = Colors.white;
+    final l10n = AppLocalizations.of(context)!;
     final form = widget.form;
-    final discount = form.originalPrice > 0
-        ? (1 - form.discountedPrice / form.originalPrice) * 100
-        : 0.0;
+    final discount = form.originalPrice > 0 ? (1 - form.discountedPrice / form.originalPrice) * 100 : 0.0;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Preview Listing',
-            style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF111827)),
+          Text(
+            l10n.final_preview_title,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF111827), letterSpacing: -0.5),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'How it looks to customers',
-            style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+          const SizedBox(height: 8),
+          Text(
+            l10n.final_preview_desc,
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 32),
 
-          // Preview card
+          // Preview Card
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(32),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
+                BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 24, offset: const Offset(0, 12)),
               ],
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Photo area
-                Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(12)),
-                      child: SizedBox(
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                  child: Stack(
+                    children: [
+                      SizedBox(
                         width: double.infinity,
-                        height: 160,
+                        height: 200,
                         child: form.imagePath.isNotEmpty
-                            ? Image.file(
-                                File(form.imagePath),
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: 160,
-                              )
-                            : Container(
-                                color: const Color(0xFFE5E7EB),
-                                child: const Icon(Icons.fastfood_outlined,
-                                    size: 60, color: Color(0xFF9CA3AF)),
-                              ),
+                            ? Image.file(File(form.imagePath), fit: BoxFit.cover)
+                            : form.originalImageUrl.isNotEmpty
+                                ? CachedNetworkImage(imageUrl: form.originalImageUrl, fit: BoxFit.cover)
+                                : Container(color: accentBeige, child: const Icon(Icons.fastfood, size: 48, color: primaryGreen)),
                       ),
-                    ),
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981),
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        child: const Text('Grade A 🟢',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                    if (discount > 0)
-                      Positioned(
-                        top: 10,
-                        left: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEF4444),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Text(
-                            '-${discount.round()}%',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold),
+                      if (discount > 0)
+                        Positioned(
+                          top: 16,
+                          left: 16,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(color: const Color(0xFFEF4444), borderRadius: BorderRadius.circular(100)),
+                            child: Text("-${discount.round()}%", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-                // Details
                 Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        form.title.isEmpty ? 'Your Listing' : form.title,
-                        style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF111827)),
-                      ),
-                      const SizedBox(height: 4),
+                      Text(form.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
-                          if (form.originalPrice > 0) ...[
-                            Text(
-                              '${form.originalPrice.toStringAsFixed(0)} DZD',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF9CA3AF),
-                                decoration: TextDecoration.lineThrough,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                          if (form.discountedPrice > 0)
-                            Text(
-                              '${form.discountedPrice.toStringAsFixed(0)} DZD',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF10B981),
-                              ),
-                            ),
+                          Text("${form.discountedPrice.toStringAsFixed(0)} ${l10n.currency_label}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: primaryGreen)),
+                          const SizedBox(width: 12),
+                          Text("${form.originalPrice.toStringAsFixed(0)} ${l10n.currency_label}", style: TextStyle(fontSize: 16, decoration: TextDecoration.lineThrough, color: Colors.grey.shade400, fontWeight: FontWeight.w600)),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 20),
                       Row(
                         children: [
-                          const Icon(Icons.schedule,
-                              size: 13, color: Color(0xFF6B7280)),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Today ${form.pickupStart.hour.toString().padLeft(2, '0')}:${form.pickupStart.minute.toString().padLeft(2, '0')}-'
-                            '${form.pickupEnd.hour.toString().padLeft(2, '0')}:${form.pickupEnd.minute.toString().padLeft(2, '0')}',
-                            style: const TextStyle(
-                                fontSize: 12, color: Color(0xFF6B7280)),
-                          ),
-                          const SizedBox(width: 12),
-                          const Icon(Icons.inventory_2_outlined,
-                              size: 13, color: Color(0xFF6B7280)),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${form.quantity} available',
-                            style: const TextStyle(
-                                fontSize: 12, color: Color(0xFF6B7280)),
-                          ),
+                          const Icon(Icons.schedule, size: 16, color: primaryGreen),
+                          const SizedBox(width: 8),
+                          Text(l10n.pickup_range_msg("${form.pickupStart.hour}:${form.pickupStart.minute.toString().padLeft(2, '0')}", "${form.pickupEnd.hour}:${form.pickupEnd.minute.toString().padLeft(2, '0')}"), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: primaryGreen)),
                         ],
                       ),
                     ],
@@ -1753,138 +1299,61 @@ class _Step5PreviewState extends State<_Step5Preview> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 32),
 
-          // Summary
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Listing Summary',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF374151))),
-                const SizedBox(height: 10),
-                _SummaryRow(label: 'Category', value: form.category.name),
-                if (form.dietaryTags.isNotEmpty)
-                  _SummaryRow(
-                    label: 'Dietary',
-                    value: form.dietaryTags
-                        .map((t) => t.name)
-                        .join(', '),
-                  ),
-                if (form.description.isNotEmpty)
-                  _SummaryRow(
-                    label: 'Description',
-                    value: form.description.length > 50
-                        ? '${form.description.substring(0, 50)}...'
-                        : form.description,
-                  ),
-                const Divider(height: 16, color: Color(0xFFE5E7EB)),
-                _SummaryRow(
-                  label: 'Your earnings per item',
-                  value: '${form.netEarnings.toStringAsFixed(0)} DZD',
-                  valueColor: const Color(0xFF10B981),
-                  bold: true,
-                ),
-                _SummaryRow(
-                  label: 'Potential revenue (if all sold)',
-                  value:
-                      '${form.potentialRevenue.toStringAsFixed(0)} DZD',
-                  valueColor: const Color(0xFF10B981),
-                  bold: true,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Safety checkbox
+          // Confirmation
           GestureDetector(
-            onTap: () {
-              setState(
-                  () => form.safetyConfirmed = !form.safetyConfirmed);
-              widget.onFormChanged();
-            },
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: form.safetyConfirmed
-                        ? const Color(0xFF2D8659)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(5),
-                    border: Border.all(
-                      color: form.safetyConfirmed
-                          ? const Color(0xFF2D8659)
-                          : const Color(0xFFD1D5DB),
-                      width: 2,
+            onTap: () { setState(() => form.safetyConfirmed = !form.safetyConfirmed); widget.onFormChanged(); },
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: form.safetyConfirmed ? primaryGreen.withOpacity(0.05) : Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: form.safetyConfirmed ? primaryGreen : Colors.grey.shade100),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: form.safetyConfirmed ? primaryGreen : Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: form.safetyConfirmed ? primaryGreen : Colors.grey.shade200),
                     ),
+                    child: form.safetyConfirmed ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
                   ),
-                  child: form.safetyConfirmed
-                      ? const Icon(Icons.check,
-                          color: Colors.white, size: 14)
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'I confirm this food is safe and matches the description',
-                    style: TextStyle(
-                        fontSize: 14, color: Color(0xFF374151)),
-                  ),
-                ),
-              ],
+                  const SizedBox(width: 16),
+                  Expanded(child: Text(l10n.health_safety_confirmation, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF374151)))),
+                ],
+              ),
             ),
           ),
+          const SizedBox(height: 40),
 
-          const SizedBox(height: 24),
           Row(
             children: [
               TextButton(
                 onPressed: widget.onSaveDraft,
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF6B7280),
-                ),
-                child: const Text('Save as Draft'),
+                child: Text(l10n.save_as_draft_action.toUpperCase(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, fontSize: 12)),
               ),
               const Spacer(),
               ElevatedButton(
-                onPressed: form.safetyConfirmed && !widget.isPublishing
-                    ? widget.onPublish
-                    : null,
+                onPressed: form.safetyConfirmed && !widget.isPublishing ? widget.onPublish : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2D8659),
-                  minimumSize: const Size(160, 52),
-                  disabledBackgroundColor: const Color(0xFFD1D5DB),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                  backgroundColor: primaryGreen,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(180, 60),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
                 ),
                 child: widget.isPublishing
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('Publish Listing',
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold)),
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Text(l10n.publish_now_action.toUpperCase(), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 1)),
               ),
             ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
         ],
       ),
     );
@@ -1918,10 +1387,7 @@ class _SuccessScreenState extends State<_SuccessScreen>
   @override
   void initState() {
     super.initState();
-    _animCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
+    _animCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _scaleAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.elasticOut);
     _animCtrl.forward();
   }
@@ -1934,12 +1400,16 @@ class _SuccessScreenState extends State<_SuccessScreen>
 
   @override
   Widget build(BuildContext context) {
+    const primaryGreen = Color(0xFF2D8659);
+    const backgroundColor = Colors.white;
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: ConfettiOverlay(
           child: Padding(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -1947,107 +1417,42 @@ class _SuccessScreenState extends State<_SuccessScreen>
                 ScaleTransition(
                   scale: _scaleAnim,
                   child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2D8659).withOpacity(0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.check_circle,
-                        color: Color(0xFF2D8659), size: 64),
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(color: primaryGreen.withOpacity(0.1), shape: BoxShape.circle),
+                    child: const Icon(Icons.check_circle_rounded, color: primaryGreen, size: 80),
                   ),
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Listing Published!',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2D8659),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Your listing is now live and visible to customers nearby.',
-                  style:
-                      TextStyle(fontSize: 15, color: Color(0xFF6B7280)),
+                const SizedBox(height: 32),
+                Text(
+                  l10n.listing_published_title,
                   textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF111827), letterSpacing: -1),
                 ),
-                const SizedBox(height: 28),
-
-                // What's next
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: const Color(0xFF10B981).withOpacity(0.3)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '📊 What Happens Next?',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF374151),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '• Nearby consumers will see your listing',
-                        style: TextStyle(
-                            fontSize: 13, color: Color(0xFF6B7280)),
-                      ),
-                      const Text(
-                        '• You\'ll get notified when orders come in',
-                        style: TextStyle(
-                            fontSize: 13, color: Color(0xFF6B7280)),
-                      ),
-                      const Text(
-                        '• Track views and orders in real-time',
-                        style: TextStyle(
-                            fontSize: 13, color: Color(0xFF6B7280)),
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.listing_published_desc,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
                 ),
                 const Spacer(),
-
-                // Actions
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    onPressed: widget.onAddAnother,
-                    icon: const Icon(Icons.add, size: 20),
-                    label: const Text('Add Another Listing',
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF2D8659),
-                      side: const BorderSide(color: Color(0xFF2D8659), width: 2),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
+                ElevatedButton(
+                  onPressed: widget.onAddAnother,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGreen,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 60),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    elevation: 0,
                   ),
-                ),
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed: widget.onViewListings,
-                  style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF2D8659)),
-                  child: const Text('View My Listings'),
-                ),
-                TextButton(
-                  onPressed: widget.onDone,
-                  style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF6B7280)),
-                  child: const Text('Done'),
+                  child: Text(l10n.add_another_listing_action.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
                 ),
                 const SizedBox(height: 16),
+                TextButton(
+                  onPressed: widget.onDone,
+                  child: Text(l10n.back_to_home_action.toUpperCase(), style: const TextStyle(color: primaryGreen, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1)),
+                ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -2112,65 +1517,30 @@ class _BreakdownRow extends StatelessWidget {
   }
 }
 
-class _SummaryRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? valueColor;
-  final bool bold;
-
-  const _SummaryRow(
-      {required this.label,
-      required this.value,
-      this.valueColor,
-      this.bold = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 13, color: Color(0xFF6B7280))),
-          Flexible(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-                color: valueColor ?? const Color(0xFF374151),
-              ),
-              textAlign: TextAlign.end,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _StepperButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
-  const _StepperButton(
-      {required this.icon, required this.color, required this.onTap});
+  const _StepperButton({required this.icon, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    const primaryGreen = AppTheme.primary;
+    final isActive = color == primaryGreen;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 48,
-        height: 48,
+        width: 56,
+        height: 56,
         decoration: BoxDecoration(
-          border: Border.all(color: color, width: 2),
-          borderRadius: BorderRadius.circular(10),
+          color: isActive ? primaryGreen : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isActive ? primaryGreen : Colors.grey.shade200, width: 2),
         ),
-        child: Icon(icon, color: color, size: 22),
+        child: Icon(icon, color: isActive ? Colors.white : Colors.grey, size: 24),
       ),
     );
   }
@@ -2181,45 +1551,31 @@ class _TimeSelector extends StatelessWidget {
   final String time;
   final VoidCallback onTap;
 
-  const _TimeSelector(
-      {required this.label, required this.time, required this.onTap});
+  const _TimeSelector({required this.label, required this.time, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    const primaryGreen = Color(0xFF2D8659);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF3F4F6),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade100),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              label,
-              style: const TextStyle(
-                  fontSize: 11, color: Color(0xFF9CA3AF)),
-            ),
-            const SizedBox(height: 2),
+            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1)),
+            const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.access_time,
-                    size: 14, color: Color(0xFF6B7280)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    time,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF374151),
-                    ),
-                  ),
-                ),
+                const Icon(Icons.access_time_rounded, size: 18, color: primaryGreen),
+                const SizedBox(width: 8),
+                Text(time, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
               ],
             ),
           ],
@@ -2234,41 +1590,34 @@ class _PresetButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool isSelected;
 
-  const _PresetButton(
-      {required this.label,
-      required this.onTap,
-      required this.isSelected});
+  const _PresetButton({required this.label, required this.onTap, required this.isSelected});
 
   @override
   Widget build(BuildContext context) {
+    const primaryGreen = Color(0xFF2D8659);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF2D8659).withOpacity(0.08)
-              : const Color(0xFFF3F4F6),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF2D8659)
-                : const Color(0xFFE5E7EB),
-            width: isSelected ? 2 : 1,
-          ),
+          color: isSelected ? primaryGreen : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? primaryGreen : Colors.grey.shade100),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: isSelected
-                ? const Color(0xFF2D8659)
-                : const Color(0xFF374151),
+            fontWeight: FontWeight.w800,
+            color: isSelected ? Colors.white : const Color(0xFF374151),
           ),
         ),
       ),
     );
   }
 }
+
+
+

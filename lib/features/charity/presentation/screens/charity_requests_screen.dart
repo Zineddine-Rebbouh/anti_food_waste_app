@@ -101,65 +101,72 @@ class _CharityRequestsScreenState extends State<CharityRequestsScreen> {
                         ),
                         const SizedBox(height: 24),
                         // ── Tabs embedded in header ─────────────────────
-                        Row(
-                          children: List.generate(3, (i) {
-                            final labels = [
-                              l10n.status_pending,
-                              l10n.active_tab,
-                              l10n.completed_tab,
-                            ];
-                            final counts = [
-                              pending.length,
-                              active.length,
-                              completed.length,
-                            ];
-                            final isSelected = _selectedTab == i;
-                            return Expanded(
-                              child: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _selectedTab = i),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: Row(
+                            children: List.generate(3, (i) {
+                              final labels = [
+                                l10n.status_pending,
+                                l10n.active_tab,
+                                l10n.completed_tab,
+                              ];
+                              final counts = [
+                                pending.length,
+                                active.length,
+                                completed.length,
+                              ];
+                              final isSelected = _selectedTab == i;
+                              return GestureDetector(
+                                onTap: () => setState(() => _selectedTab = i),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  margin: EdgeInsetsDirectional.only(
-                                      end: i < 2 ? 12 : 0, bottom: 0),
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 14),
+                                  margin: EdgeInsetsDirectional.only(end: i < 2 ? 12 : 0, bottom: 20),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                   decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : Colors.white.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(20),
+                                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(100),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? Colors.white.withOpacity(0.38)
+                                          : Colors.white.withOpacity(0.18),
+                                      width: 1,
+                                    ),
                                   ),
-                                  child: Column(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        '${counts[i]}',
+                                        labels[i].toUpperCase(),
                                         style: TextStyle(
-                                          fontSize: 18,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.w900,
-                                          color: isSelected
-                                              ? _green
-                                              : Colors.white,
+                                          letterSpacing: 0.5,
+                                          color: isSelected ? _green : Colors.white,
                                         ),
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        labels[i],
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                          color: isSelected
-                                              ? _green.withOpacity(0.7)
-                                              : Colors.white.withOpacity(0.6),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: isSelected ? _green.withOpacity(0.1) : Colors.white.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(100),
                                         ),
-                                        textAlign: TextAlign.center,
+                                        child: Text(
+                                          '${counts[i]}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w900,
+                                            color: isSelected ? _green : Colors.white,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ),
-                            );
-                          }),
+                              );
+                            }),
+                          ),
                         ),
                       ],
                     ),
@@ -303,6 +310,7 @@ class _PickupRequestCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.03),

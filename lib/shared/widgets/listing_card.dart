@@ -46,10 +46,13 @@ class _ListingCardState extends State<ListingCard> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isRtl = Directionality.of(context) == TextDirection.rtl;
+    final isExpired = _isPickupExpired(widget.listing.pickupEnd);
 
     return FadeInUp(
       duration: const Duration(milliseconds: 400),
-      child: Container(
+      child: Opacity(
+        opacity: isExpired ? 0.65 : 1.0,
+        child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -101,6 +104,38 @@ class _ListingCardState extends State<ListingCard> {
                       ),
                     ),
                   ),
+                  // Expired overlay
+                  if (isExpired)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.35),
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.access_time_rounded, color: Colors.white70, size: 14),
+                                SizedBox(width: 6),
+                                Text(
+                                  'PICKUP EXPIRED',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   // Glassmorphic Discount Badge
                   Positioned(
                     top: 12,
@@ -409,7 +444,22 @@ class _ListingCardState extends State<ListingCard> {
           ),
         ),
       ),
+    ),
     );
+  }
+
+  /// Returns true when the current time has passed the listing's pickup end.
+  static bool _isPickupExpired(String pickupEnd) {
+    if (pickupEnd.isEmpty) return false;
+    try {
+      final parts = pickupEnd.split(':');
+      final now = DateTime.now();
+      final end = DateTime(
+          now.year, now.month, now.day, int.parse(parts[0]), int.parse(parts[1]));
+      return now.isAfter(end);
+    } catch (_) {
+      return false;
+    }
   }
 
   Widget _buildImageFallback() {

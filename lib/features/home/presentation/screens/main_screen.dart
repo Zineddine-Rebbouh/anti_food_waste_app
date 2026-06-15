@@ -28,10 +28,14 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: const ChatFloatingButton(),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _currentIndex,
+            children: _screens,
+          ),
+          const Positioned.fill(child: ChatFloatingButton()),
+        ],
       ),
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentIndex,

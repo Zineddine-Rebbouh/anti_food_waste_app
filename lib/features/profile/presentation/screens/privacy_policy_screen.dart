@@ -29,7 +29,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   FadeInDown(
                     duration: const Duration(milliseconds: 400),
                     child: Text(
-                      'Last updated: January 2025'.toUpperCase(),
+                      l10n.pp_last_updated.toUpperCase(),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
@@ -44,24 +44,24 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         _LegalSection(
-                          title: '1. Information We Collect',
-                          body: 'When you use Tawfir, we collect certain information to provide and improve our services. Personal data such as your full name, email address, and phone number is collected when you create an account. Payment information is handled exclusively by our secure payment processors and is never stored on our own servers.\n\nWe also collect location data (with your explicit permission) to show you nearby food deals and improve the relevance of our recommendations.',
+                          title: l10n.pp_section1_title,
+                          body: l10n.pp_section1_body,
                         ),
                         _LegalSection(
-                          title: '2. How We Use Your Data',
-                          body: 'The data we collect is used primarily to match you with relevant food deals and merchants in your area, to personalize your in-app experience, and to facilitate transactions between consumers and merchants.\n\nWe use your contact information to send you notifications about new deals, pickup reminders, and important app updates, subject to your notification preferences.',
+                          title: l10n.pp_section2_title,
+                          body: l10n.pp_section2_body,
                         ),
                         _LegalSection(
-                          title: '3. Data Sharing',
-                          body: 'Tawfir does not sell, rent, or trade your personal information to any third parties for their own marketing or commercial purposes. We treat your data with the highest level of confidentiality and only share it under limited circumstances like reservation coordination with merchants.',
+                          title: l10n.pp_section3_title,
+                          body: l10n.pp_section3_body,
                         ),
                         _LegalSection(
-                          title: '4. Data Security',
-                          body: 'We take the security of your personal data seriously and implement industry-standard technical and organizational measures to protect it. All data transmitted between your device and our servers is encrypted using TLS/SSL protocols.',
+                          title: l10n.pp_section4_title,
+                          body: l10n.pp_section4_body,
                         ),
                         _LegalSection(
-                          title: '5. Your Rights',
-                          body: 'Under applicable data protection laws, you have several rights regarding your personal data. You have the right to access the personal information we hold about you, to request corrections, and to request the permanent deletion of your account.',
+                          title: l10n.pp_section5_title,
+                          body: l10n.pp_section5_body,
                           isLast: true,
                         ),
                       ],
@@ -70,7 +70,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   const SizedBox(height: 40),
                   Center(
                     child: Text(
-                      'Questions? Email us at privacy@tawfir.dz',
+                      l10n.pp_contact_footer,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,

@@ -344,6 +344,7 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
                             isRequested: state is CharityLoaded
                                 ? state.myRequests.any((req) => req.donationId == item.id)
                                 : false,
+                            prominentImage: true,
                             onTap: () {
                               final cubit = context.read<CharityCubit>();
                               Navigator.push(

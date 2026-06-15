@@ -30,14 +30,15 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _ordersCubit = OrdersCubit();
-    _ordersCubit.loadOrders();
+    _ordersCubit = context.read<OrdersCubit>();
+    if (_ordersCubit.state is OrdersInitial) {
+      _ordersCubit.loadOrders();
+    }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _ordersCubit.close();
     super.dispose();
   }
 
@@ -70,7 +71,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
             backgroundColor: Colors.white,
             appBar: AppBar(
               title: Text(l10n.my_orders,
-                  style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.black)),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w900, color: Colors.black)),
               backgroundColor: Colors.white,
               elevation: 0,
               centerTitle: true,
@@ -92,7 +94,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                         const SizedBox(width: 6),
                         Text(
                           l10n.pending_orders,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w800),
                         ),
                       ],
                     ),
@@ -102,11 +105,13 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.check_circle_outline_rounded, size: 16),
+                        const Icon(Icons.check_circle_outline_rounded,
+                            size: 16),
                         const SizedBox(width: 6),
                         Text(
                           l10n.active_orders,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w800),
                         ),
                       ],
                     ),
@@ -120,7 +125,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                         const SizedBox(width: 6),
                         Text(
                           l10n.history_orders,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w800),
                         ),
                       ],
                     ),
@@ -142,8 +148,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                           ),
                         );
                       },
-                      icon: const Icon(Icons.route_rounded, color: AppTheme.primary),
-                      tooltip: 'Plan Routes',
+                      icon: const Icon(Icons.route_rounded,
+                          color: AppTheme.primary),
+                      tooltip: l10n.plan_routes,
                     ),
                   ),
               ],
@@ -176,12 +183,22 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
             children: [
               Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20)]),
-                child: Icon(CupertinoIcons.bag, size: 64, color: Colors.grey[200]),
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.03), blurRadius: 20)
+                    ]),
+                child:
+                    Icon(CupertinoIcons.bag, size: 64, color: Colors.grey[200]),
               ),
               const SizedBox(height: 24),
               Text(l10n.no_orders_yet,
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 16, fontWeight: FontWeight.w600)),
+                  style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -253,9 +270,12 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                           ? Image.network(
                               order.merchantImage,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(Icons.storefront_rounded, color: Colors.grey),
+                              errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.storefront_rounded,
+                                  color: Colors.grey),
                             )
-                          : const Icon(Icons.storefront_rounded, color: Colors.grey),
+                          : const Icon(Icons.storefront_rounded,
+                              color: Colors.grey),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -265,14 +285,20 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                       children: [
                         Text(
                           order.merchantName,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.black87),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           order.items,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.3),
+                          style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 13,
+                              height: 1.3),
                         ),
                       ],
                     ),
@@ -282,10 +308,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                 ],
               ),
               const SizedBox(height: 20),
-              
+
               // Summary Info Row
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(16),
@@ -297,9 +324,10 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildInfoItem(CupertinoIcons.calendar, '${order.pickupDate}'),
+                          _buildInfoItem(
+                              CupertinoIcons.calendar, order.pickupDate),
                           const SizedBox(height: 8),
-                          _buildInfoItem(CupertinoIcons.time, '${order.pickupTime}'),
+                          _buildInfoItem(CupertinoIcons.time, order.pickupTime),
                         ],
                       ),
                     ),
@@ -309,19 +337,25 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                       children: [
                         Text(
                           '${order.price.round()} DZD',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.primary),
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.primary),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '#${order.orderNumber}',
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              
+
               // Actions
               if (order.status == OrderStatus.accepted) ...[
                 const SizedBox(height: 16),
@@ -333,13 +367,18 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                       _showQrBottomSheet(context, order);
                     },
                     icon: const Icon(CupertinoIcons.qrcode, size: 20),
-                    label: const Text('VIEW PICKUP QR', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                    label: Text(
+                      l10n.view_pickup_qr,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primary.withOpacity(0.1),
                       foregroundColor: AppTheme.primary,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
                     ),
                   ),
                 ),
@@ -358,8 +397,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            text, 
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF4B5563)),
+            text,
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF4B5563)),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -370,10 +412,26 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
 
   Widget _buildStatusBadge(AppLocalizations l10n, OrderStatus status) {
     final (color, label, icon) = switch (status) {
-      OrderStatus.pending => (const Color(0xFF3B82F6), l10n.status_pending, Icons.hourglass_empty),
-      OrderStatus.accepted => (const Color(0xFFF59E0B), 'Accepted', Icons.thumb_up_alt_outlined),
-      OrderStatus.collected => (const Color(0xFF10B981), l10n.status_collected, Icons.check_circle),
-      OrderStatus.canceled => (const Color(0xFFEF4444), l10n.status_canceled, Icons.cancel_outlined),
+      OrderStatus.pending => (
+          const Color(0xFF3B82F6),
+          l10n.status_pending,
+          Icons.hourglass_empty
+        ),
+      OrderStatus.accepted => (
+          const Color(0xFFF59E0B),
+          l10n.status_accepted,
+          Icons.thumb_up_alt_outlined
+        ),
+      OrderStatus.collected => (
+          const Color(0xFF10B981),
+          l10n.status_collected,
+          Icons.check_circle
+        ),
+      OrderStatus.canceled => (
+          const Color(0xFFEF4444),
+          l10n.status_canceled,
+          Icons.cancel_outlined
+        ),
     };
 
     return Container(
@@ -404,17 +462,22 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
-        children: List.generate(3, (index) => Container(
-          margin: const EdgeInsets.only(bottom: 20),
-          height: 180,
-          width: double.infinity,
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28)),
-        )),
+        children: List.generate(
+            3,
+            (index) => Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  height: 180,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28)),
+                )),
       ),
     );
   }
 
   Future<void> _showQrBottomSheet(BuildContext context, Order order) async {
+    final l10n = AppLocalizations.of(context)!;
     Map<String, dynamic>? qrData;
     try {
       qrData = await _ordersCubit.fetchOrderQr(order.id);
@@ -445,35 +508,74 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8))),
+            Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(8))),
             const SizedBox(height: 24),
-            const Text('Show this QR at pickup', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppTheme.primary)),
+            Text(
+              l10n.show_qr_at_pickup,
+              style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.primary),
+            ),
             const SizedBox(height: 8),
-            Text(order.merchantName, style: TextStyle(fontSize: 14, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+            Text(order.merchantName,
+                style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                    fontWeight: FontWeight.w500)),
             const SizedBox(height: 32),
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)],
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.05), blurRadius: 20)
+                ],
               ),
-              child: QrImageView(data: qrContent, size: 200, errorCorrectionLevel: QrErrorCorrectLevel.H),
+              child: QrImageView(
+                  data: qrContent,
+                  size: 200,
+                  errorCorrectionLevel: QrErrorCorrectLevel.H),
             ),
             const SizedBox(height: 32),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: BoxDecoration(color: const Color(0xFFF9FBFB), borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(
+                  color: const Color(0xFFF9FBFB),
+                  borderRadius: BorderRadius.circular(20)),
               child: Column(
                 children: [
-                  Text('PICKUP CODE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.grey.shade400, letterSpacing: 1)),
+                  Text(
+                    l10n.pickup_code_label.toUpperCase(),
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.grey.shade400,
+                        letterSpacing: 1),
+                  ),
                   const SizedBox(height: 8),
-                  Text(pickupCode, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 8, color: AppTheme.primary)),
+                  Text(pickupCode,
+                      style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 8,
+                          color: AppTheme.primary)),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-            Text(order.orderNumber, style: TextStyle(fontSize: 12, color: Colors.grey.shade400, fontWeight: FontWeight.w600)),
+            Text(order.orderNumber,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade400,
+                    fontWeight: FontWeight.w600)),
           ],
         ),
       ),

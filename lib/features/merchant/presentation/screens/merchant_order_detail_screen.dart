@@ -7,6 +7,8 @@ import 'package:anti_food_waste_app/features/merchant/presentation/screens/merch
 import 'package:anti_food_waste_app/features/merchant/presentation/widgets/merchant_status_badge.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import 'package:anti_food_waste_app/core/app_theme.dart';
+
 class MerchantOrderDetailScreen extends StatelessWidget {
   final MerchantOrder order;
 
@@ -61,7 +63,8 @@ class MerchantOrderDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
@@ -97,8 +100,9 @@ class MerchantOrderDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.grey.shade50),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,12 +139,14 @@ class MerchantOrderDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.timeline_label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5)),
+          Text(l10n.timeline_label.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5)),
           const SizedBox(height: 24),
           _TimelineRow(label: l10n.order_placed_label, time: _fmtTime(order.orderedAt), isDone: true),
           _TimelineRow(

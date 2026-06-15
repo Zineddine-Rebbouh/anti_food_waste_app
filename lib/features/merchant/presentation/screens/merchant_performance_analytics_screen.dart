@@ -112,7 +112,7 @@ class _MerchantPerformanceAnalyticsScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
       ),
       child: Row(
         children: [
@@ -139,7 +139,7 @@ class _MerchantPerformanceAnalyticsScreenState
           child: Text(
             label,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey.shade400,
+              color: isSelected ? Colors.white : Colors.grey.shade700,
               fontSize: 10,
               fontWeight: FontWeight.w900,
               letterSpacing: 1,
@@ -226,7 +226,7 @@ class _DayAnalyticsTab extends StatelessWidget {
         const SizedBox(height: 40),
         Text(
           l10n.activity_peaks,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF374151), letterSpacing: 1.5),
         ),
         const SizedBox(height: 20),
         _BarChart(
@@ -241,7 +241,7 @@ class _DayAnalyticsTab extends StatelessWidget {
         const SizedBox(height: 40),
         Text(
           l10n.daily_breakdown,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF374151), letterSpacing: 1.5),
         ),
         const SizedBox(height: 20),
         _BreakdownCard(
@@ -315,7 +315,7 @@ class _PeriodAnalyticsTab extends StatelessWidget {
         const SizedBox(height: 40),
         Text(
           l10n.performance_trend,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF374151), letterSpacing: 1.5),
         ),
         const SizedBox(height: 20),
         _BarChart(
@@ -330,7 +330,7 @@ class _PeriodAnalyticsTab extends StatelessWidget {
         const SizedBox(height: 40),
         Text(
           l10n.revenue_breakdown,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF374151), letterSpacing: 1.5),
         ),
         const SizedBox(height: 20),
         _BreakdownCard(
@@ -367,7 +367,7 @@ class _KpiCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade50),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,7 +396,7 @@ class _KpiCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label.toUpperCase(),
-            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 0.5),
+            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF4B5563), letterSpacing: 0.5),
           ),
         ],
       ),
@@ -422,6 +422,7 @@ class _BarChart extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
       ),
       child: SizedBox(
         height: 160,
@@ -455,7 +456,7 @@ class _BarChart extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   b.label,
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey.shade400),
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF4B5563)),
                 ),
               ],
             );
@@ -485,6 +486,7 @@ class _BreakdownCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
       ),
       child: Column(
         children: rows.asMap().entries.map((e) {
@@ -495,7 +497,7 @@ class _BreakdownCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: r.isMain ? Colors.white : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
-              border: i == 0 || r.isMain ? null : Border(top: BorderSide(color: Colors.grey.shade50)),
+              border: i == 0 || r.isMain ? null : Border(top: BorderSide(color: Colors.grey.shade100)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

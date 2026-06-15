@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/widgets/charity_donation_card.dart';
-import 'package:anti_food_waste_app/features/charity/presentation/widgets/charity_status_badge.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_donation_detail_screen.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_cubit.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_state.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_donations_screen.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/screens/charity_requests_screen.dart';
-import 'package:anti_food_waste_app/core/navigation/app_router.dart';
+import 'package:anti_food_waste_app/features/notifications/presentation/cubits/notifications_cubit.dart';
+import 'package:anti_food_waste_app/features/notifications/presentation/cubits/notifications_state.dart';
+import 'package:anti_food_waste_app/shared/widgets/notification_panel.dart';
 
 class CharityHomeScreen extends StatefulWidget {
   const CharityHomeScreen({super.key});
@@ -26,7 +26,7 @@ class CharityHomeScreen extends StatefulWidget {
 class _CharityHomeScreenState extends State<CharityHomeScreen> {
   int _availableCount(List<CharityDonation> donations) =>
       donations.where((d) => d.status == DonationStatus.available).length;
-  
+
   int _urgentCount(List<CharityDonation> donations) => donations
       .where((d) =>
           d.urgency == UrgencyLevel.critical ||
@@ -39,26 +39,26 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
           r.status == PickupRequestStatus.approved)
       .length;
 
-  int get _totalMeals => 1250; 
+  int get _totalMeals => 1250;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return Scaffold(
       backgroundColor: CharityHomeScreen.accentBeige,
       body: BlocBuilder<CharityCubit, CharityState>(
         builder: (context, state) {
           var donations = <CharityDonation>[];
           var requests = <CharityPickupRequest>[];
-          
+
           if (state is CharityLoading) {
             return const Center(child: CircularProgressIndicator(color: CharityHomeScreen.primaryGreen));
           } else if (state is CharityLoaded) {
             donations = state.donations;
             requests = state.myRequests;
           }
-          
+
           return RefreshIndicator(
             onRefresh: () async => context.read<CharityCubit>().fetchCharityData(),
             color: CharityHomeScreen.primaryGreen,
@@ -93,14 +93,30 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
-        color: CharityHomeScreen.primaryGreen,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [CharityHomeScreen.primaryGreen, Color(0xFF0D2119)],
+        ),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(40),
           bottomRight: Radius.circular(40),
         ),
       ),
-      child: SafeArea(
-        bottom: false,
+      child: Stack(
+        children: [
+          Positioned(
+            top: -20,
+            right: -20,
+            child: Container(width: 150, height: 150, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle)),
+          ),
+          Positioned(
+            bottom: 20,
+            left: -40,
+            child: Container(width: 120, height: 120, decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), shape: BoxShape.circle)),
+          ),
+          SafeArea(
+            bottom: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 60),
           child: Column(
@@ -159,15 +175,40 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
                     const SizedBox(width: 8),
                     Row(
                       children: [
-                        InkWell(
-                          onTap: () => Navigator.pushNamed(context, AppRoutes.notifications),
-                          borderRadius: BorderRadius.circular(14),
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(14)),
-                            child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 22),
-                          ),
+                        BlocBuilder<NotificationsCubit, NotificationsState>(
+                          builder: (context, state) {
+                            var unreadCount = 0;
+                            if (state is NotificationsLoaded) {
+                              unreadCount = state.unreadCount;
+                            }
+                            return InkWell(
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (ctx) => const NotificationPanel(),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(14),
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Center(
+                                  child: Badge(
+                                    isLabelVisible: unreadCount > 0,
+                                    label: Text(unreadCount.toString()),
+                                    backgroundColor: Colors.red,
+                                    child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 22),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -190,6 +231,8 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
             ],
           ),
         ),
+      ),
+        ],
       ),
     );
   }
@@ -284,6 +327,7 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
         return CharityDonationCard(
           donation: d,
           isRequested: isRequested,
+          prominentImage: true,
           onTap: () {
             final cubit = context.read<CharityCubit>();
             Navigator.push(
@@ -416,6 +460,4 @@ class _ActionCard extends StatelessWidget {
     );
   }
 }
-
-
 

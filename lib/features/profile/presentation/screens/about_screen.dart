@@ -43,11 +43,11 @@ class AboutScreen extends StatelessWidget {
                             style: TextStyle(fontSize: 15, color: Colors.grey[700], height: 1.6, fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 20),
-                          const _BulletPoint(text: 'Reduce food waste across Algeria'),
+                          _BulletPoint(text: l10n.reduce_food_waste),
                           const SizedBox(height: 10),
-                          const _BulletPoint(text: 'Support local merchants and businesses'),
+                          _BulletPoint(text: l10n.support_local_merchants),
                           const SizedBox(height: 10),
-                          const _BulletPoint(text: 'Build greener, more sustainable communities'),
+                          _BulletPoint(text: l10n.build_greener_communities),
                         ],
                       ),
                     ),
@@ -61,31 +61,13 @@ class AboutScreen extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            const _StatItem(value: '500+', label: 'Merchants'),
+                            _StatItem(value: '500+', label: l10n.about_stat_merchants),
                             Container(width: 1, height: 40, color: Colors.grey[100]),
-                            const _StatItem(value: '10k+', label: 'Meals Saved'),
+                            _StatItem(value: '10k+', label: l10n.about_stat_meals),
                             Container(width: 1, height: 40, color: Colors.grey[100]),
-                            const _StatItem(value: '50+', label: 'Wilayas'),
+                            _StatItem(value: '50+', label: l10n.about_stat_wilayas),
                           ],
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  FadeInUp(
-                    delay: const Duration(milliseconds: 200),
-                    child: _AboutCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _AboutSectionTitle(l10n.meet_the_team),
-                          const SizedBox(height: 20),
-                          const _TeamMember(initials: 'ZR', name: 'Zineddine Rahim', role: 'Founder & Developer', avatarColor: forestGreen),
-                          const SizedBox(height: 16),
-                          const _TeamMember(initials: 'AI', name: 'Amir Ibrahimi', role: 'UI/UX Designer', avatarColor: Color(0xFF2D6A4F)),
-                          const SizedBox(height: 16),
-                          const _TeamMember(initials: 'SK', name: 'Sara Kaouani', role: 'Marketing & Partnerships', avatarColor: Color(0xFF40916C)),
-                        ],
                       ),
                     ),
                   ),
@@ -98,9 +80,9 @@ class AboutScreen extends StatelessWidget {
                         children: [
                           _AboutSectionTitle(l10n.contact_us_label),
                           const SizedBox(height: 16),
-                          _ContactTile(icon: Icons.mail_rounded, label: 'contact@tawfir.dz', onTap: () {}),
+                          const _ContactTile(icon: Icons.mail_rounded, label: 'contact@tawfir.dz', onTap: null),
                           Divider(height: 1, color: Colors.grey[50]),
-                          _ContactTile(icon: Icons.camera_alt_rounded, label: '@tawfir.dz', onTap: () {}),
+                          const _ContactTile(icon: Icons.camera_alt_rounded, label: '@tawfir.dz', onTap: null),
                         ],
                       ),
                     ),
@@ -303,9 +285,9 @@ class _TeamMember extends StatelessWidget {
 class _ContactTile extends StatelessWidget {
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
-  const _ContactTile({required this.icon, required this.label, required this.onTap});
+  const _ContactTile({required this.icon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {

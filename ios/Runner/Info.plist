@@ -49,6 +49,10 @@
 	<string>Tawfir needs your location to show nearby food listings.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Tawfir needs your location to show nearby food listings.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Tawfir uses the microphone to turn your voice into chat text.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Tawfir uses speech recognition to insert dictated text into chat.</string>
 	<key>CFBundleURLTypes</key>
 <array>
   <dict>

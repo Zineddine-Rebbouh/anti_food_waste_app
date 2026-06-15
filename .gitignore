@@ -78,3 +78,6 @@ Thumbs.db
 *.swo
 
 *.txt
+
+# Dart analysis temp files
+.dartServer/**/*.unlinked2*

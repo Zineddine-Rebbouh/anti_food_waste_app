@@ -45,10 +45,14 @@ class CharityDonationDetailScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       _buildKeyStats(l10n),
                       const SizedBox(height: 24),
-                      _buildDescriptionSection(l10n),
-                      const SizedBox(height: 24),
-                      _buildDietarySection(l10n),
-                      const SizedBox(height: 24),
+                      if (donation.description.isNotEmpty) ...([
+                        _buildDescriptionSection(l10n),
+                        const SizedBox(height: 24),
+                      ]),
+                      if (donation.dietaryTags.isNotEmpty) ...([
+                        _buildDietarySection(l10n),
+                        const SizedBox(height: 24),
+                      ]),
                       _buildPickupWindowSection(l10n),
                       const SizedBox(height: 24),
                       _buildMerchantSection(l10n),
@@ -262,7 +266,8 @@ class CharityDonationDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: surfaceWhite,
         borderRadius: BorderRadius.circular(32),
-        boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 8))],
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,7 +289,8 @@ class CharityDonationDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: surfaceWhite,
         borderRadius: BorderRadius.circular(32),
-        boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 8))],
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,7 +367,8 @@ class CharityDonationDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: surfaceWhite,
         borderRadius: BorderRadius.circular(32),
-        boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 8))],
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,7 +475,12 @@ class _StatBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: CharityDonationDetailScreen.surfaceWhite, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: CharityDonationDetailScreen.primaryGreen.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
+      decoration: BoxDecoration(
+        color: CharityDonationDetailScreen.surfaceWhite,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [BoxShadow(color: CharityDonationDetailScreen.primaryGreen.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
       child: Column(
         children: [
           Icon(icon, size: 20, color: CharityDonationDetailScreen.primaryGreen),

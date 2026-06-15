@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
-import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -10,20 +9,26 @@ class CharityDonationCard extends StatelessWidget {
   final CharityDonation donation;
   final VoidCallback onTap;
   final bool isRequested;
+  final bool prominentImage;
 
   const CharityDonationCard({
     super.key,
     required this.donation,
     required this.onTap,
     this.isRequested = false,
+    this.prominentImage = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final urgencyColor = _urgencyColor(donation.urgency);
     final claimed = donation.status != DonationStatus.available || isRequested;
-    const Color forestGreen = Color(0xFF2D8659);
-    const Color textNavy = Color(0xFF1A1A2E);
+    const forestGreen = Color(0xFF2D8659);
+    const textNavy = Color(0xFF1A1A2E);
+    final imageSize = prominentImage ? 124.0 : 72.0;
+    final imageRadius = prominentImage ? 22.0 : 18.0;
+    final fallbackIconSize = prominentImage ? 36.0 : 28.0;
+    final titleSize = prominentImage ? 17.0 : 16.0;
 
     return GestureDetector(
       onTap: onTap,
@@ -50,10 +55,12 @@ class CharityDonationCard extends StatelessWidget {
               if (donation.urgency != UrgencyLevel.normal)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
                     color: urgencyColor.withOpacity(0.08),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   child: Row(
                     children: [
@@ -77,68 +84,72 @@ class CharityDonationCard extends StatelessWidget {
               // ── Main Content ─────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Enhanced Listing Image
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: forestGreen.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        child: donation.imageUrl != null && donation.imageUrl!.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: donation.imageUrl!,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Center(
-                                  child: CircularProgressIndicator(
-                                    color: forestGreen,
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                                errorWidget: (context, url, error) =>
-                                    Icon(_categoryIcon(donation.category), color: forestGreen, size: 28),
-                              )
-                            : Icon(_categoryIcon(donation.category), color: forestGreen, size: 28),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-
-                    // Info Column
-                    Expanded(
-                      child: Column(
+                child: prominentImage
+                    ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: isRequested ? const Color(0xFF3B82F6).withOpacity(0.1) : forestGreen.withOpacity(0.06),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  isRequested ? 'REQUESTED' : donation.categoryLabel.toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w900,
-                                    color: isRequested ? const Color(0xFF1D4ED8) : forestGreen,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Container(
+                            width: double.infinity,
+                            height: 178,
+                            decoration: BoxDecoration(
+                              color: forestGreen.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(imageRadius),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(imageRadius),
+                              child: donation.imageUrl != null &&
+                                      donation.imageUrl!.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: donation.imageUrl!,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) =>
+                                          const Center(
+                                        child: CircularProgressIndicator(
+                                          color: forestGreen,
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) =>
+                                          Icon(_categoryIcon(donation.category),
+                                              color: forestGreen,
+                                              size: fallbackIconSize),
+                                    )
+                                  : Center(
+                                      child: Icon(_categoryIcon(donation.category),
+                                          color: forestGreen,
+                                          size: fallbackIconSize),
+                                    ),
+                            ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 9, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isRequested
+                                  ? const Color(0xFF3B82F6).withOpacity(0.1)
+                                  : forestGreen.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              isRequested
+                                  ? 'REQUESTED'
+                                  : donation.categoryLabel.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                color: isRequested
+                                    ? const Color(0xFF1D4ED8)
+                                    : forestGreen,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 9),
                           Text(
                             donation.title,
-                            style: const TextStyle(
-                              fontSize: 16,
+                            style: TextStyle(
+                              fontSize: titleSize,
                               fontWeight: FontWeight.w800,
                               color: textNavy,
                               letterSpacing: -0.3,
@@ -146,11 +157,12 @@ class CharityDonationCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           Row(
                             children: [
-                              Icon(Icons.storefront_rounded, size: 12, color: Colors.grey[400]),
-                              const SizedBox(width: 4),
+                              Icon(Icons.storefront_rounded,
+                                  size: 13, color: Colors.grey[400]),
+                              const SizedBox(width: 5),
                               Expanded(
                                 child: Text(
                                   donation.merchantName,
@@ -166,18 +178,127 @@ class CharityDonationCard extends StatelessWidget {
                             ],
                           ),
                         ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Enhanced Listing Image
+                          Container(
+                            width: imageSize,
+                            height: imageSize,
+                            decoration: BoxDecoration(
+                              color: forestGreen.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(imageRadius),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(imageRadius),
+                              child: donation.imageUrl != null &&
+                                      donation.imageUrl!.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: donation.imageUrl!,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) =>
+                                          const Center(
+                                        child: CircularProgressIndicator(
+                                          color: forestGreen,
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) =>
+                                          Icon(_categoryIcon(donation.category),
+                                              color: forestGreen,
+                                              size: fallbackIconSize),
+                                    )
+                                  : Icon(_categoryIcon(donation.category),
+                                      color: forestGreen,
+                                      size: fallbackIconSize),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Info Column
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: isRequested
+                                            ? const Color(0xFF3B82F6)
+                                                .withOpacity(0.1)
+                                            : forestGreen.withOpacity(0.06),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        isRequested
+                                            ? 'REQUESTED'
+                                            : donation.categoryLabel
+                                                .toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w900,
+                                          color: isRequested
+                                              ? const Color(0xFF1D4ED8)
+                                              : forestGreen,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  donation.title,
+                                  style: TextStyle(
+                                    fontSize: titleSize,
+                                    fontWeight: FontWeight.w800,
+                                    color: textNavy,
+                                    letterSpacing: -0.3,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.storefront_rounded,
+                                        size: 12, color: Colors.grey[400]),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        donation.merchantName,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey[500],
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
 
               // ── Footer Bar ───────────────────────────────────────────────
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                  borderRadius:
+                      const BorderRadius.vertical(bottom: Radius.circular(24)),
                   border: Border(top: BorderSide(color: Colors.grey.shade100)),
                 ),
                 child: Row(
@@ -195,7 +316,8 @@ class CharityDonationCard extends StatelessWidget {
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(10),
@@ -203,7 +325,8 @@ class CharityDonationCard extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.access_time_filled_rounded, size: 12, color: forestGreen.withOpacity(0.6)),
+                          Icon(Icons.access_time_filled_rounded,
+                              size: 12, color: forestGreen.withOpacity(0.6)),
                           const SizedBox(width: 6),
                           Text(
                             '${donation.pickupWindowStart}–${donation.pickupWindowEnd}',
@@ -264,7 +387,8 @@ class _FooterChip extends StatelessWidget {
   final String label;
   final Color color;
 
-  const _FooterChip({required this.icon, required this.label, required this.color});
+  const _FooterChip(
+      {required this.icon, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -292,6 +416,3 @@ class _FooterChip extends StatelessWidget {
     );
   }
 }
-
-
-

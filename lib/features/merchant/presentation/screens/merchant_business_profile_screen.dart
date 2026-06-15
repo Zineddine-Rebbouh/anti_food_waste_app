@@ -319,7 +319,7 @@ class _MerchantBusinessProfileScreenState
         alignment: Alignment.centerLeft,
         child: Text(
           title,
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.grey.shade400),
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Color(0xFF374151)),
         ),
       ),
     );
@@ -332,7 +332,7 @@ class _MerchantBusinessProfileScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(children: children),
@@ -356,14 +356,26 @@ class _MerchantBusinessProfileScreenState
           controller: controller,
           keyboardType: keyboardType,
           validator: validator,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF111827)),
           decoration: InputDecoration(
             hintText: hintText,
-            prefixIcon: Icon(icon, color: Colors.grey.shade300, size: 20),
+            hintStyle: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w500),
+            prefixIcon: Icon(icon, color: primaryGreen.withOpacity(0.7), size: 20),
             filled: true,
             fillColor: backgroundColor.withOpacity(0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(vertical: 18),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: primaryGreen, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
           ),
         ),
       ],
@@ -392,14 +404,25 @@ class _MerchantBusinessProfileScreenState
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: safeValue,
-          items: types.map((t) => DropdownMenuItem(value: t.$2, child: Text(t.$1, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)))).toList(),
+          items: types.map((t) => DropdownMenuItem(value: t.$2, child: Text(t.$1, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF111827))))).toList(),
           onChanged: (v) => setState(() => _selectedType = v ?? _selectedType),
           decoration: InputDecoration(
-            prefixIcon: Icon(Icons.category_outlined, color: Colors.grey.shade300, size: 20),
+            prefixIcon: Icon(Icons.category_outlined, color: primaryGreen.withOpacity(0.7), size: 20),
             filled: true,
             fillColor: backgroundColor.withOpacity(0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(vertical: 18),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: primaryGreen, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
           ),
         ),
       ],
@@ -468,10 +491,10 @@ class _MerchantBusinessProfileScreenState
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Row(
               children: [
-                SizedBox(width: 100, child: Text(h.$1, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14))),
-                Container(width: 8, height: 8, decoration: BoxDecoration(color: h.$3 ? const Color(0xFF2D8659) : Colors.grey.shade200, shape: BoxShape.circle)),
+                SizedBox(width: 100, child: Text(h.$1, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF111827)))),
+                Container(width: 8, height: 8, decoration: BoxDecoration(color: h.$3 ? const Color(0xFF2D8659) : Colors.grey.shade300, shape: BoxShape.circle)),
                 const SizedBox(width: 12),
-                Text(h.$2, style: TextStyle(color: h.$3 ? Colors.black87 : Colors.grey.shade400, fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(h.$2, style: TextStyle(color: h.$3 ? const Color(0xFF111827) : Colors.grey.shade700, fontWeight: FontWeight.w600, fontSize: 13)),
               ],
             ),
           )).toList(),

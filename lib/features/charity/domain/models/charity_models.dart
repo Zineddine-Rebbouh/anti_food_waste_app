@@ -52,65 +52,139 @@ class CharityDonation {
   });
 
   factory CharityDonation.fromJson(Map<String, dynamic> json) {
-    // Basic mapping from backend DonationListSerializer
+    // ── Status ────────────────────────────────────────────────────────────────
     final statusStr = json['status'] as String? ?? 'available';
     var parsedStatus = DonationStatus.available;
     if (statusStr == 'assigned') parsedStatus = DonationStatus.claimed;
     if (statusStr == 'collected') parsedStatus = DonationStatus.collected;
-    DateTime? colStart;
-    DateTime? colEnd;
-    try {
-      if (json['collection_start'] != null) colStart = DateTime.parse(json['collection_start']);
-      if (json['collection_end'] != null) colEnd = DateTime.parse(json['collection_end']);
-    } catch (_) {}
+
+    // ── Pickup window ─────────────────────────────────────────────────────────
+    DateTime? winStart;
+    DateTime? winEnd;
+    final startStr = (json['listing_pickup_start'] ?? json['collection_start'])?.toString();
+    final endStr   = (json['listing_pickup_end']   ?? json['collection_end'])?.toString();
+    try { if (startStr != null) winStart = DateTime.parse(startStr).toLocal(); } catch (_) {}
+    try { if (endStr   != null) winEnd   = DateTime.parse(endStr).toLocal();   } catch (_) {}
     final now = DateTime.now();
-    colStart ??= now;
-    colEnd ??= now.add(const Duration(hours: 2));
+    winStart ??= now;
+    winEnd   ??= now.add(const Duration(hours: 2));
+
+    String fmtTime(DateTime dt) =>
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+    // ── Category ──────────────────────────────────────────────────────────────
+    DonationCategory parsedCategory = DonationCategory.grocery;
+    final catSlug = (json['listing_category'] as String? ?? '').toLowerCase();
+    if (catSlug.contains('boulang') || catSlug.contains('bak') || catSlug.contains('patiss')) {
+      parsedCategory = DonationCategory.bakery;
+    } else if (catSlug.contains('restaurant') || catSlug.contains('fast')) {
+      parsedCategory = DonationCategory.restaurant;
+    } else if (catSlug.contains('cafe') || catSlug.contains('caf') || catSlug.contains('coffee')) {
+      parsedCategory = DonationCategory.cafe;
+    } else if (catSlug.contains('hotel') || catSlug.contains('traiteur')) {
+      parsedCategory = DonationCategory.hotel;
+    }
+
+    // ── Dietary tags ──────────────────────────────────────────────────────────
+    final List<String> dietaryTags = [];
+    final flagsRaw = json['listing_dietary_flags'];
+    if (flagsRaw is List) dietaryTags.addAll(flagsRaw.map((e) => e.toString()));
+    final allergensRaw = json['listing_allergens'];
+    if (allergensRaw is List) {
+      for (final a in allergensRaw) {
+        final s = a.toString();
+        if (!dietaryTags.contains(s)) dietaryTags.add(s);
+      }
+    }
+
+    // ── Address ───────────────────────────────────────────────────────────────
+    final addrParts = <String>[
+      json['merchant_address']?.toString() ?? '',
+      json['merchant_wilaya']?.toString() ?? '',
+    ].where((s) => s.isNotEmpty).toList();
+    final address = addrParts.join(', ');
+
+    // ── Quantity & servings ───────────────────────────────────────────────────
+    final qty = (json['listing_quantity'] as num?)?.toDouble() ?? 0.0;
+    final servings = qty > 0 ? (qty * 3).round() : 0;
+
+    // ── Urgency ───────────────────────────────────────────────────────────────
+    final hoursLeft = winEnd.difference(now).inHours;
+    final urgency = hoursLeft < 1
+        ? UrgencyLevel.critical
+        : hoursLeft < 3
+            ? UrgencyLevel.urgent
+            : UrgencyLevel.normal;
 
     return CharityDonation(
-      id: json['id']?.toString() ?? '',
-      title: json['listing_title']?.toString() ?? 'Donation',
-      description: '', 
-      merchantName: json['merchant_name']?.toString() ?? 'Unknown Merchant',
-      merchantAddress: 'Address Not Provided',
-      imageUrl: CharityDonation.normalizeUrl(json['listing_photo']?.toString()),
-      category: DonationCategory.grocery,
-      quantityKg: 0.0,
-      estimatedServings: 0,
-      dietaryTags: const [],
-      expiresAt: colEnd,
-      pickupWindowStart: '00:00',
-      pickupWindowEnd: '00:00',
-      distanceKm: 0.0,
-      status: parsedStatus,
-      urgency: UrgencyLevel.normal,
-      postedAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
+      id:               json['id']?.toString() ?? '',
+      title:            json['listing_title']?.toString() ?? 'Donation',
+      description:      json['listing_description']?.toString() ?? '',
+      merchantName:     json['merchant_name']?.toString() ?? 'Unknown Merchant',
+      merchantAddress:  address.isNotEmpty ? address : 'Address Not Provided',
+      imageUrl:         CharityDonation.normalizeUrl(json['listing_photo']?.toString()),
+      category:         parsedCategory,
+      quantityKg:       qty,
+      estimatedServings: servings,
+      dietaryTags:      dietaryTags,
+      expiresAt:        winEnd,
+      pickupWindowStart: fmtTime(winStart),
+      pickupWindowEnd:   fmtTime(winEnd),
+      distanceKm:       0.0,
+      status:           parsedStatus,
+      urgency:          urgency,
+      postedAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
     );
   }
+
   factory CharityDonation.fromJsonDetail(Map<String, dynamic> json) {
-    final parent = CharityDonation.fromJson(json); // Get basics
+    final parent  = CharityDonation.fromJson(json);
     final listing = json['listing'] as Map<String, dynamic>? ?? {};
+    final info    = listing['merchant_info'] as Map<String, dynamic>? ?? {};
+
+    final descDetail = listing['description']?.toString() ?? parent.description;
+    final qty        = double.tryParse(listing['quantity_available']?.toString() ?? '') ??
+                       double.tryParse(listing['quantity_total']?.toString() ?? '') ??
+                       parent.quantityKg;
+    final imgUrl     = CharityDonation.normalizeUrl(
+        listing['primary_photo_url']?.toString() ?? parent.imageUrl ?? '');
+
+    final List<String> tags = List<String>.from(parent.dietaryTags);
+    if (listing['dietary_flags'] is List) {
+      for (final t in listing['dietary_flags'] as List) {
+        final s = t.toString();
+        if (!tags.contains(s)) tags.add(s);
+      }
+    }
+
+    final addrDet = <String>[
+      info['address']?.toString() ?? '',
+      info['wilaya']?.toString() ?? '',
+    ].where((s) => s.isNotEmpty).join(', ');
 
     return CharityDonation(
-      id: parent.id,
-      title: listing['title']?.toString() ?? parent.title,
-      description: listing['description']?.toString() ?? parent.description,
-      merchantName: parent.merchantName,
-      merchantAddress: listing['merchant_address']?.toString() ?? parent.merchantAddress, 
-      imageUrl: CharityDonation.normalizeUrl(listing['primary_photo_url']?.toString() ?? parent.imageUrl),
-      category: parent.category, 
-      quantityKg: double.tryParse(listing['quantity']?.toString() ?? '0') ?? 0.0,
-      estimatedServings: parent.estimatedServings,
-      dietaryTags: const [],
-      expiresAt: parent.expiresAt,
+      id:               parent.id,
+      title:            listing['title']?.toString() ?? parent.title,
+      description:      descDetail,
+      merchantName:     parent.merchantName,
+      merchantAddress:  addrDet.isNotEmpty ? addrDet : parent.merchantAddress,
+      imageUrl:         imgUrl,
+      category:         parent.category,
+      quantityKg:       qty,
+      estimatedServings: qty > 0 ? (qty * 3).round() : parent.estimatedServings,
+      dietaryTags:      tags,
+      expiresAt:        parent.expiresAt,
       pickupWindowStart: parent.pickupWindowStart,
-      pickupWindowEnd: parent.pickupWindowEnd,
-      distanceKm: double.tryParse(listing['distance_km']?.toString() ?? '0') ?? parent.distanceKm,
-      status: parent.status,
-      urgency: parent.urgency,
-      postedAt: parent.postedAt,
+      pickupWindowEnd:   parent.pickupWindowEnd,
+      distanceKm:        double.tryParse(listing['distance_km']?.toString() ?? '') ?? parent.distanceKm,
+      status:            parent.status,
+      urgency:           parent.urgency,
+      postedAt:          parent.postedAt,
     );
   }
+
   static String normalizeUrl(String? url) {
     if (url == null || url.isEmpty) return '';
     

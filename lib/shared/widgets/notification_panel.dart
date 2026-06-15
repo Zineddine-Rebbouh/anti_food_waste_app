@@ -21,13 +21,13 @@ class NotificationPanel extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+      height: MediaQuery.of(context).size.height * 0.95,
       decoration: const BoxDecoration(
         color: accentBeige,
         borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
         children: [
           const SizedBox(height: 12),
           Container(
@@ -49,7 +49,7 @@ class NotificationPanel extends StatelessWidget {
               }
 
               return Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: MainAxisSize.max,
                 children: [
                   // Header
                   Padding(
@@ -101,7 +101,7 @@ class NotificationPanel extends StatelessWidget {
                     ),
                   ),
                   
-                  Flexible(
+                  Expanded(
                     child: state is NotificationsLoading
                         ? const Padding(
                             padding: EdgeInsets.all(40),
@@ -110,7 +110,6 @@ class NotificationPanel extends StatelessWidget {
                         : notifications.isEmpty
                             ? _buildEmptyState(l10n)
                             : ListView.separated(
-                                shrinkWrap: true,
                                 physics: const BouncingScrollPhysics(),
                                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                                 itemCount: notifications.length,

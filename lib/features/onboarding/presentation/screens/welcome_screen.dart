@@ -24,7 +24,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             end: Alignment.bottomCenter,
             colors: [
               Colors.white,
-              Color(0xFFFFF8E1),
+              Color(0xFFF2F9F2),
             ],
           ),
         ),

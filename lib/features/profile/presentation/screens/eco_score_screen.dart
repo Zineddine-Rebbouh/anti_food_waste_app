@@ -1,10 +1,12 @@
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/features/profile/domain/models/app_user.dart';
+import 'package:anti_food_waste_app/features/profile/domain/models/eco_score_event.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/cubits/eco_score_cubit.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:anti_food_waste_app/shared/widgets/tawfir_loading_indicator.dart';
 
@@ -28,16 +30,19 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: accentBeige,
       body: BlocBuilder<EcoScoreCubit, EcoScoreState>(
         builder: (context, state) {
           return Column(
             children: [
-              _buildHeader(context),
+              _buildHeader(context, l10n),
               Expanded(
                 child: state is EcoScoreLoading
-                    ? const Center(child: TawfirLoadingIndicator(message: 'Calculating Eco Score...'))
+                    ? Center(
+                        child: TawfirLoadingIndicator(
+                            message: l10n.eco_calculating))
                     : state is EcoScoreError
                         ? Center(child: Text(state.message))
                         : state is EcoScoreLoaded
@@ -45,11 +50,11 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
                                 padding: const EdgeInsets.all(24),
                                 child: Column(
                                   children: [
-                                    _buildScoreHeader(state.details),
+                                    _buildScoreHeader(state.details, l10n),
                                     const SizedBox(height: 24),
-                                    _buildTierPrivileges(state.details),
+                                    _buildTierPrivileges(state.details, l10n),
                                     const SizedBox(height: 24),
-                                    _buildHistorySection(state.history),
+                                    _buildHistorySection(state.history, l10n),
                                   ],
                                 ),
                               )
@@ -62,7 +67,7 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -79,13 +84,14 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white, size: 20),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               const SizedBox(width: 8),
-              const Text(
-                'Eco Score',
-                style: TextStyle(
+              Text(
+                l10n.eco_score_title,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
@@ -99,7 +105,7 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
     );
   }
 
-  Widget _buildScoreHeader(Map<String, dynamic> details) {
+  Widget _buildScoreHeader(Map<String, dynamic> details, AppLocalizations l10n) {
     final score = (details['score'] as num? ?? 0).toInt();
     final tier = details['tier_label'] as String? ?? 'Developing';
     final color = _getTierColor(details['tier'] as String? ?? 'developing');
@@ -149,7 +155,7 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
                       ),
                     ),
                     Text(
-                      'POINTS',
+                      l10n.eco_score_points,
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[400],
@@ -193,7 +199,8 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
                   value: score / nextTier['score_needed'],
                   minHeight: 8,
                   backgroundColor: Colors.grey[50],
-                  valueColor: AlwaysStoppedAnimation<Color>(color.withOpacity(0.3)),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(color.withOpacity(0.3)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -212,7 +219,7 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
     );
   }
 
-  Widget _buildTierPrivileges(Map<String, dynamic> details) {
+  Widget _buildTierPrivileges(Map<String, dynamic> details, AppLocalizations l10n) {
     final privileges = details['privileges'] as Map<String, dynamic>? ?? {};
     if (privileges.isEmpty) return const SizedBox.shrink();
 
@@ -221,7 +228,7 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle('Tier Benefits'),
+          _SectionTitle(l10n.eco_tier_benefits),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(24),
@@ -248,7 +255,8 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
                           color: forestGreen.withOpacity(0.08),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(CupertinoIcons.checkmark_alt, color: forestGreen, size: 14),
+                        child: const Icon(CupertinoIcons.checkmark_alt,
+                            color: forestGreen, size: 14),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -272,13 +280,13 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
     );
   }
 
-  Widget _buildHistorySection(List<dynamic> history) {
+  Widget _buildHistorySection(List<EcoScoreEvent> history, AppLocalizations l10n) {
     return FadeInUp(
       delay: const Duration(milliseconds: 400),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle('Score History'),
+          _SectionTitle(l10n.eco_score_history),
           const SizedBox(height: 16),
           if (history.isEmpty)
             Container(
@@ -290,8 +298,9 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
               ),
               child: Center(
                 child: Text(
-                  'No history yet',
-                  style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.w600),
+                  l10n.eco_no_history,
+                  style: TextStyle(
+                      color: Colors.grey[400], fontWeight: FontWeight.w600),
                 ),
               ),
             )
@@ -304,7 +313,8 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
               itemBuilder: (context, index) {
                 final event = history[index];
                 final isPositive = event.delta > 0;
-                final color = isPositive ? const Color(0xFF2D6A4F) : const Color(0xFFBC4749);
+                final color =
+                    isPositive ? forestGreen : const Color(0xFFBC4749);
 
                 return Container(
                   padding: const EdgeInsets.all(20),
@@ -329,7 +339,9 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          isPositive ? CupertinoIcons.add : CupertinoIcons.minus,
+                          isPositive
+                              ? CupertinoIcons.add
+                              : CupertinoIcons.minus,
                           color: color,
                           size: 18,
                         ),
@@ -383,9 +395,9 @@ class _EcoScoreScreenState extends State<EcoScoreScreen> {
       case 'exemplary':
         return const Color(0xFFD4AF37); // Gold
       case 'reliable':
-        return const Color(0xFF4A90E2); // Blue
+        return forestGreen;
       case 'developing':
-        return const Color(0xFF2D6A4F); // Green
+        return forestGreen;
       case 'at_risk':
         return const Color(0xFFBC4749); // Red
       default:

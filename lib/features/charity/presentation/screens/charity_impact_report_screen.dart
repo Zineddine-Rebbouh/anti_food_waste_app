@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_cubit.dart';
+import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_state.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -9,9 +12,16 @@ const Color _accentBeige = Colors.white;
 const Color _textNavy = Color(0xFF1A1A2E);
 
 class CharityImpactReportScreen extends StatefulWidget {
-  const CharityImpactReportScreen({super.key, required this.request});
+  const CharityImpactReportScreen({
+    super.key,
+    required this.request,
+    this.actualWeightKg,
+    this.actualServings,
+  });
 
   final CharityPickupRequest request;
+  final double? actualWeightKg;
+  final int? actualServings;
 
   @override
   State<CharityImpactReportScreen> createState() =>
@@ -22,15 +32,22 @@ class _CharityImpactReportScreenState
     extends State<CharityImpactReportScreen> {
   late int _mealsServed;
   late int _beneficiaries;
+  late double _weightKg;
   final _notesCtrl = TextEditingController();
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
-    _mealsServed = widget.request.estimatedServings;
-    _beneficiaries =
-        (widget.request.estimatedServings ~/ 3).clamp(1, 999);
+    _weightKg = widget.actualWeightKg ?? widget.request.quantityKg;
+    if (_weightKg <= 0) {
+      _weightKg = 10.0; // fallback default
+    }
+    _mealsServed = widget.actualServings ?? widget.request.estimatedServings;
+    if (_mealsServed <= 0) {
+      _mealsServed = (_weightKg * 3).round().clamp(1, 999); // fallback calculation
+    }
+    _beneficiaries = (_mealsServed ~/ 3).clamp(1, 999);
   }
 
   @override
@@ -41,13 +58,27 @@ class _CharityImpactReportScreenState
 
   Future<void> _submit() async {
     setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(milliseconds: 1500));
-    setState(() {
-      _isSubmitting = false;
-    });
-
-    if (!mounted) return;
-    _showSuccessDialog();
+    try {
+      await context.read<CharityCubit>().submitImpactReport(
+        donationId: widget.request.donationId,
+        pickupRequestId: widget.request.id,
+        donationTitle: widget.request.donationTitle,
+        mealsServed: _mealsServed,
+        beneficiaries: _beneficiaries,
+        actualWeightKg: _weightKg,
+        notes: _notesCtrl.text.trim(),
+      );
+      setState(() => _isSubmitting = false);
+      if (!mounted) return;
+      _showSuccessDialog();
+    } catch (e) {
+      setState(() => _isSubmitting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
   }
 
   void _showSuccessDialog() {
@@ -71,7 +102,7 @@ class _CharityImpactReportScreenState
                 Text(
                   l10n.impact_logged_title,
                   style: const TextStyle(
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.w900,
                     color: _forestGreen,
                     letterSpacing: -0.5,
@@ -109,8 +140,11 @@ class _CharityImpactReportScreenState
                     ),
                   ),
                 ),
+                const SizedBox(height: 8),
                 TextButton(
-                  onPressed: () => Navigator.pop(ctx),
+                  onPressed: () {
+                    Navigator.pop(ctx); // Close dialog to view reports list
+                  },
                   style: TextButton.styleFrom(foregroundColor: Colors.grey),
                   child: Text(l10n.view_all_reports),
                 ),
@@ -136,15 +170,71 @@ class _CharityImpactReportScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  FadeInUp(duration: const Duration(milliseconds: 350), child: _buildMealsServedCard(l10n)),
-                  const SizedBox(height: 16),
-                  FadeInUp(delay: const Duration(milliseconds: 80), duration: const Duration(milliseconds: 350), child: _buildBeneficiariesCard(l10n)),
-                  const SizedBox(height: 16),
-                  FadeInUp(delay: const Duration(milliseconds: 160), duration: const Duration(milliseconds: 350), child: _buildImpactPreviewCard(l10n)),
-                  const SizedBox(height: 16),
-                  FadeInUp(delay: const Duration(milliseconds: 240), duration: const Duration(milliseconds: 350), child: _buildNotesCard(l10n)),
-                  const SizedBox(height: 32),
+                  Text(
+                    "LOG NEW IMPACT".toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: _forestGreen.withOpacity(0.6),
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 350),
+                    child: _buildNewReportForm(l10n),
+                  ),
+                  const SizedBox(height: 24),
                   _buildSubmitButton(l10n),
+                  const SizedBox(height: 48),
+                  
+                  // Past reports section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        l10n.view_reports.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: _forestGreen.withOpacity(0.6),
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const Icon(Icons.history_rounded, size: 16, color: _forestGreen),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  BlocBuilder<CharityCubit, CharityState>(
+                    builder: (context, state) {
+                      if (state is CharityLoaded && state.reports.isNotEmpty) {
+                        return ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: state.reports.length,
+                          separatorBuilder: (context, index) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final report = state.reports[index];
+                            return FadeInUp(
+                              duration: const Duration(milliseconds: 300),
+                              delay: Duration(milliseconds: index * 50),
+                              child: _buildPastReportTile(report, l10n),
+                            );
+                          },
+                        );
+                      }
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Text(
+                            "No reports submitted yet",
+                            style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -194,185 +284,102 @@ class _CharityImpactReportScreenState
     );
   }
 
-  // ── Meals Served Card ────────────────────────────────────────────────────────
+  // ── New Report Form ────────────────────────────────────────────────────────
 
-  Widget _buildMealsServedCard(AppLocalizations l10n) {
+  Widget _buildNewReportForm(AppLocalizations l10n) {
     return _ReportCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.meals_served_label.toUpperCase(),
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: _forestGreen.withOpacity(0.5), letterSpacing: 1),
-          ),
-          const SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _CounterButton(
-                icon: Icons.remove_rounded,
-                color: AppTheme.accent,
-                onTap: () {
-                  if (_mealsServed > 0) {
-                    setState(() => _mealsServed--);
-                  }
-                },
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _forestGreen.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.restaurant_rounded, color: _forestGreen, size: 18),
               ),
-              const SizedBox(width: 20),
-              Text(
-                '$_mealsServed',
-                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: _forestGreen, letterSpacing: -1),
-              ),
-              const SizedBox(width: 20),
-              _CounterButton(
-                icon: Icons.add_rounded,
-                color: AppTheme.primary,
-                onTap: () => setState(() => _mealsServed++),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.request.donationTitle,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _textNavy),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.request.merchantName,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500], fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Center(
-            child: GestureDetector(
-              onTap: () => setState(() =>
-                  _mealsServed = widget.request.estimatedServings),
-              child: Text(
-                l10n.reset,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.mutedForeground,
-                  decoration: TextDecoration.underline,
+          const SizedBox(height: 24),
+          
+          // Metrics Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricTile(
+                  Icons.restaurant_rounded,
+                  "$_mealsServed",
+                  l10n.meals_served_label,
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Slider(
-            value: _mealsServed.toDouble().clamp(0, 200),
-            min: 0,
-            max: 200,
-            activeColor: AppTheme.primary,
-            inactiveColor: AppTheme.muted,
-            onChanged: (v) =>
-                setState(() => _mealsServed = v.round()),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Beneficiaries Card ───────────────────────────────────────────────────────
-
-  Widget _buildBeneficiariesCard(AppLocalizations l10n) {
-    return _ReportCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.people_benefited_label.toUpperCase(),
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: _forestGreen.withOpacity(0.5), letterSpacing: 1),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _CounterButton(
-                icon: Icons.remove_rounded,
-                color: AppTheme.accent,
-                onTap: () {
-                  if (_beneficiaries > 0) {
-                    setState(() => _beneficiaries--);
-                  }
-                },
+              Container(width: 1, height: 40, color: Colors.grey.shade100),
+              Expanded(
+                child: _buildMetricTile(
+                  Icons.people_alt_rounded,
+                  "$_beneficiaries",
+                  l10n.people_benefited_label,
+                ),
               ),
-              const SizedBox(width: 20),
-              Text(
-                '$_beneficiaries',
-                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: _forestGreen, letterSpacing: -1),
-              ),
-              const SizedBox(width: 20),
-              _CounterButton(
-                icon: Icons.add_rounded,
-                color: AppTheme.primary,
-                onTap: () => setState(() => _beneficiaries++),
+              Container(width: 1, height: 40, color: Colors.grey.shade100),
+              Expanded(
+                child: _buildMetricTile(
+                  Icons.scale_rounded,
+                  "${_weightKg.toStringAsFixed(1)} kg",
+                  "Food Rescued",
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Center(
-            child: GestureDetector(
-              onTap: () => setState(() => _beneficiaries =
-                  (widget.request.estimatedServings ~/ 3).clamp(1, 999)),
-              child: Text(
-                l10n.reset,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.mutedForeground,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Slider(
-            value: _beneficiaries.toDouble().clamp(0, 100),
-            min: 0,
-            max: 100,
-            activeColor: AppTheme.primary,
-            inactiveColor: AppTheme.muted,
-            onChanged: (v) =>
-                setState(() => _beneficiaries = v.round()),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Impact Preview Card ──────────────────────────────────────────────────────
-
-  Widget _buildImpactPreviewCard(AppLocalizations l10n) {
-    final co2 = (_mealsServed * 0.3).toStringAsFixed(1);
-    final water = _mealsServed * 100;
-    final dzd = _mealsServed * 150;
-
-    return _ReportCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          const SizedBox(height: 20),
+          const Divider(height: 1, color: Color(0xFFF1F1F1)),
+          const SizedBox(height: 20),
+          
+          // Environmental Impact
           Text(
             l10n.impact_preview_label.toUpperCase(),
             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: _forestGreen.withOpacity(0.5), letterSpacing: 1),
           ),
           const SizedBox(height: 14),
-          _ImpactMetricRow(
-            icon: Icons.cloud_outlined,
-            label: l10n.co2_saved_label,
-            value: l10n.co2_saved_value(co2),
+          _buildImpactMetricRow(
+            Icons.cloud_outlined,
+            l10n.co2_saved_label,
+            l10n.co2_saved_value((_mealsServed * 0.3).toStringAsFixed(1)),
           ),
           const SizedBox(height: 10),
-          _ImpactMetricRow(
-            icon: Icons.water_drop_outlined,
-            label: l10n.water_saved_label,
-            value: l10n.water_saved_value(water),
+          _buildImpactMetricRow(
+            Icons.water_drop_outlined,
+            l10n.water_saved_label,
+            l10n.water_saved_value((_mealsServed * 100).toString()),
           ),
           const SizedBox(height: 10),
-          _ImpactMetricRow(
-            icon: Icons.monetization_on_outlined,
-            label: l10n.food_value_label,
-            value: l10n.food_value_currency(dzd),
+          _buildImpactMetricRow(
+            Icons.monetization_on_outlined,
+            l10n.food_value_label,
+            l10n.food_value_currency((_mealsServed * 150).toString()),
           ),
-        ],
-      ),
-    );
-  }
-
-  // ── Notes Card ───────────────────────────────────────────────────────────────
-
-  Widget _buildNotesCard(AppLocalizations l10n) {
-    return _ReportCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          const SizedBox(height: 24),
+          
+          // Notes Card
           Text(
             l10n.any_additional_notes.toUpperCase(),
             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: _forestGreen.withOpacity(0.5), letterSpacing: 1),
@@ -380,7 +387,7 @@ class _CharityImpactReportScreenState
           const SizedBox(height: 10),
           TextFormField(
             controller: _notesCtrl,
-            maxLines: 4,
+            maxLines: 3,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _textNavy),
             decoration: InputDecoration(
               hintText: l10n.distribution_notes_hint,
@@ -390,6 +397,7 @@ class _CharityImpactReportScreenState
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _forestGreen, width: 1.5)),
+              contentPadding: const EdgeInsets.all(16),
             ),
           ),
         ],
@@ -397,43 +405,166 @@ class _CharityImpactReportScreenState
     );
   }
 
+  Widget _buildMetricTile(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: _forestGreen, size: 20),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _textNavy),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 11, color: Colors.grey[500], fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImpactMetricRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: _forestGreen.withOpacity(0.6)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 13, color: _textNavy.withOpacity(0.6), fontWeight: FontWeight.w600),
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _forestGreen),
+        ),
+      ],
+    );
+  }
+
+  // ── Past Report Tile ─────────────────────────────────────────────────────────
+
+  Widget _buildPastReportTile(CharityImpactReport report, AppLocalizations l10n) {
+    final reportedDateStr = "${report.reportedAt.day}/${report.reportedAt.month}/${report.reportedAt.year}";
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  report.donationTitle,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: _textNavy,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                reportedDateStr,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade400,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildMiniMetric(Icons.restaurant_rounded, "${report.mealsServed} meals"),
+              _buildMiniMetric(Icons.people_alt_rounded, "${report.beneficiaries} families"),
+              _buildMiniMetric(Icons.scale_rounded, "${report.actualWeightKg.toStringAsFixed(1)} kg"),
+            ],
+          ),
+          if (report.notes != null && report.notes!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                report.notes!,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  height: 1.4,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniMetric(IconData icon, String label) {
+    return Row(
+      children: [
+        Icon(icon, size: 12, color: _forestGreen.withOpacity(0.7)),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: _textNavy,
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── Submit Button ────────────────────────────────────────────────────────────
 
   Widget _buildSubmitButton(AppLocalizations l10n) {
-    return Padding(
-      padding: EdgeInsets.zero,
-      child: SizedBox(
-        width: double.infinity,
-        height: 58,
-        child: ElevatedButton(
-          onPressed: _isSubmitting ? null : _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _forestGreen,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: Colors.grey[300],
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            elevation: 0,
-          ),
-          child: _isSubmitting
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(
-                  l10n.submit_impact_report.toUpperCase(),
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                ),
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: _isSubmitting ? null : _submit,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _forestGreen,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey[300],
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 0,
         ),
+        child: _isSubmitting
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                l10n.submit_impact_report.toUpperCase(),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+              ),
       ),
     );
   }
 }
-
-// ── Shared helpers ───────────────────────────────────────────────────────────
 
 class _ReportCard extends StatelessWidget {
   const _ReportCard({required this.child});
@@ -444,87 +575,13 @@ class _ReportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2D8659).withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
       ),
       child: child,
-    );
-  }
-}
-
-class _CounterButton extends StatelessWidget {
-  const _CounterButton({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, size: 22, color: color),
-      ),
-    );
-  }
-}
-
-class _ImpactMetricRow extends StatelessWidget {
-  const _ImpactMetricRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFF2D8659).withOpacity(0.06),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, size: 18, color: const Color(0xFF2D8659)),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 13, color: _textNavy.withOpacity(0.5), fontWeight: FontWeight.w600),
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: _forestGreen, letterSpacing: -0.3),
-        ),
-      ],
     );
   }
 }
@@ -545,7 +602,7 @@ class _ImpactSummaryRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 18, color: color),
+        Icon(icon, size: 16, color: color),
         const SizedBox(width: 8),
         Text(
           label,
@@ -559,6 +616,3 @@ class _ImpactSummaryRow extends StatelessWidget {
     );
   }
 }
-
-
-

@@ -12,10 +12,12 @@ import 'package:anti_food_waste_app/core/providers/favorites_provider.dart';
 import 'package:anti_food_waste_app/core/providers/locale_provider.dart';
 import 'package:anti_food_waste_app/core/providers/theme_provider.dart';
 import 'package:anti_food_waste_app/core/services/preferences_service.dart';
+import 'package:anti_food_waste_app/core/services/push_notification_service.dart';
 import 'package:anti_food_waste_app/core/navigation/app_router.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:anti_food_waste_app/features/notifications/presentation/cubits/notifications_cubit.dart';
 import 'package:anti_food_waste_app/features/notifications/data/repositories/notifications_repository_impl.dart';
+import 'package:anti_food_waste_app/features/orders/presentation/cubits/orders_cubit.dart';
 import 'package:anti_food_waste_app/features/chat/services/chat_cache_service.dart';
 import 'package:anti_food_waste_app/core/navigation/root_dispatcher.dart';
 
@@ -39,12 +41,16 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await PushNotificationService.initialize();
 
   runApp(
     MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => AuthCubit()..checkAuthStatus()),
-        BlocProvider(create: (_) => NotificationsCubit(NotificationsRepositoryImpl())..fetchNotifications()),
+        BlocProvider(
+            create: (_) => NotificationsCubit(NotificationsRepositoryImpl())
+              ..fetchNotifications()),
+        BlocProvider(create: (_) => OrdersCubit()),
       ],
       child: MultiProvider(
         providers: [
@@ -74,13 +80,15 @@ class TawfirApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'Tawfir',
+      navigatorKey: PushNotificationService.navigatorKey,
       debugShowCheckedModeBanner: false,
 
       // ── Theme ────────────────────────────────────────────────────────────────
       theme: AppTheme.getTheme(localeProvider.locale),
       // We don't have a distinct dark theme defined yet, but we will use the same theme
       // until a separate dark theme factory is created.
-      darkTheme: AppTheme.getTheme(localeProvider.locale), // TODO: Add Dark Theme Factory 
+      darkTheme: AppTheme.getTheme(
+          localeProvider.locale), // TODO: Add Dark Theme Factory
       themeMode: themeProvider.themeMode,
 
       // ── Localisation ─────────────────────────────────────────────────────────
@@ -114,4 +122,3 @@ class TawfirApp extends StatelessWidget {
     );
   }
 }
-

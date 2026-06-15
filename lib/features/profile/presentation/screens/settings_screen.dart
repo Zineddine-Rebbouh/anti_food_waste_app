@@ -5,6 +5,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/core/providers/locale_provider.dart';
+import 'package:anti_food_waste_app/core/services/preferences_service.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/about_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/terms_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/privacy_policy_screen.dart';
@@ -23,10 +24,17 @@ class _SettingsPageState extends State<SettingsPage> {
       _sounds = true,
       _vibration = true;
   bool _shareLocation = false, _analytics = true, _darkMode = false;
+  late bool _chatBubbleEnabled;
 
   static const Color forestGreen = AppTheme.primary;
   static const Color accentBeige = Colors.white;
   static const Color textNavy = Color(0xFF1A1A2E);
+
+  @override
+  void initState() {
+    super.initState();
+    _chatBubbleEnabled = PreferencesService.isChatBubbleEnabled();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,19 +60,19 @@ class _SettingsPageState extends State<SettingsPage> {
                       children: [
                         _SettingToggle(
                           label: l10n.new_deal,
-                          subtitle: 'Get notified about deals near you',
+                          subtitle: l10n.notif_new_deal_subtitle,
                           value: _newDeals,
                           onChanged: (v) => setState(() => _newDeals = v),
                         ),
                         _SettingToggle(
                           label: l10n.pickup_reminder,
-                          subtitle: 'Remind me before my pickup time',
+                          subtitle: l10n.notif_pickup_reminder_subtitle,
                           value: _reminders,
                           onChanged: (v) => setState(() => _reminders = v),
                         ),
                         _SettingToggle(
-                          label: 'Promotional offers',
-                          subtitle: 'Receive special promotions and discounts',
+                          label: l10n.promotional_offers,
+                          subtitle: l10n.notif_promotional_subtitle,
                           value: _promotions,
                           onChanged: (v) => setState(() => _promotions = v),
                         ),
@@ -85,7 +93,8 @@ class _SettingsPageState extends State<SettingsPage> {
                           label: 'English',
                           langCode: 'en',
                           currentCode: currentLocale,
-                          onTap: () => localeProvider.setLocale(const Locale('en')),
+                          onTap: () =>
+                              localeProvider.setLocale(const Locale('en')),
                         ),
                         const SizedBox(height: 12),
                         _LanguageTile(
@@ -93,7 +102,8 @@ class _SettingsPageState extends State<SettingsPage> {
                           label: 'العربية',
                           langCode: 'ar',
                           currentCode: currentLocale,
-                          onTap: () => localeProvider.setLocale(const Locale('ar')),
+                          onTap: () =>
+                              localeProvider.setLocale(const Locale('ar')),
                         ),
                         const SizedBox(height: 12),
                         _LanguageTile(
@@ -101,7 +111,8 @@ class _SettingsPageState extends State<SettingsPage> {
                           label: 'Français',
                           langCode: 'fr',
                           currentCode: currentLocale,
-                          onTap: () => localeProvider.setLocale(const Locale('fr')),
+                          onTap: () =>
+                              localeProvider.setLocale(const Locale('fr')),
                         ),
                       ],
                     ),
@@ -115,14 +126,23 @@ class _SettingsPageState extends State<SettingsPage> {
                       title: l10n.privacy_security,
                       children: [
                         _SettingToggle(
-                          label: 'Share location',
-                          subtitle: 'Share your location to improve nearby recommendations',
+                          label: l10n.privacy_chat_bubble_label,
+                          subtitle: l10n.privacy_chat_bubble_subtitle,
+                          value: _chatBubbleEnabled,
+                          onChanged: (v) {
+                            setState(() => _chatBubbleEnabled = v);
+                            PreferencesService.setChatBubbleEnabled(v);
+                          },
+                        ),
+                        _SettingToggle(
+                          label: l10n.privacy_share_location_label,
+                          subtitle: l10n.privacy_share_location_subtitle,
                           value: _shareLocation,
                           onChanged: (v) => setState(() => _shareLocation = v),
                         ),
                         _SettingToggle(
-                          label: 'Usage analytics',
-                          subtitle: 'Help us improve the app with anonymous data',
+                          label: l10n.privacy_analytics_label,
+                          subtitle: l10n.privacy_analytics_subtitle,
                           value: _analytics,
                           onChanged: (v) => setState(() => _analytics = v),
                         ),
@@ -139,15 +159,24 @@ class _SettingsPageState extends State<SettingsPage> {
                       children: [
                         _SettingNav(
                           label: l10n.about_app,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const AboutScreen())),
                         ),
                         _SettingNav(
                           label: l10n.privacy_policy,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen())),
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const PrivacyPolicyScreen())),
                         ),
                         _SettingNav(
                           label: l10n.terms_service,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen())),
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const TermsScreen())),
                         ),
                         _buildVersionRow(l10n),
                       ],
@@ -157,19 +186,50 @@ class _SettingsPageState extends State<SettingsPage> {
                   FadeInUp(
                     duration: const Duration(milliseconds: 400),
                     delay: const Duration(milliseconds: 400),
-                    child: _SettingsSection(
-                      icon: CupertinoIcons.trash,
-                      iconColor: const Color(0xFFEF4444),
-                      iconBgColor: const Color(0xFFEF4444).withOpacity(0.08),
-                      title: 'Account',
-                      titleColor: const Color(0xFFEF4444),
-                      children: [
-                        _SettingNav(
-                          label: l10n.delete_account,
-                          labelColor: const Color(0xFFEF4444),
-                          onTap: () => _showDeleteDialog(context, l10n),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                              color: forestGreen.withOpacity(0.04),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8)),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      child: InkWell(
+                        onTap: () => _showDeleteDialog(context, l10n),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEF4444).withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(CupertinoIcons.trash, color: Color(0xFFEF4444), size: 20),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  l10n.delete_account,
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFFEF4444)),
+                                ),
+                              ),
+                              Icon(Icons.arrow_forward_ios_rounded,
+                                  color: Colors.grey[300], size: 14),
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 48),
@@ -201,13 +261,18 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white, size: 20),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               const SizedBox(width: 8),
               Text(
                 l10n.settings,
-                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5),
               ),
             ],
           ),
@@ -224,10 +289,15 @@ class _SettingsPageState extends State<SettingsPage> {
           Expanded(
             child: Text(
               l10n.app_version_label,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textNavy),
+              style: const TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w700, color: textNavy),
             ),
           ),
-          Text('1.0.0', style: TextStyle(fontSize: 14, color: Colors.grey[400], fontWeight: FontWeight.w600)),
+          Text('1.0.0',
+              style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[400],
+                  fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -238,12 +308,19 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         Text(
           'SaveFood DZ'.toUpperCase(),
-          style: TextStyle(fontSize: 10, color: forestGreen.withOpacity(0.3), fontWeight: FontWeight.w900, letterSpacing: 2),
+          style: TextStyle(
+              fontSize: 10,
+              color: forestGreen.withOpacity(0.3),
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2),
         ),
         const SizedBox(height: 4),
         Text(
           'v1.0.0',
-          style: TextStyle(fontSize: 11, color: Colors.grey[400], fontWeight: FontWeight.w500),
+          style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[400],
+              fontWeight: FontWeight.w500),
         ),
       ],
     );
@@ -258,16 +335,25 @@ class _SettingsPageState extends State<SettingsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         title: Text(
           l10n.delete_account,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFFEF4444)),
+          style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFFEF4444)),
         ),
         content: Text(
-          'Are you sure you want to permanently delete your account? This action cannot be undone.',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5, fontWeight: FontWeight.w500),
+          l10n.delete_account_confirm_msg,
+          style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              height: 1.5,
+              fontWeight: FontWeight.w500),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.cancel, style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w700)),
+            child: Text(l10n.cancel,
+                style: TextStyle(
+                    color: Colors.grey[500], fontWeight: FontWeight.w700)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -275,9 +361,11 @@ class _SettingsPageState extends State<SettingsPage> {
               backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w900)),
+            child: Text(l10n.delete_btn,
+                style: const TextStyle(fontWeight: FontWeight.w900)),
           ),
         ],
       ),
@@ -313,7 +401,8 @@ class _SettingsSection extends StatelessWidget {
     for (var i = 0; i < children.length; i++) {
       dividedChildren.add(children[i]);
       if (addDividers && i < children.length - 1) {
-        dividedChildren.add(Divider(height: 1, thickness: 1, color: Colors.grey[50]));
+        dividedChildren
+            .add(Divider(height: 1, thickness: 1, color: Colors.grey[50]));
       }
     }
 
@@ -322,7 +411,10 @@ class _SettingsSection extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
-          BoxShadow(color: forestGreen.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8)),
+          BoxShadow(
+              color: forestGreen.withOpacity(0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 8)),
         ],
       ),
       padding: const EdgeInsets.all(24),
@@ -343,7 +435,10 @@ class _SettingsSection extends StatelessWidget {
               const SizedBox(width: 14),
               Text(
                 title,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: titleColor ?? textNavy),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: titleColor ?? textNavy),
               ),
             ],
           ),
@@ -361,7 +456,11 @@ class _SettingToggle extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const _SettingToggle({required this.label, this.subtitle, required this.value, required this.onChanged});
+  const _SettingToggle(
+      {required this.label,
+      this.subtitle,
+      required this.value,
+      required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -376,10 +475,18 @@ class _SettingToggle extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textNavy)),
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: textNavy)),
                 if (subtitle != null) ...[
                   const SizedBox(height: 4),
-                  Text(subtitle!, style: TextStyle(fontSize: 12, color: Colors.grey[500], fontWeight: FontWeight.w500)),
+                  Text(subtitle!,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                          fontWeight: FontWeight.w500)),
                 ],
               ],
             ),
@@ -400,7 +507,8 @@ class _SettingNav extends StatelessWidget {
   final Color? labelColor;
   final VoidCallback onTap;
 
-  const _SettingNav({required this.label, this.labelColor, required this.onTap});
+  const _SettingNav(
+      {required this.label, this.labelColor, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -414,10 +522,14 @@ class _SettingNav extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: labelColor ?? textNavy),
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: labelColor ?? textNavy),
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey[300], size: 14),
+            Icon(Icons.arrow_forward_ios_rounded,
+                color: Colors.grey[300], size: 14),
           ],
         ),
       ),
@@ -432,7 +544,12 @@ class _LanguageTile extends StatelessWidget {
   final String currentCode;
   final VoidCallback onTap;
 
-  const _LanguageTile({required this.flag, required this.label, required this.langCode, required this.currentCode, required this.onTap});
+  const _LanguageTile(
+      {required this.flag,
+      required this.label,
+      required this.langCode,
+      required this.currentCode,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -448,7 +565,10 @@ class _LanguageTile extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: isSelected ? forestGreen.withOpacity(0.04) : Colors.white,
-          border: Border.all(color: isSelected ? forestGreen.withOpacity(0.1) : Colors.grey[100]!, width: 1.5),
+          border: Border.all(
+              color:
+                  isSelected ? forestGreen.withOpacity(0.1) : Colors.grey[100]!,
+              width: 1.5),
         ),
         child: Row(
           children: [
@@ -457,10 +577,15 @@ class _LanguageTile extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(fontSize: 15, fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700, color: isSelected ? forestGreen : textNavy),
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                    color: isSelected ? forestGreen : textNavy),
               ),
             ),
-            if (isSelected) const Icon(CupertinoIcons.checkmark_alt_circle_fill, color: forestGreen, size: 22),
+            if (isSelected)
+              const Icon(CupertinoIcons.checkmark_alt_circle_fill,
+                  color: forestGreen, size: 22),
           ],
         ),
       ),

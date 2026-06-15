@@ -29,7 +29,7 @@ class TermsScreen extends StatelessWidget {
                   FadeInDown(
                     duration: const Duration(milliseconds: 400),
                     child: Text(
-                      'Last updated: January 2025'.toUpperCase(),
+                      l10n.tos_last_updated.toUpperCase(),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
@@ -44,24 +44,24 @@ class TermsScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         _LegalSection(
-                          title: '1. Acceptance of Terms',
-                          body: 'By accessing or using the Tawfir application, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree to all the terms and conditions stated herein, you must not access or use our services.\n\nYour continued use of the application following the posting of any changes to these terms constitutes your acceptance of those changes.',
+                          title: l10n.tos_section1_title,
+                          body: l10n.tos_section1_body,
                         ),
                         _LegalSection(
-                          title: '2. Use of the Service',
-                          body: 'Tawfir grants you a limited, non-exclusive, non-transferable, and revocable license to use our application for personal, non-commercial purposes. You agree not to use the service for any unlawful purpose or in any way that could damage, disable, overburden, or impair the application.',
+                          title: l10n.tos_section2_title,
+                          body: l10n.tos_section2_body,
                         ),
                         _LegalSection(
-                          title: '3. User Accounts',
-                          body: 'To access certain features, you must create an account by providing accurate, current, and complete information. You are solely responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.',
+                          title: l10n.tos_section3_title,
+                          body: l10n.tos_section3_body,
                         ),
                         _LegalSection(
-                          title: '4. Food Listings',
-                          body: 'Merchants are solely responsible for the accuracy and quality of their food listings. Tawfir acts as an intermediary and does not guarantee the availability, quality, or safety of any listed items.',
+                          title: l10n.tos_section4_title,
+                          body: l10n.tos_section4_body,
                         ),
                         _LegalSection(
-                          title: '5. Limitation of Liability',
-                          body: 'To the fullest extent permitted by law, Tawfir shall not be liable for any indirect, incidental, or consequential damages arising from your use of the service. Users engage with merchants at their own risk.',
+                          title: l10n.tos_section5_title,
+                          body: l10n.tos_section5_body,
                           isLast: true,
                         ),
                       ],
@@ -70,7 +70,7 @@ class TermsScreen extends StatelessWidget {
                   const SizedBox(height: 40),
                   Center(
                     child: Text(
-                      '© 2025 Tawfir. All rights reserved.',
+                      l10n.tos_footer,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,

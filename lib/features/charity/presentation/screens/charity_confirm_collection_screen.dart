@@ -92,12 +92,19 @@ class _CharityConfirmCollectionScreenState
       ),
     );
 
+    final double actualWeight = double.tryParse(_actualWeightCtrl.text) ?? widget.request.quantityKg;
+    final int actualServings = int.tryParse(_actualServingsCtrl.text) ?? widget.request.estimatedServings;
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (ctx) => BlocProvider.value(
           value: context.read<CharityCubit>(),
-          child: CharityImpactReportScreen(request: widget.request),
+          child: CharityImpactReportScreen(
+            request: widget.request,
+            actualWeightKg: actualWeight,
+            actualServings: actualServings,
+          ),
         ),
       ),
     );

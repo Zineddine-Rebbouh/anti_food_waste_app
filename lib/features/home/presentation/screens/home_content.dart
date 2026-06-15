@@ -222,14 +222,14 @@ class _HomeContentState extends State<HomeContent> {
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          "Showing national results. Results may be far away.",
+                                          l10n.showing_national_results,
                                           style: TextStyle(fontSize: 12, color: Colors.grey[800], fontWeight: FontWeight.w500),
                                         ),
                                       ),
                                       TextButton(
                                         onPressed: () => _cubit.resetToMyArea(),
                                         style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                                        child: const Text("Back to my area"),
+                                        child: Text(l10n.back_to_my_area),
                                       ),
                                     ],
                                   ),
@@ -403,38 +403,63 @@ class _HomeContentState extends State<HomeContent> {
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
                                 child: Container(
-                                  padding: const EdgeInsets.all(20),
+                                  padding: const EdgeInsets.all(24),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: Colors.grey[200]!),
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppTheme.primary.withOpacity(0.08),
+                                        AppTheme.primary.withOpacity(0.01),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(color: AppTheme.primary.withOpacity(0.15), width: 1),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppTheme.primary.withOpacity(0.02),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
                                   ),
                                   child: Column(
                                     children: [
-                                      const Icon(Icons.explore_outlined, size: 32, color: AppTheme.primary),
-                                      const SizedBox(height: 12),
-                                      const Text(
-                                        "Want to see more?",
-                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "Explore listings in other wilayas or expand your search radius.",
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primary.withOpacity(0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.explore_outlined, size: 36, color: AppTheme.primary),
                                       ),
                                       const SizedBox(height: 16),
+                                      Text(
+                                        l10n.want_to_see_more,
+                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        l10n.explore_listings_other_wilayas,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(fontSize: 13, color: Colors.grey[600], height: 1.3),
+                                      ),
+                                      const SizedBox(height: 20),
                                       SizedBox(
                                         width: double.infinity,
+                                        height: 48,
                                         child: ElevatedButton(
                                           onPressed: () => _showExploreSheet(),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: AppTheme.primary,
                                             foregroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                             elevation: 0,
                                           ),
-                                          child: const Text("Explore National Feed"),
+                                          child: Text(
+                                            l10n.explore_national_feed,
+                                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -455,10 +480,14 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   void _showExploreSheet() {
+    final l10n = AppLocalizations.of(context)!;
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.6,
         maxChildSize: 0.9,
@@ -467,47 +496,70 @@ class _HomeContentState extends State<HomeContent> {
           children: [
             const SizedBox(height: 12),
             Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text("Explore Algeria", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                l10n.explore_algeria,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+              ),
             ),
             Expanded(
               child: ListView(
                 controller: scrollController,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
-                  const Text("Quick Radius Search", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-                  const SizedBox(height: 8),
+                  Text(
+                    l10n.quick_radius_search,
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
                   Wrap(
-                    spacing: 8,
+                    spacing: 10,
+                    runSpacing: 10,
                     children: [10, 25, 50, 100].map((km) => ActionChip(
                       label: Text("$km km"),
+                      labelStyle: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primary),
+                      backgroundColor: AppTheme.primary.withOpacity(0.06),
+                      side: BorderSide.none,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       onPressed: () {
                         Navigator.pop(context);
                         _cubit.expandToRadius(km);
                       },
                     )).toList(),
                   ),
-                  const SizedBox(height: 24),
-                  const Text("Search by Wilaya", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 28),
+                  Text(
+                    l10n.search_by_wilaya,
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
                   FutureBuilder<List<Map<String, dynamic>>>(
                     future: _repository.fetchWilayas(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) return const Center(child: TawfirLoadingIndicator(size: 40, strokeWidth: 2.5));
                       final wilayas = snapshot.data!;
-                      return ListView.builder(
+                      return ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: wilayas.length,
+                        separatorBuilder: (context, index) => Divider(color: Colors.grey[100], height: 1),
                         itemBuilder: (context, i) {
                           final w = wilayas[i];
+                          final displayName = isArabic 
+                              ? (w['name_ar'] ?? w['name_fr'] ?? '') 
+                              : (w['name_fr'] ?? w['name_ar'] ?? '');
+                          
                           return ListTile(
-                            title: Text("${w['code']} - ${w['name_fr']}"),
-                            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            title: Text(
+                              "${w['code']} - $displayName",
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                            ),
+                            trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey[400]),
                             onTap: () {
                               Navigator.pop(context);
-                              _cubit.expandToWilaya(w['code'], w['name_fr']);
+                              _cubit.expandToWilaya(w['code'], displayName);
                             },
                           );
                         },

@@ -518,14 +518,7 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
                         );
                       },
                     ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddressSheet(null),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(l10n.add_address),
-        elevation: 2,
-      ),
+      
     );
   }
 
@@ -533,33 +526,61 @@ class _MyAddressesScreenState extends State<MyAddressesScreen> {
 
   Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.location_off_outlined,
-              size: 64, color: AppTheme.mutedForeground),
-          const SizedBox(height: 16),
-          Text(
-            l10n.no_addresses,
-            style: const TextStyle(
-              color: AppTheme.mutedForeground,
-              fontSize: 16,
-            ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => _showAddressSheet(null),
-            icon: const Icon(Icons.add_rounded),
-            label: Text(l10n.add_address),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.location_on_outlined,
+                  size: 64,
+                  color: AppTheme.primary,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                l10n.no_addresses,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black87,
+                  letterSpacing: -0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.no_addresses_desc,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.grey[600],
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

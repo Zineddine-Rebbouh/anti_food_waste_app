@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/features/orders/domain/models/route_plan.dart';
 import 'package:anti_food_waste_app/features/orders/presentation/cubits/route_plan_cubit.dart';
@@ -41,14 +42,16 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return BlocProvider.value(
       value: _cubit,
       child: Scaffold(
         backgroundColor: const Color(0xFFF9FAFB),
         appBar: AppBar(
-          title: const Text(
-            'Pickup Route',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          title: Text(
+            l10n.pickup_route_title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.white,
           elevation: 0,
@@ -63,7 +66,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                 if (state is RoutePlanLoaded) {
                   return IconButton(
                     icon: const Icon(Icons.open_in_new, size: 20),
-                    tooltip: 'Open in Google Maps',
+                    tooltip: l10n.open_in_google_maps,
                     onPressed: () => _openInGoogleMaps(state),
                   );
                 }
@@ -75,16 +78,16 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
         body: BlocBuilder<RoutePlanCubit, RoutePlanState>(
           builder: (context, state) {
             if (state is RoutePlanLoading) {
-              return _buildLoading();
+              return _buildLoading(l10n);
             }
             if (state is RoutePlanLocationError) {
-              return _buildLocationError();
+              return _buildLocationError(l10n);
             }
             if (state is RoutePlanError) {
-              return _buildError(state.message);
+              return _buildError(l10n, state.message);
             }
             if (state is RoutePlanLoaded) {
-              return _buildRouteView(state);
+              return _buildRouteView(l10n, state);
             }
             return const SizedBox.shrink();
           },
@@ -95,7 +98,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
 
   // ── Loading ─────────────────────────────────────────────────────────────
 
-  Widget _buildLoading() {
+  Widget _buildLoading(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -104,7 +107,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
           const SizedBox(height: 24),
           FadeIn(
             child: Text(
-              'Computing your optimal route...',
+              l10n.route_computing,
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey.shade600,
@@ -116,7 +119,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
           FadeIn(
             delay: const Duration(milliseconds: 300),
             child: Text(
-              'Getting location & optimizing stops',
+              l10n.route_optimizing_stops,
               style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
             ),
           ),
@@ -127,7 +130,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
 
   // ── Location Error ──────────────────────────────────────────────────────
 
-  Widget _buildLocationError() {
+  Widget _buildLocationError(AppLocalizations l10n) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -140,29 +143,33 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                 color: Colors.orange.shade50,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.location_off, size: 48, color: Colors.orange.shade700),
+              child: Icon(Icons.location_off,
+                  size: 48, color: Colors.orange.shade700),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Location Required',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Text(
+              l10n.route_location_required,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Text(
-              'Please enable location services and grant permission to plan your pickup route.',
+              l10n.route_location_permission_desc,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
+              style: TextStyle(
+                  fontSize: 14, color: Colors.grey.shade600, height: 1.5),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _cubit.computeRoute(widget.orderIds),
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Try Again'),
+              label: Text(l10n.try_again),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
@@ -173,7 +180,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
 
   // ── Error ───────────────────────────────────────────────────────────────
 
-  Widget _buildError(String message) {
+  Widget _buildError(AppLocalizations l10n, String message) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -186,29 +193,33 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                 color: Colors.red.shade50,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
+              child: Icon(Icons.error_outline,
+                  size: 48, color: Colors.red.shade400),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Route Planning Failed',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Text(
+              l10n.route_planning_failed,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
+              style: TextStyle(
+                  fontSize: 14, color: Colors.grey.shade600, height: 1.5),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _cubit.computeRoute(widget.orderIds),
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Try Again'),
+              label: Text(l10n.try_again),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
@@ -219,17 +230,17 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
 
   // ── Route View (Map + List) ─────────────────────────────────────────────
 
-  Widget _buildRouteView(RoutePlanLoaded state) {
+  Widget _buildRouteView(AppLocalizations l10n, RoutePlanLoaded state) {
     final plan = state.plan;
 
     if (plan.isEmpty) {
-      return _buildError('No stops could be calculated. Some merchants may be missing location data.');
+      return _buildError(l10n, l10n.route_no_stops_error);
     }
 
     return Stack(
       children: [
         // Google Map — full screen behind everything
-        _buildMap(state),
+        _buildMap(l10n, state),
 
         // Draggable bottom sheet with stop list
         DraggableScrollableSheet(
@@ -267,16 +278,16 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                   ),
 
                   // Summary card
-                  _buildSummaryCard(plan),
+                  _buildSummaryCard(l10n, plan),
 
                   // Warnings
-                  if (plan.hasWarnings) _buildWarnings(plan.warnings),
+                  if (plan.hasWarnings) _buildWarnings(l10n, plan.warnings),
 
                   // Stop list
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
                     child: Text(
-                      'Pickup Order',
+                      l10n.pickup_order,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -288,7 +299,8 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                     final idx = entry.key;
                     return FadeInUp(
                       duration: Duration(milliseconds: 300 + (idx * 80)),
-                      child: _buildStopCard(entry.value, isLast: idx == plan.stops.length - 1),
+                      child: _buildStopCard(l10n, entry.value,
+                          isLast: idx == plan.stops.length - 1),
                     );
                   }),
 
@@ -298,7 +310,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                     child: OutlinedButton.icon(
                       onPressed: () => _openInGoogleMaps(state),
                       icon: const Icon(Icons.map_outlined, size: 18),
-                      label: const Text('Open in Google Maps'),
+                      label: Text(l10n.open_in_google_maps),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.primary,
                         side: const BorderSide(color: AppTheme.primary),
@@ -320,7 +332,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
 
   // ── Google Map ──────────────────────────────────────────────────────────
 
-  Widget _buildMap(RoutePlanLoaded state) {
+  Widget _buildMap(AppLocalizations l10n, RoutePlanLoaded state) {
     final plan = state.plan;
     final userLatLng = LatLng(state.userLat, state.userLng);
 
@@ -332,7 +344,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
       markerId: const MarkerId('user_location'),
       position: userLatLng,
       icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-      infoWindow: const InfoWindow(title: 'You are here'),
+      infoWindow: InfoWindow(title: l10n.you_are_here),
     ));
 
     // Stop markers with numbered labels
@@ -341,7 +353,9 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
         markerId: MarkerId('stop_${stop.order}'),
         position: LatLng(stop.latitude, stop.longitude),
         icon: BitmapDescriptor.defaultMarkerWithHue(
-          stop.hasWarning ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueGreen,
+          stop.hasWarning
+              ? BitmapDescriptor.hueOrange
+              : BitmapDescriptor.hueGreen,
         ),
         infoWindow: InfoWindow(
           title: '${stop.order}. ${stop.merchantName}',
@@ -352,7 +366,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
 
     // Polyline connecting user → stop1 → stop2 → ... (following real roads if available)
     final polylinePoints = <LatLng>[];
-    
+
     if (plan.path.isNotEmpty) {
       // Use real road geometry from backend
       for (final point in plan.path) {
@@ -373,14 +387,17 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
         color: AppTheme.primary,
         width: 5,
         // Only use dashes for straight-line fallback
-        patterns: plan.path.isEmpty 
-          ? [PatternItem.dash(20), PatternItem.gap(10)]
-          : [],
+        patterns: plan.path.isEmpty
+            ? [PatternItem.dash(20), PatternItem.gap(10)]
+            : [],
       ),
     };
 
     // Camera bounds to fit all points
-    final allPoints = [userLatLng, ...plan.stops.map((s) => LatLng(s.latitude, s.longitude))];
+    final allPoints = [
+      userLatLng,
+      ...plan.stops.map((s) => LatLng(s.latitude, s.longitude))
+    ];
     final bounds = _boundsFromPoints(allPoints);
 
     return GoogleMap(
@@ -427,7 +444,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
 
   // ── Summary Card ────────────────────────────────────────────────────────
 
-  Widget _buildSummaryCard(RoutePlan plan) {
+  Widget _buildSummaryCard(AppLocalizations l10n, RoutePlan plan) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
       padding: const EdgeInsets.all(16),
@@ -451,7 +468,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
           _summaryItem(
             icon: Icons.place,
             value: '${plan.totalStops}',
-            label: plan.totalStops == 1 ? 'Stop' : 'Stops',
+            label: plan.totalStops == 1 ? l10n.route_stop : l10n.route_stops,
           ),
           _summaryDivider(),
           _summaryItem(
@@ -459,7 +476,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
             value: plan.totalDistanceKm < 1
                 ? '${(plan.totalDistanceKm * 1000).round()}m'
                 : '${plan.totalDistanceKm.toStringAsFixed(1)}km',
-            label: 'Distance',
+            label: l10n.distance,
           ),
           _summaryDivider(),
           _summaryItem(
@@ -467,7 +484,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
             value: plan.estimatedDurationMinutes < 60
                 ? '${plan.estimatedDurationMinutes}m'
                 : '${plan.estimatedDurationMinutes ~/ 60}h${plan.estimatedDurationMinutes % 60}m',
-            label: 'Est. Time',
+            label: l10n.route_estimated_time,
           ),
         ],
       ),
@@ -515,7 +532,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
 
   // ── Warnings ────────────────────────────────────────────────────────────
 
-  Widget _buildWarnings(List<String> warnings) {
+  Widget _buildWarnings(AppLocalizations l10n, List<String> warnings) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       padding: const EdgeInsets.all(14),
@@ -529,10 +546,11 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded, size: 18, color: Colors.orange.shade700),
+              Icon(Icons.warning_amber_rounded,
+                  size: 18, color: Colors.orange.shade700),
               const SizedBox(width: 8),
               Text(
-                'Route Warnings',
+                l10n.route_warnings,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -547,11 +565,17 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('• ', style: TextStyle(color: Colors.orange.shade700, fontWeight: FontWeight.bold)),
+                    Text('• ',
+                        style: TextStyle(
+                            color: Colors.orange.shade700,
+                            fontWeight: FontWeight.bold)),
                     Expanded(
                       child: Text(
                         w,
-                        style: TextStyle(fontSize: 13, color: Colors.orange.shade900, height: 1.4),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.orange.shade900,
+                            height: 1.4),
                       ),
                     ),
                   ],
@@ -564,7 +588,8 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
 
   // ── Stop Card ───────────────────────────────────────────────────────────
 
-  Widget _buildStopCard(RouteStop stop, {bool isLast = false}) {
+  Widget _buildStopCard(AppLocalizations l10n, RouteStop stop,
+      {bool isLast = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: IntrinsicHeight(
@@ -591,7 +616,9 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: stop.hasWarning ? Colors.orange.shade700 : AppTheme.primary,
+                          color: stop.hasWarning
+                              ? Colors.orange.shade700
+                              : AppTheme.primary,
                         ),
                       ),
                     ),
@@ -616,7 +643,9 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: stop.hasWarning ? Colors.orange.shade200 : Colors.grey.shade200,
+                    color: stop.hasWarning
+                        ? Colors.orange.shade200
+                        : Colors.grey.shade200,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -643,27 +672,31 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                     // Listing title
                     Text(
                       stop.listingTitle,
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      style:
+                          TextStyle(fontSize: 13, color: Colors.grey.shade600),
                     ),
                     const SizedBox(height: 10),
 
                     // Address + distance
                     Row(
                       children: [
-                        Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade500),
+                        Icon(Icons.location_on_outlined,
+                            size: 14, color: Colors.grey.shade500),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             stop.merchantAddress.isNotEmpty
                                 ? stop.merchantAddress
-                                : 'Address not available',
+                                : l10n.address_not_available,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey.shade500),
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF3F4F6),
                             borderRadius: BorderRadius.circular(8),
@@ -687,11 +720,13 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.access_time, size: 14, color: Colors.grey.shade500),
+                          Icon(Icons.access_time,
+                              size: 14, color: Colors.grey.shade500),
                           const SizedBox(width: 4),
                           Text(
-                            'Pickup: ${stop.pickupWindow}',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            l10n.pickup_label_simple(stop.pickupWindow),
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey.shade600),
                           ),
                         ],
                       ),
@@ -701,14 +736,16 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
                     if (stop.hasWarning) ...[
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.orange.shade50,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.warning_amber_rounded, size: 14, color: Colors.orange.shade700),
+                            Icon(Icons.warning_amber_rounded,
+                                size: 14, color: Colors.orange.shade700),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -748,9 +785,8 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
     var waypoints = '';
     if (plan.stops.length > 1) {
       final middleStops = plan.stops.sublist(0, plan.stops.length - 1);
-      waypoints = middleStops
-          .map((s) => '${s.latitude},${s.longitude}')
-          .join('|');
+      waypoints =
+          middleStops.map((s) => '${s.latitude},${s.longitude}').join('|');
     }
 
     final uri = Uri.parse(

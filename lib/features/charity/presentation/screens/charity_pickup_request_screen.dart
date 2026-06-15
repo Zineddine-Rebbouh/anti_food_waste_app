@@ -223,6 +223,7 @@ class _CharityPickupRequestScreenState extends State<CharityPickupRequestScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.grey.shade100),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 8))],
       ),
       child: Column(
@@ -260,7 +261,7 @@ class _CharityPickupRequestScreenState extends State<CharityPickupRequestScreen>
     return Column(
       children: List.generate(slots.length, (i) {
         final isSelected = _selectedSlot == i;
-        return Padding(
+      return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: InkWell(
             onTap: () => setState(() => _selectedSlot = i),
@@ -270,6 +271,11 @@ class _CharityPickupRequestScreenState extends State<CharityPickupRequestScreen>
               decoration: BoxDecoration(
                 color: isSelected ? CharityPickupRequestScreen.primaryGreen : Colors.white,
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? CharityPickupRequestScreen.primaryGreen.withOpacity(0.18)
+                      : Colors.grey.shade200,
+                ),
                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(isSelected ? 0.1 : 0.02), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Row(
@@ -314,6 +320,11 @@ class _CharityPickupRequestScreenState extends State<CharityPickupRequestScreen>
               decoration: BoxDecoration(
                 color: isSelected ? CharityPickupRequestScreen.primaryGreen : Colors.white,
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? CharityPickupRequestScreen.primaryGreen.withOpacity(0.18)
+                      : Colors.grey.shade200,
+                ),
                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Column(
@@ -336,6 +347,7 @@ class _CharityPickupRequestScreenState extends State<CharityPickupRequestScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.grey.shade100),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 8))],
       ),
       child: Column(
@@ -354,13 +366,27 @@ class _CharityPickupRequestScreenState extends State<CharityPickupRequestScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.grey.shade100),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 8))],
       ),
-      child: _buildTextField(controller: _notesCtrl, label: l10n.special_instructions_hint, icon: Icons.chat_bubble_outline_rounded, maxLines: 3),
+      child: _buildTextField(
+        controller: _notesCtrl,
+        label: l10n.special_instructions_hint,
+        icon: Icons.chat_bubble_outline_rounded,
+        maxLines: 3,
+        requiredField: false,
+      ),
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String label, required IconData icon, TextInputType? keyboardType, int maxLines = 1}) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    bool requiredField = true,
+  }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
@@ -375,7 +401,9 @@ class _CharityPickupRequestScreenState extends State<CharityPickupRequestScreen>
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: CharityPickupRequestScreen.primaryGreen, width: 1.5)),
       ),
-      validator: (v) => (v == null || v.trim().isEmpty) ? l10n.required_field : null,
+      validator: requiredField
+          ? (v) => (v == null || v.trim().isEmpty) ? l10n.required_field : null
+          : null,
     );
   }
 

@@ -52,6 +52,11 @@ class CharityRepository {
     }
     await _remoteSource.updateRequestStatus(requestId, statusStr);
   }
+
+  /// Submit an impact report
+  Future<void> submitImpactReport(String donationId, Map<String, dynamic> data) async {
+    await _remoteSource.submitImpactReport(donationId, data);
+  }
 }
 
 

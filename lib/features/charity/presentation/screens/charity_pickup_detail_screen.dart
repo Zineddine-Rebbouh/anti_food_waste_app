@@ -56,7 +56,9 @@ class CharityPickupDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildHeaderSection(request, l10n, context),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
+                      _buildDonationSummaryCard(request, l10n),
+                      const SizedBox(height: 24),
                       _buildTimelineSection(request, l10n, context),
                       const SizedBox(height: 24),
                       _buildMerchantSection(request, l10n),
@@ -164,42 +166,85 @@ class CharityPickupDetailScreen extends StatelessWidget {
         Text(
           request.donationTitle,
           style: const TextStyle(
-            fontSize: 28,
+            fontSize: 26,
             fontWeight: FontWeight.w900,
             color: textDark,
             letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Row(
           children: [
-            Icon(Icons.schedule_rounded, size: 16, color: primaryGreen.withOpacity(0.6)),
-            const SizedBox(width: 8),
+            Icon(Icons.schedule_rounded, size: 15, color: primaryGreen.withOpacity(0.6)),
+            const SizedBox(width: 6),
             Text(
-              '${l10n.today} at ${_formatTime(request.scheduledPickupTime)}',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Colors.grey.shade600,
-              ),
+              '${l10n.today} · ${_formatTime(request.scheduledPickupTime)}',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.grey.shade500),
             ),
           ],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         if (request.status == PickupRequestStatus.approved || request.status == PickupRequestStatus.enRoute)
           ElevatedButton.icon(
             onPressed: () => _handlePlanRoute(context, request),
-            icon: const Icon(Icons.directions_rounded),
+            icon: const Icon(Icons.directions_rounded, size: 18),
             label: Text(l10n.plan_route),
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryGreen,
               foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 56),
+              minimumSize: const Size(double.infinity, 54),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 0,
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildDonationSummaryCard(CharityPickupRequest request, AppLocalizations l10n) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: primaryGreen.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: primaryGreen.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.volunteer_activism_rounded, color: primaryGreen, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.donation_pickup,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: primaryGreen.withOpacity(0.7), letterSpacing: 1),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.scale_rounded, size: 13, color: Colors.grey.shade500),
+                    const SizedBox(width: 4),
+                    Text('${request.quantityKg.toStringAsFixed(0)} kg', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.grey.shade700)),
+                    const SizedBox(width: 12),
+                    Icon(Icons.groups_rounded, size: 13, color: Colors.grey.shade500),
+                    const SizedBox(width: 4),
+                    Text('~${request.estimatedServings} servings', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.grey.shade700)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -209,8 +254,9 @@ class CharityPickupDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: surfaceWhite,
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.grey.shade100),
         boxShadow: [
-          BoxShadow(color: primaryGreen.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 8)),
+          BoxShadow(color: primaryGreen.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 6)),
         ],
       ),
       child: Column(
@@ -319,8 +365,9 @@ class CharityPickupDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: surfaceWhite,
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.grey.shade100),
         boxShadow: [
-          BoxShadow(color: primaryGreen.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 8)),
+          BoxShadow(color: primaryGreen.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 6)),
         ],
       ),
       child: Column(
@@ -443,6 +490,7 @@ class CharityPickupDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: surfaceWhite,
         borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
         boxShadow: [
           BoxShadow(color: primaryGreen.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, -8)),
         ],

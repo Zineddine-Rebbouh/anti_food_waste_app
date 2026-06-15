@@ -8,6 +8,7 @@ import 'package:anti_food_waste_app/features/merchant/presentation/screens/merch
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_profile_screen.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/features/chat/presentation/widgets/chat_floating_button.dart';
+import 'package:anti_food_waste_app/features/billing/presentation/cubits/billing_cubit.dart';
 
 class MerchantMainScreen extends StatefulWidget {
   const MerchantMainScreen({super.key});
@@ -31,18 +32,25 @@ class _MerchantMainScreenState extends State<MerchantMainScreen> {
       MerchantProfileScreen(),
     ];
   }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return BlocBuilder<MerchantCubit, MerchantState>(
-      builder: (context, state) {
+    return BlocProvider(
+      create: (_) => BillingCubit()..load(),
+      child: BlocBuilder<MerchantCubit, MerchantState>(
+        builder: (context, state) {
         final pendingCount =
             state is MerchantLoaded ? state.pendingOrderCount : 0;
 
         return Scaffold(
-          floatingActionButton: const ChatFloatingButton(),
-          body: IndexedStack(index: _currentIndex, children: _screens),
+          body: Stack(
+            children: [
+              IndexedStack(index: _currentIndex, children: _screens),
+              const Positioned.fill(child: ChatFloatingButton()),
+            ],
+          ),
           bottomNavigationBar: Container(
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -57,8 +65,7 @@ class _MerchantMainScreenState extends State<MerchantMainScreen> {
             ),
             child: SafeArea(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -98,7 +105,8 @@ class _MerchantMainScreenState extends State<MerchantMainScreen> {
           ),
         );
       },
-    );
+    ),
+   );
   }
 }
 
@@ -137,11 +145,12 @@ class _NavItem extends StatelessWidget {
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
-                    color:
-                        isActive ? activeColor.withOpacity(0.12) : Colors.transparent,
+                    color: isActive
+                        ? activeColor.withOpacity(0.12)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(50),
                   ),
                   child: Icon(
@@ -182,8 +191,7 @@ class _NavItem extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 11,
-                fontWeight:
-                    isActive ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                 color: isActive ? activeColor : inactiveColor,
               ),
             ),
@@ -193,6 +201,3 @@ class _NavItem extends StatelessWidget {
     );
   }
 }
-
-
-

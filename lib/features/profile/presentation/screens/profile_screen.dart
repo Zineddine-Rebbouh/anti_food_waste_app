@@ -23,6 +23,7 @@ import 'package:anti_food_waste_app/features/profile/presentation/screens/my_add
 import 'package:anti_food_waste_app/features/profile/presentation/screens/about_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/edit_profile_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/eco_score_screen.dart';
+import 'package:anti_food_waste_app/features/profile/presentation/screens/settings_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/cubits/eco_score_cubit.dart';
 import 'package:anti_food_waste_app/features/help/presentation/screens/help_screen.dart';
 import 'package:anti_food_waste_app/shared/widgets/notification_panel.dart';
@@ -423,9 +424,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: l10n.account_section,
                 items: [
                   _MenuData(
-                    icon: CupertinoIcons.person_circle_fill,
+                    icon: CupertinoIcons.person,
                     title: l10n.edit_profile,
-                    color: const Color(0xFF3B82F6),
+                    color: AppTheme.primary,
                     onTap: () {
                       final cubit = context.read<ProfileCubit>();
                       Navigator.push(
@@ -440,9 +441,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                   _MenuData(
-                    icon: Icons.auto_graph_rounded,
+                    icon: CupertinoIcons.chart_bar_alt_fill,
                     title: l10n.impact_dashboard,
-                    color: const Color(0xFF10B981),
+                    color: AppTheme.primary,
                     onTap: () {
                       final cubit = context.read<ProfileCubit>();
                       Navigator.push(
@@ -457,9 +458,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                   _MenuData(
-                    icon: Icons.eco_rounded,
+                    icon: CupertinoIcons.leaf_arrow_circlepath,
                     title: l10n.eco_score,
-                    color: const Color(0xFFF59E0B),
+                    color: AppTheme.primary,
                     onTap: () {
                       final cubit = context.read<ProfileCubit>();
                       Navigator.push(
@@ -477,9 +478,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                   _MenuData(
-                    icon: CupertinoIcons.location_solid,
+                    icon: CupertinoIcons.location,
                     title: l10n.my_addresses,
-                    color: const Color(0xFFEC4899),
+                    color: AppTheme.primary,
                     onTap: () {
                       final cubit = context.read<ProfileCubit>();
                       Navigator.push(
@@ -494,9 +495,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                   _MenuData(
-                    icon: CupertinoIcons.creditcard_fill,
+                    icon: CupertinoIcons.creditcard,
                     title: l10n.payment_methods,
-                    color: const Color(0xFF8B5CF6),
+                    color: AppTheme.primary,
                     onTap: () {
                       final cubit = context.read<ProfileCubit>();
                       Navigator.push(
@@ -511,9 +512,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                   _MenuData(
-                    icon: CupertinoIcons.lock_shield_fill,
+                    icon: CupertinoIcons.lock,
                     title: l10n.change_password,
-                    color: const Color(0xFF6B7280),
+                    color: AppTheme.primary,
                     onTap: () {
                       final cubit = context.read<ProfileCubit>();
                       Navigator.push(
@@ -535,9 +536,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: l10n.information_section,
                 items: [
                   _MenuData(
-                    icon: CupertinoIcons.question_circle_fill,
+                    icon: CupertinoIcons.settings,
+                    title: l10n.settings,
+                    color: AppTheme.primary,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SettingsPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  _MenuData(
+                    icon: CupertinoIcons.question_circle,
                     title: l10n.help_support,
-                    color: const Color(0xFF06B6D4),
+                    color: AppTheme.primary,
                     onTap: () {
                       final cubit = context.read<ProfileCubit>();
                       Navigator.push(
@@ -552,7 +566,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                   _MenuData(
-                    icon: CupertinoIcons.info_circle_fill,
+                    icon: CupertinoIcons.info_circle,
                     title: l10n.about_app,
                     color: AppTheme.primary,
                     onTap: () {
@@ -691,19 +705,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
       borderRadius: BorderRadius.circular(24),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: item.color.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
-              child: Icon(item.icon, color: item.color, size: 20),
+              decoration: BoxDecoration(
+                color: item.color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                item.icon,
+                color: item.color,
+                size: 22,
+              ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 18),
             Expanded(
-              child: Text(item.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF1F2937))),
+              child: Text(
+                item.title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF111827),
+                ),
+              ),
             ),
-            Icon(CupertinoIcons.chevron_right, color: Colors.grey.shade300, size: 16),
+            Icon(
+              CupertinoIcons.chevron_right,
+              color: Colors.grey.shade400,
+              size: 16,
+            ),
           ],
         ),
       ),

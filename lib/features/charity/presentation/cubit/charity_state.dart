@@ -15,14 +15,28 @@ class CharityLoading extends CharityState {}
 class CharityLoaded extends CharityState {
   final List<CharityDonation> donations;
   final List<CharityPickupRequest> myRequests;
+  final List<CharityImpactReport> reports;
 
   const CharityLoaded({
     required this.donations,
     required this.myRequests,
+    this.reports = const [],
   });
 
   @override
-  List<Object?> get props => [donations, myRequests];
+  List<Object?> get props => [donations, myRequests, reports];
+
+  CharityLoaded copyWith({
+    List<CharityDonation>? donations,
+    List<CharityPickupRequest>? myRequests,
+    List<CharityImpactReport>? reports,
+  }) {
+    return CharityLoaded(
+      donations: donations ?? this.donations,
+      myRequests: myRequests ?? this.myRequests,
+      reports: reports ?? this.reports,
+    );
+  }
 }
 
 class CharityError extends CharityState {

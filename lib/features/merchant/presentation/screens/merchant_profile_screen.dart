@@ -12,6 +12,12 @@ import 'package:anti_food_waste_app/features/merchant/presentation/screens/merch
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_notification_settings_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_performance_analytics_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_settings_screen.dart';
+import 'package:anti_food_waste_app/core/app_theme.dart';
+import 'package:anti_food_waste_app/features/billing/presentation/cubits/billing_cubit.dart';
+import 'package:anti_food_waste_app/features/billing/presentation/screens/subscription_screen.dart';
+import 'package:anti_food_waste_app/features/billing/presentation/screens/commission_summary_screen.dart';
+import 'package:anti_food_waste_app/features/billing/presentation/screens/sponsored_listings_screen.dart';
+
 
 class MerchantProfileScreen extends StatelessWidget {
   const MerchantProfileScreen({super.key});
@@ -88,14 +94,38 @@ class MerchantProfileScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
-        color: primaryGreen,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppTheme.primary, Color(0xFF0D2119)],
+        ),
         borderRadius: BorderRadius.only(bottomLeft: Radius.circular(48), bottomRight: Radius.circular(48)),
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 60),
-          child: Column(
+      child: Stack(
+        children: [
+          Positioned(
+            top: -20,
+            right: -20,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
+            ),
+          ),
+          Positioned(
+            bottom: 20,
+            left: -40,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), shape: BoxShape.circle),
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 60),
+              child: Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -150,6 +180,8 @@ class MerchantProfileScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+        ],
       ),
     );
   }
@@ -222,6 +254,48 @@ class MerchantProfileScreen extends StatelessWidget {
             title: l10n.business_details,
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BlocProvider.value(value: context.read<MerchantCubit>(), child: const MerchantBusinessProfileScreen()))),
           ),
+          const SizedBox(height: 12),
+          _MenuTile(
+            icon: Icons.receipt_long_rounded,
+            title: 'Billing & Subscription',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BlocProvider(
+                  create: (_) => BillingCubit(),
+                  child: const SubscriptionScreen(),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _MenuTile(
+            icon: Icons.account_balance_wallet_rounded,
+            title: 'My Commissions',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BlocProvider(
+                  create: (_) => BillingCubit()..load(),
+                  child: const CommissionSummaryScreen(),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _MenuTile(
+            icon: Icons.star_rounded,
+            title: 'Sponsored Listings',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BlocProvider(
+                  create: (_) => BillingCubit()..load(),
+                  child: const SponsoredListingsScreen(),
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 32),
           _SectionLabel(l10n.support_legal_section),
           const SizedBox(height: 16),
@@ -293,6 +367,7 @@ class _MenuTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.grey.shade200, width: 1),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Row(
@@ -327,6 +402,7 @@ class _ImpactCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(

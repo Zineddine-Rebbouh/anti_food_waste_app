@@ -8,12 +8,14 @@ class MerchantListingCard extends StatelessWidget {
   final MerchantListing listing;
   final VoidCallback? onTap;
   final VoidCallback? onMenuTap;
+  final bool isSponsored;
 
   const MerchantListingCard({
     super.key,
     required this.listing,
     this.onTap,
     this.onMenuTap,
+    this.isSponsored = false,
   });
 
   @override
@@ -50,36 +52,67 @@ class MerchantListingCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Thumbnail
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: listing.imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: listing.imageUrl,
-                          width: 84,
-                          height: 84,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
-                            width: 84,
-                            height: 84,
-                            color: Colors.white,
-                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2D8659))),
+              // Thumbnail with optional sponsored overlay
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: listing.imageUrl.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: listing.imageUrl,
+                              width: 84,
+                              height: 84,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(
+                                width: 84,
+                                height: 84,
+                                color: Colors.white,
+                                child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2D8659))),
+                              ),
+                            )
+                          : Container(
+                              width: 84,
+                              height: 84,
+                              color: Colors.white,
+                              child: const Icon(Icons.fastfood_outlined, color: Color(0xFF2D8659), size: 32),
+                            ),
+                    ),
+                  ),
+                  if (isSponsored)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFF59E0B), Color(0xFFED8936)],
                           ),
-                        )
-                      : Container(
-                          width: 84,
-                          height: 84,
-                          color: Colors.white,
-                          child: const Icon(Icons.fastfood_outlined, color: Color(0xFF2D8659), size: 32),
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(20),
+                            bottomRight: Radius.circular(20),
+                          ),
                         ),
-                ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.star_rounded, color: Colors.white, size: 9),
+                            SizedBox(width: 2),
+                            Text('SPONSORED', style: TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 16),
               // Details

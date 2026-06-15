@@ -4,6 +4,7 @@ import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_lis
 import 'package:anti_food_waste_app/features/merchant/presentation/cubits/merchant_cubit.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/create_listing/merchant_create_listing_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/widgets/merchant_listing_card.dart';
+import 'package:anti_food_waste_app/features/merchant/presentation/widgets/merchant_screen_header.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_listing_detail_screen.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/core/utils/l10n_utils.dart';
@@ -54,16 +55,20 @@ class _MerchantListingsScreenState extends State<MerchantListingsScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey),
+                    const Icon(Icons.wifi_off_rounded,
+                        size: 64, color: Colors.grey),
                     const SizedBox(height: 16),
-                    Text(L10nUtils.translateError(state.message, l10n), textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
+                    Text(L10nUtils.translateError(state.message, l10n),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 16)),
                     const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: () => context.read<MerchantCubit>().load(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryGreen,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Text(l10n.retry),
                     ),
@@ -74,7 +79,10 @@ class _MerchantListingsScreenState extends State<MerchantListingsScreen>
           );
         }
         if (state is! MerchantLoaded) {
-          return const Scaffold(backgroundColor: accentBeige, body: Center(child: CircularProgressIndicator(color: primaryGreen)));
+          return const Scaffold(
+              backgroundColor: accentBeige,
+              body: Center(
+                  child: CircularProgressIndicator(color: primaryGreen)));
         }
 
         return Scaffold(
@@ -90,31 +98,36 @@ class _MerchantListingsScreenState extends State<MerchantListingsScreen>
                       listings: state.activeListings,
                       emptyTitle: l10n.no_active_listings,
                       emptySubtitle: l10n.no_active_listings_desc,
-                      onMenuTap: (listing) => _showListingMenu(context, listing, state, l10n),
+                      onMenuTap: (listing) =>
+                          _showListingMenu(context, listing, state, l10n),
                     ),
                     _ListingsTab(
                       listings: state.donationsListings,
                       emptyTitle: l10n.no_donations,
                       emptySubtitle: l10n.no_donations_desc,
-                      onMenuTap: (listing) => _showListingMenu(context, listing, state, l10n),
+                      onMenuTap: (listing) =>
+                          _showListingMenu(context, listing, state, l10n),
                     ),
                     _ListingsTab(
                       listings: state.soldOutListings,
                       emptyTitle: l10n.nothing_sold_out,
                       emptySubtitle: l10n.nothing_sold_out_desc,
-                      onMenuTap: (listing) => _showListingMenu(context, listing, state, l10n),
+                      onMenuTap: (listing) =>
+                          _showListingMenu(context, listing, state, l10n),
                     ),
                     _ListingsTab(
                       listings: state.expiredListings,
                       emptyTitle: l10n.no_expired_items,
                       emptySubtitle: l10n.no_expired_items_desc,
-                      onMenuTap: (listing) => _showListingMenu(context, listing, state, l10n),
+                      onMenuTap: (listing) =>
+                          _showListingMenu(context, listing, state, l10n),
                     ),
                     _ListingsTab(
                       listings: state.draftListings,
                       emptyTitle: l10n.no_drafts,
                       emptySubtitle: l10n.no_drafts_desc,
-                      onMenuTap: (listing) => _showListingMenu(context, listing, state, l10n),
+                      onMenuTap: (listing) =>
+                          _showListingMenu(context, listing, state, l10n),
                     ),
                   ],
                 ),
@@ -126,79 +139,35 @@ class _MerchantListingsScreenState extends State<MerchantListingsScreen>
     );
   }
 
-  Widget _buildEditorialHeader(BuildContext context, AppLocalizations l10n, MerchantLoaded state) {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        color: primaryGreen,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(40),
-          bottomRight: Radius.circular(40),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 16, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.listings_label.toUpperCase(),
-                    style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 2),
-                  ),
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                    child: IconButton(
-                      icon: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
-                      onPressed: () => _openCreateListing(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Text(
-                l10n.inventory_label,
-                style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              padding: const EdgeInsets.only(left: 12, bottom: 12),
-              indicator: const UnderlineTabIndicator(
-                borderSide: BorderSide(color: Color(0xFFFFD54F), width: 4),
-                insets: EdgeInsets.symmetric(horizontal: 16),
-              ),
-              dividerColor: Colors.transparent,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white.withOpacity(0.4),
-              labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
-              tabs: [
-                Tab(text: l10n.active_with_count(state.activeListings.length).toUpperCase()),
-                Tab(text: l10n.donations_with_count(state.donationsListings.length).toUpperCase()),
-                Tab(text: l10n.sold_out_label.toUpperCase()),
-                Tab(text: l10n.expired_label.toUpperCase()),
-                Tab(text: l10n.drafts_label.toUpperCase()),
-              ],
-            ),
-          ],
-        ),
-      ),
+  Widget _buildEditorialHeader(
+      BuildContext context, AppLocalizations l10n, MerchantLoaded state) {
+    return MerchantScreenHeader(
+      eyebrow: l10n.listings_label,
+      title: l10n.inventory_label,
+      subtitle:
+          '${l10n.active_with_count(state.activeListings.length)} | ${l10n.donations_with_count(state.donationsListings.length)}',
+      actionIcon: Icons.add_rounded,
+      actionTooltip: l10n.add_listing,
+      onAction: () => _openCreateListing(context),
+      tabController: _tabController,
+      tabs: [
+        Tab(
+            text: l10n
+                .active_with_count(state.activeListings.length)
+                .toUpperCase()),
+        Tab(
+            text: l10n
+                .donations_with_count(state.donationsListings.length)
+                .toUpperCase()),
+        Tab(text: l10n.sold_out_label.toUpperCase()),
+        Tab(text: l10n.expired_label.toUpperCase()),
+        Tab(text: l10n.drafts_label.toUpperCase()),
+      ],
     );
   }
 
-  void _openCreateListing(BuildContext context, {MerchantListing? existingListing}) {
+  void _openCreateListing(BuildContext context,
+      {MerchantListing? existingListing}) {
     Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
@@ -210,11 +179,13 @@ class _MerchantListingsScreenState extends State<MerchantListingsScreen>
     );
   }
 
-  void _showListingMenu(BuildContext context, MerchantListing listing, MerchantLoaded state, AppLocalizations l10n) {
+  void _showListingMenu(BuildContext context, MerchantListing listing,
+      MerchantLoaded state, AppLocalizations l10n) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
       builder: (sheetCtx) {
         return SafeArea(
           child: Padding(
@@ -222,31 +193,55 @@ class _MerchantListingsScreenState extends State<MerchantListingsScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(10))),
+                Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(10))),
                 const SizedBox(height: 24),
-                Text(listing.title.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.grey)),
+                Text(listing.title.toUpperCase(),
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                        color: Colors.grey)),
                 const SizedBox(height: 16),
                 _MenuAction(
                   icon: Icons.edit_rounded,
                   label: l10n.edit_listing,
-                  onTap: () { Navigator.pop(sheetCtx); _openCreateListing(context, existingListing: listing); },
+                  onTap: () {
+                    Navigator.pop(sheetCtx);
+                    _openCreateListing(context, existingListing: listing);
+                  },
                 ),
-                if (listing.status == ListingStatus.active)
+                if (listing.status == ListingStatus.active) ...[
+                  _MenuAction(
+                    icon: Icons.volunteer_activism_rounded,
+                    label: l10n
+                        .switch_to_donations, // Ensure this l10n key exists or use a fallback
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      context.read<MerchantCubit>().markAsDonation(listing.id);
+                    },
+                  ),
                   _MenuAction(
                     icon: Icons.pause_rounded,
                     label: l10n.move_to_drafts,
                     onTap: () {
                       Navigator.pop(sheetCtx);
-                      context.read<MerchantCubit>().toggleListingStatusAsync(listing.id, ListingStatus.draft);
+                      context.read<MerchantCubit>().toggleListingStatusAsync(
+                          listing.id, ListingStatus.draft);
                     },
-                  )
-                else if (listing.status == ListingStatus.draft)
+                  ),
+                ] else if (listing.status == ListingStatus.draft)
                   _MenuAction(
                     icon: Icons.play_arrow_rounded,
                     label: l10n.publish_now,
                     onTap: () {
                       Navigator.pop(sheetCtx);
-                      context.read<MerchantCubit>().toggleListingStatusAsync(listing.id, ListingStatus.active);
+                      context.read<MerchantCubit>().toggleListingStatusAsync(
+                          listing.id, ListingStatus.active);
                     },
                   ),
                 _MenuAction(
@@ -267,22 +262,30 @@ class _MerchantListingsScreenState extends State<MerchantListingsScreen>
     );
   }
 
-  void _confirmDelete(BuildContext context, MerchantListing listing, AppLocalizations l10n) {
+  void _confirmDelete(
+      BuildContext context, MerchantListing listing, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(l10n.delete_listing_confirm_title, style: const TextStyle(fontWeight: FontWeight.w900)),
+        title: Text(l10n.delete_listing_confirm_title,
+            style: const TextStyle(fontWeight: FontWeight.w900)),
         content: Text(l10n.delete_listing_confirm_msg(listing.title)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel.toUpperCase(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w900))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel.toUpperCase(),
+                  style: const TextStyle(
+                      color: Colors.grey, fontWeight: FontWeight.w900))),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.read<MerchantCubit>().deleteListing(listing.id);
             },
-            child: Text(l10n.delete_label.toUpperCase(), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w900)),
+            child: Text(l10n.delete_label.toUpperCase(),
+                style: const TextStyle(
+                    color: Colors.red, fontWeight: FontWeight.w900)),
           ),
         ],
       ),
@@ -296,7 +299,11 @@ class _ListingsTab extends StatelessWidget {
   final String emptySubtitle;
   final Function(MerchantListing)? onMenuTap;
 
-  const _ListingsTab({required this.listings, required this.emptyTitle, required this.emptySubtitle, this.onMenuTap});
+  const _ListingsTab(
+      {required this.listings,
+      required this.emptyTitle,
+      required this.emptySubtitle,
+      this.onMenuTap});
 
   @override
   Widget build(BuildContext context) {
@@ -307,11 +314,21 @@ class _ListingsTab extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.inventory_2_rounded, size: 64, color: Colors.grey.shade100),
+              Icon(Icons.inventory_2_rounded,
+                  size: 64, color: Colors.grey.shade100),
               const SizedBox(height: 24),
-              Text(emptyTitle, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              Text(emptyTitle,
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF111827))),
               const SizedBox(height: 8),
-              Text(emptySubtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+              Text(emptySubtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500)),
             ],
           ),
         ),
@@ -326,7 +343,11 @@ class _ListingsTab extends StatelessWidget {
         final listing = listings[i];
         return MerchantListingCard(
           listing: listing,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MerchantListingDetailScreen(listing: listing))),
+          onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) =>
+                      MerchantListingDetailScreen(listing: listing))),
           onMenuTap: onMenuTap != null ? () => onMenuTap!(listing) : null,
         );
       },
@@ -340,7 +361,11 @@ class _MenuAction extends StatelessWidget {
   final VoidCallback onTap;
   final bool isDestructive;
 
-  const _MenuAction({required this.icon, required this.label, required this.onTap, this.isDestructive = false});
+  const _MenuAction(
+      {required this.icon,
+      required this.label,
+      required this.onTap,
+      this.isDestructive = false});
 
   @override
   Widget build(BuildContext context) {
@@ -348,13 +373,19 @@ class _MenuAction extends StatelessWidget {
       onTap: onTap,
       leading: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: (isDestructive ? Colors.red : const Color(0xFF2D8659)).withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-        child: Icon(icon, color: isDestructive ? Colors.red : const Color(0xFF2D8659), size: 20),
+        decoration: BoxDecoration(
+            color: (isDestructive ? Colors.red : const Color(0xFF2D8659))
+                .withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12)),
+        child: Icon(icon,
+            color: isDestructive ? Colors.red : const Color(0xFF2D8659),
+            size: 20),
       ),
-      title: Text(label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: isDestructive ? Colors.red : const Color(0xFF111827))),
+      title: Text(label,
+          style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isDestructive ? Colors.red : const Color(0xFF111827))),
     );
   }
 }
-
-
-

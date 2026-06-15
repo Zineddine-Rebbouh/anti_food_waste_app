@@ -26,12 +26,12 @@ class NotificationBellButton extends StatelessWidget {
             child: const Icon(CupertinoIcons.bell),
           ),
           onPressed: onPressed ?? () {
-             showModalBottomSheet(
-               context: context,
-               isScrollControlled: true,
-               backgroundColor: Colors.transparent,
-               builder: (ctx) => const NotificationPanel(),
-             );
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (ctx) => const NotificationPanel(),
+            );
           },
         );
       },

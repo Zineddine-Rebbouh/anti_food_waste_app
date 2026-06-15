@@ -134,8 +134,19 @@ class Order {
 
 String _month(int m) {
   const names = [
-    '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    '',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   return m >= 1 && m <= 12 ? names[m] : '';
 }
@@ -191,18 +202,51 @@ class OrdersCubit extends Cubit<OrdersState> {
       : _repository = repository ?? ConsumerRepository(),
         super(const OrdersInitial());
 
+  void addOrUpdateOrder(ConsumerOrder consumerOrder) {
+    final order = Order.fromConsumerOrder(consumerOrder);
+    final current = state;
+
+    final pendingOrders = current is OrdersLoaded
+        ? List<Order>.of(current.pendingOrders)
+        : <Order>[];
+    final activeOrders = current is OrdersLoaded
+        ? List<Order>.of(current.activeOrders)
+        : <Order>[];
+    final historyOrders = current is OrdersLoaded
+        ? List<Order>.of(current.historyOrders)
+        : <Order>[];
+
+    for (final bucket in [pendingOrders, activeOrders, historyOrders]) {
+      bucket.removeWhere((existing) => existing.id == order.id);
+    }
+
+    switch (order.status) {
+      case OrderStatus.pending:
+        pendingOrders.insert(0, order);
+      case OrderStatus.accepted:
+        activeOrders.insert(0, order);
+      case OrderStatus.collected:
+      case OrderStatus.canceled:
+        historyOrders.insert(0, order);
+    }
+
+    emit(OrdersLoaded(
+      pendingOrders: pendingOrders,
+      activeOrders: activeOrders,
+      historyOrders: historyOrders,
+    ));
+  }
+
   Future<void> loadOrders() async {
     emit(const OrdersLoading());
     try {
       final consumersOrders = await _repository.fetchOrders();
       final uiOrders = consumersOrders.map(Order.fromConsumerOrder).toList();
 
-      final pending = uiOrders
-          .where((o) => o.status == OrderStatus.pending)
-          .toList();
-      final active = uiOrders
-          .where((o) => o.status == OrderStatus.accepted)
-          .toList();
+      final pending =
+          uiOrders.where((o) => o.status == OrderStatus.pending).toList();
+      final active =
+          uiOrders.where((o) => o.status == OrderStatus.accepted).toList();
       final history = uiOrders
           .where((o) =>
               o.status == OrderStatus.collected ||

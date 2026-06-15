@@ -45,7 +45,8 @@ class OrderDetailScreen extends StatelessWidget {
               child: CircleAvatar(
                 backgroundColor: Colors.black.withOpacity(0.2),
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white, size: 18),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
@@ -57,7 +58,8 @@ class OrderDetailScreen extends StatelessWidget {
                   child: CircleAvatar(
                     backgroundColor: Colors.black.withOpacity(0.2),
                     child: IconButton(
-                      icon: const Icon(Icons.qr_code_2_rounded, color: Colors.white, size: 20),
+                      icon: const Icon(Icons.qr_code_2_rounded,
+                          color: Colors.white, size: 20),
                       onPressed: () => _showQrBottomSheet(context, l10n),
                     ),
                   ),
@@ -68,10 +70,10 @@ class OrderDetailScreen extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   () {
-                    final displayImage = order.merchantCoverUrl.isNotEmpty 
-                        ? order.merchantCoverUrl 
+                    final displayImage = order.merchantCoverUrl.isNotEmpty
+                        ? order.merchantCoverUrl
                         : order.merchantImage;
-                    
+
                     if (displayImage.isNotEmpty) {
                       return Image.network(
                         _getFullImageUrl(displayImage),
@@ -83,8 +85,10 @@ class OrderDetailScreen extends StatelessWidget {
                             color: primaryGreen.withOpacity(0.05),
                             child: Center(
                               child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                value: loadingProgress.expectedTotalBytes !=
+                                        null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
                                     : null,
                                 color: primaryGreen,
                                 strokeWidth: 2,
@@ -255,7 +259,8 @@ class OrderDetailScreen extends StatelessWidget {
       children: [
         _infoRow(l10n.item_label, order.items),
         _infoRow(l10n.quantity, '${order.quantity}'),
-        _infoRow(l10n.unit_price, '${order.unitPrice.toStringAsFixed(0)} ${order.currency}'),
+        _infoRow(l10n.unit_price,
+            '${order.unitPrice.toStringAsFixed(0)} ${order.currency}'),
         _divider(),
         _infoRow(
           l10n.total_label,
@@ -288,9 +293,13 @@ class OrderDetailScreen extends StatelessWidget {
                     ? Image.network(
                         _getFullImageUrl(order.merchantLogoUrl),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.store_rounded, color: primaryGreen, size: 20),
+                        errorBuilder: (_, __, ___) => const Icon(
+                            Icons.store_rounded,
+                            color: primaryGreen,
+                            size: 20),
                       )
-                    : const Icon(Icons.store_rounded, color: primaryGreen, size: 20),
+                    : const Icon(Icons.store_rounded,
+                        color: primaryGreen, size: 20),
               ),
             ),
             const SizedBox(width: 12),
@@ -308,8 +317,7 @@ class OrderDetailScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _divider(),
-        if (order.address.isNotEmpty)
-          _infoRow(l10n.address, order.address),
+        if (order.address.isNotEmpty) _infoRow(l10n.address, order.address),
         if (order.merchantPhone.isNotEmpty)
           InkWell(
             onTap: () => _callMerchant(),
@@ -318,7 +326,9 @@ class OrderDetailScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(l10n.phone, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                  Text(l10n.phone,
+                      style:
+                          TextStyle(fontSize: 13, color: Colors.grey.shade600)),
                   Row(
                     children: [
                       Text(
@@ -330,7 +340,8 @@ class OrderDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(Icons.phone_rounded, size: 14, color: primaryGreen),
+                      const Icon(Icons.phone_rounded,
+                          size: 14, color: primaryGreen),
                     ],
                   ),
                 ],
@@ -352,11 +363,14 @@ class OrderDetailScreen extends StatelessWidget {
           _infoRow(l10n.time_label, order.pickupTime),
         _infoRow(l10n.date_label, order.pickupDate),
         if (order.status == OrderStatus.pending)
-          _infoRow(l10n.status_label, l10n.awaiting_approval, valueColor: Colors.blue),
+          _infoRow(l10n.status_label, l10n.awaiting_approval,
+              valueColor: Colors.blue),
         if (order.status == OrderStatus.accepted)
-          _infoRow(l10n.status_label, l10n.waiting_for_pickup, valueColor: Colors.orange),
+          _infoRow(l10n.status_label, l10n.waiting_for_pickup,
+              valueColor: Colors.orange),
         if (order.status == OrderStatus.collected)
-          _infoRow(l10n.status_label, l10n.collected_check, valueColor: primaryGreen),
+          _infoRow(l10n.status_label, l10n.collected_check,
+              valueColor: primaryGreen),
       ],
     );
   }
@@ -364,9 +378,12 @@ class OrderDetailScreen extends StatelessWidget {
   // ── Payment Card ─────────────────────────────────────────────────────
 
   Widget _buildPaymentCard(AppLocalizations l10n) {
-    final methodLabel = order.paymentMethod == 'cash' ? l10n.cash_on_pickup : l10n.online_payment;
+    final methodLabel = order.paymentMethod == 'cash'
+        ? l10n.cash_on_pickup
+        : l10n.online_payment;
     final isPaid = order.paymentStatus == 'completed' ||
-        (order.paymentMethod == 'cash' && order.status == OrderStatus.collected);
+        (order.paymentMethod == 'cash' &&
+            order.status == OrderStatus.collected);
 
     final (statusLabel, statusColor) = isPaid
         ? (l10n.paid_status, primaryGreen)
@@ -382,7 +399,8 @@ class OrderDetailScreen extends StatelessWidget {
       children: [
         _infoRow(l10n.payment_method_label, methodLabel),
         _infoRow(l10n.status_label, statusLabel, valueColor: statusColor),
-        _infoRow(l10n.amount, '${order.price.toStringAsFixed(0)} ${order.currency}',
+        _infoRow(
+            l10n.amount, '${order.price.toStringAsFixed(0)} ${order.currency}',
             isBold: true),
       ],
     );
@@ -433,38 +451,43 @@ class OrderDetailScreen extends StatelessWidget {
   // ── Action Buttons ───────────────────────────────────────────────────
 
   Widget _buildActionButtons(BuildContext context, AppLocalizations l10n) {
+    final isActiveOrder = order.status == OrderStatus.pending ||
+        order.status == OrderStatus.accepted;
+
     return Column(
       children: [
-        // Get Directions button — always visible and prominent (replaced QR code button)
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RoutePlanScreen(orderIds: [order.id]),
+        // Plan Route — only for active (pending / accepted) orders
+        if (isActiveOrder) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RoutePlanScreen(orderIds: [order.id]),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.directions_rounded, size: 20),
+              label: Text(l10n.plan_route),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-              );
-            },
-            icon: const Icon(Icons.directions_rounded, size: 20),
-            label: Text(l10n.plan_route),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryGreen,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
+        ],
 
         // Review Button for collected orders
         if (order.status == OrderStatus.collected) ...[
@@ -475,9 +498,7 @@ class OrderDetailScreen extends StatelessWidget {
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
+                  backgroundColor: Colors.transparent,
                   builder: (_) => BlocProvider.value(
                     value: context.read<OrdersCubit>(),
                     child: LeaveReviewSheet(order: order),
@@ -485,7 +506,7 @@ class OrderDetailScreen extends StatelessWidget {
                 );
               },
               icon: const Icon(Icons.star_rate_rounded, size: 20),
-              label: const Text('Leave a Review'),
+              label: Text(l10n.leave_review),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.amber.shade500,
                 foregroundColor: Colors.white,
@@ -523,14 +544,15 @@ class OrderDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-        if (order.status == OrderStatus.pending || order.status == OrderStatus.accepted) ...[
+        if (order.status == OrderStatus.pending ||
+            order.status == OrderStatus.accepted) ...[
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () => _showCancelBottomSheet(context, l10n),
               icon: const Icon(Icons.cancel_outlined, size: 18),
-              label: const Text('Cancel Reservation'),
+              label: Text(l10n.cancel_reservation),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red.shade700,
                 side: BorderSide(color: Colors.red.shade200),
@@ -547,7 +569,8 @@ class OrderDetailScreen extends StatelessWidget {
   }
 
   void _showCancelBottomSheet(BuildContext context, AppLocalizations l10n) {
-    final createdAt = DateTime.tryParse(order.createdAt)?.toLocal() ?? DateTime.now();
+    final createdAt =
+        DateTime.tryParse(order.createdAt)?.toLocal() ?? DateTime.now();
     final diff = DateTime.now().difference(createdAt);
     final isFree = diff.inMinutes <= 15;
 
@@ -574,7 +597,7 @@ class OrderDetailScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             // Icon header
             Container(
               padding: const EdgeInsets.all(16),
@@ -589,21 +612,21 @@ class OrderDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
-            const Text(
-              'Cancel Reservation?',
-              style: TextStyle(
+
+            Text(
+              l10n.cancel_reservation_title,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF111827),
               ),
             ),
             const SizedBox(height: 12),
-            
+
             Text(
               isFree
-                  ? 'You are within the 15-minute grace period. This cancellation is free and won\'t affect your Eco Score.'
-                  : 'More than 15 minutes have passed. Cancelling now will apply a -5 penalty to your Eco Score.',
+                  ? l10n.cancel_grace_period_message
+                  : l10n.cancel_penalty_message,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 15,
@@ -612,7 +635,7 @@ class OrderDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 32),
-            
+
             // Action Buttons
             Row(
               children: [
@@ -622,11 +645,14 @@ class OrderDetailScreen extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       side: BorderSide(color: Colors.grey.shade300),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
                     ),
-                    child: const Text(
-                      'Keep It',
-                      style: TextStyle(color: Color(0xFF374151), fontWeight: FontWeight.bold),
+                    child: Text(
+                      l10n.keep_reservation,
+                      style: const TextStyle(
+                          color: Color(0xFF374151),
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -653,15 +679,17 @@ class OrderDetailScreen extends StatelessWidget {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isFree ? Colors.grey[800] : Colors.red[600],
+                      backgroundColor:
+                          isFree ? Colors.grey[800] : Colors.red[600],
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
                     ),
-                    child: const Text(
-                      'Yes, Cancel',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    child: Text(
+                      l10n.confirm_cancel_reservation,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -677,10 +705,26 @@ class OrderDetailScreen extends StatelessWidget {
 
   Widget _buildStatusChip(OrderStatus status, AppLocalizations l10n) {
     final (color, label, icon) = switch (status) {
-      OrderStatus.pending => (Colors.blue, l10n.status_pending, Icons.hourglass_empty),
-      OrderStatus.accepted => (Colors.orange, 'Accepted', Icons.thumb_up_alt_outlined),
-      OrderStatus.collected => (const Color(0xFF6B7280), l10n.status_collected, Icons.check_circle),
-      OrderStatus.canceled => (Colors.red, l10n.status_canceled, Icons.cancel_outlined),
+      OrderStatus.pending => (
+          Colors.blue,
+          l10n.status_pending,
+          Icons.hourglass_empty
+        ),
+      OrderStatus.accepted => (
+          Colors.orange,
+          l10n.status_accepted,
+          Icons.thumb_up_alt_outlined
+        ),
+      OrderStatus.collected => (
+          const Color(0xFF6B7280),
+          l10n.status_collected,
+          Icons.check_circle
+        ),
+      OrderStatus.canceled => (
+          Colors.red,
+          l10n.status_canceled,
+          Icons.cancel_outlined
+        ),
     };
 
     return Container(
@@ -823,16 +867,17 @@ class OrderDetailScreen extends StatelessWidget {
   String _getFullImageUrl(String path) {
     if (path.isEmpty) return '';
     if (path.startsWith('http')) return path;
-    
+
     final uri = Uri.parse(AppConfig.baseUrl);
-    final baseUrl = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
-    
+    final baseUrl =
+        '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
+
     final cleanPath = path.startsWith('/') ? path : '/$path';
-    
+
     if (!cleanPath.contains('/media/') && !cleanPath.contains('/static/')) {
       return '$baseUrl/media$cleanPath';
     }
-    
+
     return '$baseUrl$cleanPath';
   }
 
@@ -854,7 +899,8 @@ class OrderDetailScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _showQrBottomSheet(BuildContext context, AppLocalizations l10n) async {
+  Future<void> _showQrBottomSheet(
+      BuildContext context, AppLocalizations l10n) async {
     // Try to fetch fresh QR data
     Map<String, dynamic>? qrData;
     try {
@@ -896,12 +942,19 @@ class OrderDetailScreen extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               l10n.show_qr_at_pickup,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textDark, letterSpacing: -0.5),
+              style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: textDark,
+                  letterSpacing: -0.5),
             ),
             const SizedBox(height: 4),
             Text(
               order.merchantName,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 20),
             QrImageView(
@@ -921,15 +974,15 @@ class OrderDetailScreen extends StatelessWidget {
                   Text(l10n.pickup_code_label,
                       style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 4),
-                    Text(
-                      pickupCode,
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 6,
-                        color: textDark,
-                      ),
+                  Text(
+                    pickupCode,
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 6,
+                      color: textDark,
                     ),
+                  ),
                 ],
               ),
             ),
@@ -950,7 +1003,7 @@ class OrderDetailScreen extends StatelessWidget {
       icon: Icons.help_outline,
       children: [
         Text(
-          'Need help with this order? Our AI assistant is here 24/7 to help you.',
+          l10n.order_help_desc,
           style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 12),

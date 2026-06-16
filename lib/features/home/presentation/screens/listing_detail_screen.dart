@@ -61,8 +61,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       setState(() {
         _isLoadingDetail = false;
         _isNotFound = false;
-        _detailErrorMessage =
-            'Could not load this offer right now. Please try again.';
+        _detailErrorMessage = AppLocalizations.of(context)!.load_offer_failed;
       });
       return;
     }
@@ -89,7 +88,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         _isNotFound = status == 404;
         _detailErrorMessage = status == 404
             ? null
-            : 'Could not load this offer right now. Please try again.';
+            : AppLocalizations.of(context)!.load_offer_failed;
       });
     } catch (_) {
       if (mounted) {
@@ -97,7 +96,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
           _isLoadingDetail = false;
           _isNotFound = false;
           _detailErrorMessage =
-              'Could not load this offer right now. Please try again.';
+              AppLocalizations.of(context)!.load_offer_failed;
         });
       }
     }
@@ -137,6 +136,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       );
       if (mounted) {
         context.read<OrdersCubit>().addOrUpdateOrder(order);
+        await context.read<OrdersCubit>().loadOrders();
         messenger.showSnackBar(
           SnackBar(
             content: Text(l10n.added_to_cart),
@@ -238,7 +238,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _loadDetail,
-                  child: const Text('Retry'),
+                  child: Text(l10n.retry),
                 ),
               ],
             ),
@@ -352,9 +352,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 } catch (_) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content:
-                          Text('Could not update favorites. Please try again.'),
+                    SnackBar(
+                      content: Text(l10n.could_not_update_favorites),
                     ),
                   );
                 }
@@ -1427,7 +1426,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                   ],
                                   Text(
                                     pickupExpired
-                                        ? 'Pickup Window Expired'
+                                        ? l10n.pickup_window_expired
                                         : _details!.userHasReserved
                                             ? l10n.already_reserved
                                             : canReserve

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/features/auth/data/models/auth_models.dart';
 import 'package:anti_food_waste_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:anti_food_waste_app/features/auth/presentation/cubits/auth_state.dart';
+import 'package:anti_food_waste_app/core/services/push_notification_service.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final AuthRepository _repository;
@@ -20,6 +21,7 @@ class AuthCubit extends Cubit<AuthState> {
         session.verificationStatus,
         emailVerified: session.emailVerified,
       ));
+      await PushNotificationService.registerDeviceToken();
     } else {
       emit(const AuthUnauthenticated());
     }
@@ -35,6 +37,7 @@ class AuthCubit extends Cubit<AuthState> {
         session.verificationStatus,
         emailVerified: session.emailVerified,
       ));
+      await PushNotificationService.registerDeviceToken();
     } on DioException catch (e) {
       emit(AuthError(dioErrorMessage(e)));
     } catch (e) {
@@ -52,6 +55,7 @@ class AuthCubit extends Cubit<AuthState> {
         session.verificationStatus,
         emailVerified: session.emailVerified,
       ));
+      await PushNotificationService.registerDeviceToken();
     } on DioException catch (e) {
       emit(AuthError(dioErrorMessage(e)));
     } catch (e) {
@@ -81,6 +85,7 @@ class AuthCubit extends Cubit<AuthState> {
           session.verificationStatus,
           emailVerified: true,
         ));
+        await PushNotificationService.registerDeviceToken();
       } else {
         emit(const AuthUnauthenticated());
       }

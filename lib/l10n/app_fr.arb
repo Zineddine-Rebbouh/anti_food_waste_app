@@ -590,6 +590,8 @@
   "route_location_permission_desc": "Veuillez activer les services de localisation et autoriser l'accès pour planifier votre itinéraire de retrait.",
   "route_planning_failed": "Échec de la planification",
   "route_no_stops_error": "Aucun arrêt n'a pu être calculé. Certains commerçants n'ont peut-être pas de données de localisation.",
+  "route_compute_failed": "Échec du calcul de l'itinéraire. Veuillez réessayer.",
+  "route_no_active_orders_error": "Aucune commande active n'a été trouvée pour planifier un itinéraire.",
   "pickup_order": "Ordre de retrait",
   "you_are_here": "Vous êtes ici",
   "route_stop": "Arrêt",

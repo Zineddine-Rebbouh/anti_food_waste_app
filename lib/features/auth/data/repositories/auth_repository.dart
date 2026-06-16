@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:anti_food_waste_app/core/services/token_storage.dart';
+import 'package:anti_food_waste_app/core/services/push_notification_service.dart';
 import 'package:anti_food_waste_app/features/auth/data/models/auth_models.dart';
 import 'package:anti_food_waste_app/features/auth/data/sources/auth_remote_source.dart';
 
@@ -52,6 +53,7 @@ class AuthRepository {
   /// Logs out — blacklists token on server and clears local storage.
   Future<void> logout() async {
     final refresh = await TokenStorage.getRefreshToken();
+    await PushNotificationService.unregisterDeviceToken();
     if (refresh != null) {
       try {
         await _remote.logout(refresh);

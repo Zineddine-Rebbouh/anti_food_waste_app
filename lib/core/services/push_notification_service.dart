@@ -39,7 +39,6 @@ class PushNotificationService {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await _initializeLocalNotifications();
     await _requestPermission();
-    await registerDeviceToken();
 
     FirebaseMessaging.instance.onTokenRefresh.listen((_) {
       registerDeviceToken();
@@ -58,6 +57,9 @@ class PushNotificationService {
     if (kIsWeb) return;
 
     try {
+      final accessToken = await ApiClient.hasAccessToken();
+      if (!accessToken) return;
+
       final token = await _messaging.getToken();
       if (token == null || token.isEmpty) return;
 

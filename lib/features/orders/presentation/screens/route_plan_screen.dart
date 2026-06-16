@@ -181,6 +181,12 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
   // ── Error ───────────────────────────────────────────────────────────────
 
   Widget _buildError(AppLocalizations l10n, String message) {
+    final displayMessage = switch (message) {
+      'route_compute_failed' => l10n.route_compute_failed,
+      'route_no_active_orders_error' => l10n.route_no_active_orders_error,
+      _ => message,
+    };
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -203,7 +209,7 @@ class _RoutePlanScreenState extends State<RoutePlanScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              message,
+              displayMessage,
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 14, color: Colors.grey.shade600, height: 1.5),

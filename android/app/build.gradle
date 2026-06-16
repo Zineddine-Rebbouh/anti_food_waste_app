@@ -28,7 +28,7 @@ android {
     namespace = "com.example.anti_food_waste_app"
     // Use explicit SDK versions to avoid plugin build errors when the Flutter
     // Gradle extension isn't available during plugin evaluation.
-    compileSdk = 34
+    compileSdk = 35
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -62,7 +62,7 @@ android {
 }
 
 dependencies {
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 }
 
 

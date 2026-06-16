@@ -9,6 +9,11 @@ class ApiClient {
 
   static final Dio dio = _build();
 
+  static Future<bool> hasAccessToken() async {
+    final token = await TokenStorage.getAccessToken();
+    return token != null && token.isNotEmpty;
+  }
+
   static Dio _build() {
     final d = Dio(
       BaseOptions(
@@ -181,4 +186,3 @@ class _TokenRefreshInterceptor extends Interceptor {
     }
   }
 }
-

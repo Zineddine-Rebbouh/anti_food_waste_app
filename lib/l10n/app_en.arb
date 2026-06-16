@@ -775,6 +775,8 @@
   "route_location_permission_desc": "Please enable location services and grant permission to plan your pickup route.",
   "route_planning_failed": "Route Planning Failed",
   "route_no_stops_error": "No stops could be calculated. Some merchants may be missing location data.",
+  "route_compute_failed": "Failed to compute route. Please try again.",
+  "route_no_active_orders_error": "No active orders found to plan a route.",
   "pickup_order": "Pickup Order",
   "you_are_here": "You are here",
   "route_stop": "Stop",
@@ -1679,5 +1681,8 @@
   "tos_section4_title": "4. Food Listings",
   "tos_section4_body": "Merchants are solely responsible for the accuracy and quality of their food listings. Tawfir acts as an intermediary and does not guarantee the availability, quality, or safety of any listed items.",
   "tos_section5_title": "5. Limitation of Liability",
-  "tos_section5_body": "To the fullest extent permitted by law, Tawfir shall not be liable for any indirect, incidental, or consequential damages arising from your use of the service. Users engage with merchants at their own risk."
+  "tos_section5_body": "To the fullest extent permitted by law, Tawfee shall not be liable for any indirect, incidental, or consequential damages arising from your use of the service. Users engage with merchants at their own risk.",
+  "load_offer_failed": "Failed to load offers.",
+  "could_not_update_favorites": "Could not update favorites.",
+  "pickup_window_expired": "Pickup window has expired."
 }

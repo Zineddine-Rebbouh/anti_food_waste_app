@@ -63,7 +63,8 @@ class RoutePlanCubit extends Cubit<RoutePlanState> {
         super(const RoutePlanInitial());
 
   /// Compute an optimized route for the given order IDs.
-  Future<void> computeRoute(List<String> orderIds, {String prefix = 'orders'}) async {
+  Future<void> computeRoute(List<String> orderIds,
+      {String prefix = 'orders'}) async {
     emit(const RoutePlanLoading());
 
     // Step 1: Get user location
@@ -87,10 +88,10 @@ class RoutePlanCubit extends Cubit<RoutePlanState> {
         userLng: position.lng,
       ));
     } catch (e) {
-      var message = 'Failed to compute route. Please try again.';
+      var message = 'route_compute_failed';
       // Try to extract a more specific error message
       if (e.toString().contains('no_active_orders')) {
-        message = 'No active orders found to plan a route.';
+        message = 'route_no_active_orders_error';
       }
       emit(RoutePlanError(message));
     }

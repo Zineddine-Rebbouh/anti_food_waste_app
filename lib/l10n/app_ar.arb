@@ -583,6 +583,8 @@
   "route_location_permission_desc": "يرجى تفعيل خدمات الموقع ومنح الإذن لتخطيط مسار الاستلام.",
   "route_planning_failed": "فشل تخطيط المسار",
   "route_no_stops_error": "تعذر حساب أي توقفات. قد تكون بيانات موقع بعض التجار غير متوفرة.",
+  "route_compute_failed": "فشل حساب المسار. يرجى المحاولة مرة أخرى.",
+  "route_no_active_orders_error": "لم يتم العثور على طلبات نشطة لتخطيط مسار.",
   "pickup_order": "ترتيب الاستلام",
   "you_are_here": "أنت هنا",
   "route_stop": "توقف",

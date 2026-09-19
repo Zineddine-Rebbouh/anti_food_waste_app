@@ -1,5 +1,5 @@
 // ─── Charity Module: Domain Models ───────────────────────────────────────────
-import 'package:anti_food_waste_app/core/config/app_config.dart';
+import 'package:anti_food_waste_app/core/utils/url_helper.dart';
 
 enum DonationStatus { available, claimed, collected, expired }
 
@@ -122,7 +122,7 @@ class CharityDonation {
       description:      json['listing_description']?.toString() ?? '',
       merchantName:     json['merchant_name']?.toString() ?? 'Unknown Merchant',
       merchantAddress:  address.isNotEmpty ? address : 'Address Not Provided',
-      imageUrl:         CharityDonation.normalizeUrl(json['listing_photo']?.toString()),
+      imageUrl:         UrlHelper.normalize(json['listing_photo']?.toString()),
       category:         parsedCategory,
       quantityKg:       qty,
       estimatedServings: servings,
@@ -148,7 +148,7 @@ class CharityDonation {
     final qty        = double.tryParse(listing['quantity_available']?.toString() ?? '') ??
                        double.tryParse(listing['quantity_total']?.toString() ?? '') ??
                        parent.quantityKg;
-    final imgUrl     = CharityDonation.normalizeUrl(
+    final imgUrl     = UrlHelper.normalize(
         listing['primary_photo_url']?.toString() ?? parent.imageUrl ?? '');
 
     final List<String> tags = List<String>.from(parent.dietaryTags);
@@ -185,26 +185,7 @@ class CharityDonation {
     );
   }
 
-  static String normalizeUrl(String? url) {
-    if (url == null || url.isEmpty) return '';
-    
-    // Check for known broken Unsplash URLs from mock data or backend
-    if (url.contains('photo-1610832958506-aa56338406cd') || 
-        url.contains('photo-1550583724-125581f77833')) {
-      return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
-    }
-
-    final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
-    if (url.startsWith('http')) {
-      if (url.contains('://127.0.0.1') || url.contains('://localhost')) {
-        final path = Uri.parse(url).path;
-        return '$baseAppUrl$path';
-      }
-      return url;
-    }
-    final cleanUrl = url.startsWith('/') ? url : '/$url';
-    return '$baseAppUrl$cleanUrl';
-  }
+  static String normalizeUrl(String? url) => UrlHelper.normalize(url);
 
   bool get isExpiringSoon =>
       expiresAt.difference(DateTime.now()).inHours < 3 &&

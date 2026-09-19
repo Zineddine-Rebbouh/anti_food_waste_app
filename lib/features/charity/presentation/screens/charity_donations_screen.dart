@@ -28,6 +28,14 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
 
   final TextEditingController _searchController = TextEditingController();
 
+  List<CharityDonation> _requestableDonations(CharityState state) {
+    if (state is! CharityLoaded) return const [];
+    final requestedIds = state.myRequests.map((req) => req.donationId).toSet();
+    return state.donations
+        .where((d) => d.status == DonationStatus.available && !requestedIds.contains(d.id))
+        .toList();
+  }
+
   // ── Filtering ─────────────────────────────────────────────────────────────
   List<CharityDonation> _getFilteredDonations(List<CharityDonation> donations) {
     return donations.where((d) {
@@ -161,7 +169,7 @@ class _CharityDonationsScreenState extends State<CharityDonationsScreen> {
             body: Center(child: CircularProgressIndicator(color: _green)),
           );
         }
-        final rawDonations = state is CharityLoaded ? state.donations : <CharityDonation>[];
+        final rawDonations = _requestableDonations(state);
         final donations = _getFilteredDonations(rawDonations);
 
         return Scaffold(

@@ -24,8 +24,7 @@ class CharityHomeScreen extends StatefulWidget {
 }
 
 class _CharityHomeScreenState extends State<CharityHomeScreen> {
-  int _availableCount(List<CharityDonation> donations) =>
-      donations.where((d) => d.status == DonationStatus.available).length;
+  int _availableCount(List<CharityDonation> donations) => donations.length;
 
   int _urgentCount(List<CharityDonation> donations) => donations
       .where((d) =>
@@ -33,9 +32,8 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
           d.urgency == UrgencyLevel.urgent)
       .length;
 
-  int _pendingPickupsCount(List<CharityPickupRequest> requests) => requests
+  int _activePickupsCount(List<CharityPickupRequest> requests) => requests
       .where((r) =>
-          r.status == PickupRequestStatus.pending ||
           r.status == PickupRequestStatus.approved)
       .length;
 
@@ -71,7 +69,7 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
                   FadeInUp(delay: const Duration(milliseconds: 100), duration: const Duration(milliseconds: 600), child: _StatsRow(
                     availableCount: _availableCount(donations),
                     urgentCount: _urgentCount(donations),
-                    pendingPickupsCount: _pendingPickupsCount(requests),
+                    activePickupsCount: _activePickupsCount(requests),
                     totalMeals: _totalMeals,
                   )),
                   FadeInUp(delay: const Duration(milliseconds: 200), duration: const Duration(milliseconds: 600), child: _buildQuickActions(context, l10n)),
@@ -349,10 +347,10 @@ class _CharityHomeScreenState extends State<CharityHomeScreen> {
 class _StatsRow extends StatelessWidget {
   final int availableCount;
   final int urgentCount;
-  final int pendingPickupsCount;
+  final int activePickupsCount;
   final int totalMeals;
 
-  const _StatsRow({required this.availableCount, required this.urgentCount, required this.pendingPickupsCount, required this.totalMeals});
+  const _StatsRow({required this.availableCount, required this.urgentCount, required this.activePickupsCount, required this.totalMeals});
 
   @override
   Widget build(BuildContext context) {
@@ -369,7 +367,7 @@ class _StatsRow extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(child: _StatCard(label: l10n.urgent_stat, value: '$urgentCount', icon: Icons.bolt_rounded, color: const Color(0xFFEF4444), delta: l10n.today)),
               const SizedBox(width: 12),
-              Expanded(child: _StatCard(label: l10n.pending_pickup_stat, value: '$pendingPickupsCount', icon: Icons.local_shipping_rounded, color: const Color(0xFF3B82F6), delta: l10n.today)),
+              Expanded(child: _StatCard(label: l10n.active_pickups, value: '$activePickupsCount', icon: Icons.local_shipping_rounded, color: const Color(0xFF3B82F6), delta: l10n.today)),
             ],
           ),
         ),
@@ -460,4 +458,3 @@ class _ActionCard extends StatelessWidget {
     );
   }
 }
-

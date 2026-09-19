@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/foundation.dart';
 import 'package:anti_food_waste_app/features/charity/domain/repositories/charity_repository.dart';
  import 'package:anti_food_waste_app/features/charity/domain/models/charity_models.dart';
 import 'package:anti_food_waste_app/features/charity/presentation/cubit/charity_state.dart';
@@ -35,14 +36,25 @@ class CharityCubit extends Cubit<CharityState> {
       : _repository = repository,
         super(CharityInitial());
 
+  bool _isRequestableDonation(
+    CharityDonation donation,
+    List<CharityPickupRequest> requests,
+  ) {
+    final hasExistingRequest = requests.any((req) => req.donationId == donation.id);
+    return donation.status == DonationStatus.available && !hasExistingRequest;
+  }
+
   Future<void> fetchCharityData() async {
     emit(CharityLoading());
     try {
-      final donations = await _repository.getDonations();
       final myRequests = await _repository.getMyPickupRequests();
+      final donations = await _repository.getDonations();
+      final availableDonations = donations
+          .where((donation) => _isRequestableDonation(donation, myRequests))
+          .toList();
       
       emit(CharityLoaded(
-        donations: donations,
+        donations: availableDonations,
         myRequests: myRequests,
         reports: List.from(_submittedReports),
       ));
@@ -91,7 +103,7 @@ class CharityCubit extends Cubit<CharityState> {
         });
       } catch (e) {
         // Safe fallback for mock/local server envs
-        print("Backend submit impact report failed/ignored: $e");
+        debugPrint("Backend submit impact report failed/ignored: $e");
       }
 
       final newReport = CharityImpactReport(

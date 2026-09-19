@@ -171,7 +171,7 @@ class _CharityOrgProfileScreenState extends State<CharityOrgProfileScreen> {
             FadeInUp(
                 delay: const Duration(milliseconds: 200),
                 duration: const Duration(milliseconds: 600),
-                child: _buildActivityOverview(context, l10n)),
+                child: _buildImpactDashboardPreview(context, l10n)),
             const SizedBox(height: 16),
             FadeInUp(
                 delay: const Duration(milliseconds: 300),
@@ -399,47 +399,73 @@ class _CharityOrgProfileScreenState extends State<CharityOrgProfileScreen> {
     );
   }
 
-  Widget _buildActivityOverview(BuildContext context, AppLocalizations l10n) {
+  Widget _buildImpactDashboardPreview(BuildContext context, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0D2119), Color(0xFF2D8659)],
+          ),
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-                color: CharityMainScreen.primaryGreen.withOpacity(0.04),
-                blurRadius: 20,
-                offset: const Offset(0, 8))
+              color: CharityMainScreen.primaryGreen.withOpacity(0.18),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            )
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.activity_overview.toUpperCase(),
+            Text(l10n.view_detailed_impact.toUpperCase(),
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
-                    color: Colors.grey.shade400,
+                    color: Colors.white.withOpacity(0.55),
                     letterSpacing: 1.5)),
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
+            Text(
+              l10n.activity_overview,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: -0.7,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              l10n.your_impact_summary,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.white.withOpacity(0.72),
+                height: 1.45,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 22),
             Row(
               children: [
                 Expanded(
                     child: _MiniStatTile(
                         icon: Icons.task_alt_rounded,
-                        color: const Color(0xFF2D8659),
+                        color: Colors.white,
                         title: '128',
-                        subtitle: l10n.completed_pickups)),
+                        subtitle: l10n.completed_pickups,
+                        dark: true)),
                 const SizedBox(width: 14),
                 Expanded(
                     child: _MiniStatTile(
                         icon: Icons.people_alt_rounded,
-                        color: const Color(0xFF6366F1),
+                        color: Colors.white,
                         title: '3,240',
-                        subtitle: l10n.people_reached)),
+                        subtitle: l10n.people_reached,
+                        dark: true)),
               ],
             ),
             const SizedBox(height: 14),
@@ -448,16 +474,18 @@ class _CharityOrgProfileScreenState extends State<CharityOrgProfileScreen> {
                 Expanded(
                     child: _MiniStatTile(
                         icon: Icons.scale_rounded,
-                        color: const Color(0xFF3B82F6),
+                        color: Colors.white,
                         title: '1.8t',
-                        subtitle: l10n.food_rescued)),
+                        subtitle: l10n.food_rescued,
+                        dark: true)),
                 const SizedBox(width: 14),
                 Expanded(
                     child: _MiniStatTile(
                         icon: Icons.stars_rounded,
-                        color: const Color(0xFFF59E0B),
+                        color: Colors.white,
                         title: '4.9',
-                        subtitle: l10n.avg_merchant_rating)),
+                        subtitle: l10n.avg_merchant_rating,
+                        dark: true)),
               ],
             ),
             const SizedBox(height: 24),
@@ -469,9 +497,8 @@ class _CharityOrgProfileScreenState extends State<CharityOrgProfileScreen> {
                 icon: const Icon(Icons.analytics_rounded, size: 18),
                 label: Text(l10n.view_detailed_impact.toUpperCase()),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      CharityMainScreen.primaryGreen.withOpacity(0.05),
-                  foregroundColor: CharityMainScreen.primaryGreen,
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF0D2119),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -732,11 +759,13 @@ class _MiniStatTile extends StatelessWidget {
   final Color color;
   final String title;
   final String subtitle;
+  final bool dark;
   const _MiniStatTile(
       {required this.icon,
       required this.color,
       required this.title,
-      required this.subtitle});
+      required this.subtitle,
+      this.dark = false});
 
   @override
   Widget build(BuildContext context) {
@@ -751,16 +780,16 @@ class _MiniStatTile extends StatelessWidget {
           Icon(icon, color: color, size: 20),
           const SizedBox(height: 12),
           Text(title,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF111827),
+                  color: dark ? Colors.white : const Color(0xFF111827),
                   height: 1)),
           const SizedBox(height: 4),
           Text(subtitle,
               style: TextStyle(
                   fontSize: 9,
-                  color: Colors.grey.shade500,
+                  color: dark ? Colors.white.withOpacity(0.7) : Colors.grey.shade500,
                   fontWeight: FontWeight.w700),
               maxLines: 1,
               overflow: TextOverflow.ellipsis),

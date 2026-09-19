@@ -27,6 +27,7 @@ import 'package:anti_food_waste_app/features/profile/presentation/screens/change
 import 'package:anti_food_waste_app/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:anti_food_waste_app/features/help/presentation/screens/help_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/impact_dashboard_screen.dart';
+import 'package:anti_food_waste_app/features/profile/presentation/screens/consumer_impact_dashboard_screen.dart';
 import 'package:anti_food_waste_app/shared/widgets/not_found_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -64,6 +65,7 @@ abstract final class AppRoutes {
   static const String notifications = '/notifications';
   static const String help = '/help';
   static const String impactDashboard = '/impact-dashboard';
+  static const String consumerImpactDashboard = '/consumer-impact-dashboard';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -179,6 +181,12 @@ abstract final class AppRouter {
       case AppRoutes.impactDashboard:
         return MaterialPageRoute(
           builder: (_) => const ImpactDashboardScreen(),
+        );
+
+      case AppRoutes.consumerImpactDashboard:
+        final user = settings.arguments as dynamic;
+        return MaterialPageRoute(
+          builder: (_) => ConsumerImpactDashboardScreen(user: user),
         );
 
       // ── Fallback ────────────────────────────────────────────────────────

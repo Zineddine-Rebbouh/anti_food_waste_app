@@ -16,9 +16,8 @@ import 'package:anti_food_waste_app/core/app_theme.dart';
 import 'package:anti_food_waste_app/core/navigation/app_router.dart';
 import 'package:anti_food_waste_app/features/profile/domain/models/app_user.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/cubits/profile_cubit.dart';
-import 'package:anti_food_waste_app/features/profile/presentation/screens/impact_dashboard_screen.dart';
+import 'package:anti_food_waste_app/features/profile/presentation/screens/consumer_impact_dashboard_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/change_password_screen.dart';
-import 'package:anti_food_waste_app/features/profile/presentation/screens/payment_methods_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/my_addresses_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/about_screen.dart';
 import 'package:anti_food_waste_app/features/profile/presentation/screens/edit_profile_screen.dart';
@@ -445,14 +444,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: l10n.impact_dashboard,
                     color: AppTheme.primary,
                     onTap: () {
-                      final cubit = context.read<ProfileCubit>();
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => BlocProvider.value(
-                            value: cubit,
-                            child: const ImpactDashboardScreen(),
-                          ),
+                          builder: (_) => ConsumerImpactDashboardScreen(user: state.user),
                         ),
                       );
                     },
@@ -489,23 +484,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           builder: (_) => BlocProvider.value(
                             value: cubit,
                             child: const MyAddressesScreen(),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _MenuData(
-                    icon: CupertinoIcons.creditcard,
-                    title: l10n.payment_methods,
-                    color: AppTheme.primary,
-                    onTap: () {
-                      final cubit = context.read<ProfileCubit>();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => BlocProvider.value(
-                            value: cubit,
-                            child: const PaymentMethodsScreen(),
                           ),
                         ),
                       );

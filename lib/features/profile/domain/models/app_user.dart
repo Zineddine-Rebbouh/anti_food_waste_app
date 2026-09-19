@@ -1,4 +1,4 @@
-import 'package:anti_food_waste_app/core/config/app_config.dart';
+import 'package:anti_food_waste_app/core/utils/url_helper.dart';
 
 double _toDoubleUser(dynamic v, [double fallback = 0.0]) {
   if (v == null) return fallback;
@@ -142,26 +142,12 @@ class AppUser {
     // ~0.5 kg food saved per order; ~2.5 kg CO2 per kg food
     final foodSavedKg = _toDoubleUser(profile['total_food_saved_kg']);
 
-    String normalizeUrl(String url) {
-      if (url.isEmpty) return '';
-      final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
-      if (url.startsWith('http')) {
-        if (url.contains('://127.0.0.1') || url.contains('://localhost')) {
-          final path = Uri.parse(url).path;
-          return '$baseAppUrl$path';
-        }
-        return url;
-      }
-      final cleanUrl = url.startsWith('/') ? url : '/$url';
-      return '$baseAppUrl$cleanUrl';
-    }
-
     return AppUser(
       id: json['id']?.toString() ?? '',
       name: displayName.isEmpty ? email : displayName,
       email: email,
       phone: json['phone'] as String? ?? '',
-      avatarUrl: normalizeUrl(json['avatar_url'] as String? ?? ''),
+      avatarUrl: UrlHelper.normalize(json['avatar_url'] as String? ?? ''),
       level: level,
       joinDate: joinDate,
       mealsSaved: (profile['total_orders'] as num? ?? 0).toInt(),

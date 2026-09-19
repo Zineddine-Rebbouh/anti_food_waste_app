@@ -62,6 +62,13 @@ void main() {
         MerchantListing.fromJson({'pickup_start': '2026-04-05T18:00:00Z', 'pickup_end': '2026-04-05T20:00:00Z', 'primary_photo_url': remoteUrl}).imageUrl,
         remoteUrl
       );
+
+      // Case 4: source.unsplash.com URL (should fallback to safe placeholder)
+      const sourceUnsplashUrl = 'https://source.unsplash.com/random/800x600/?bakery,food&sig=1';
+      expect(
+        MerchantListing.fromJson({'pickup_start': '2026-04-05T18:00:00Z', 'pickup_end': '2026-04-05T20:00:00Z', 'primary_photo_url': sourceUnsplashUrl}).imageUrl,
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'
+      );
     });
     
     test('Should parse nested Category object from Detail API', () {

@@ -1,4 +1,4 @@
-import 'package:anti_food_waste_app/core/config/app_config.dart';
+import 'package:anti_food_waste_app/core/utils/url_helper.dart';
 enum FreshnessGrade { A, B, C }
 
 enum FoodCategory { bakery, restaurant, supermarket, cafe }
@@ -65,6 +65,7 @@ class FoodListing {
   final FoodCategory category;
   final String pickupStart;
   final String pickupEnd;
+  final DateTime? pickupEndDateTime;
   final int quantityLeft;
   final List<String> dietary;
   final double lat;
@@ -90,6 +91,7 @@ class FoodListing {
     required this.category,
     required this.pickupStart,
     required this.pickupEnd,
+    this.pickupEndDateTime,
     required this.quantityLeft,
     required this.dietary,
     required this.lat,
@@ -168,41 +170,24 @@ class FoodListing {
 
     // ── Primary image ─────────────────────────────────────────────────────
     // List: primary_photo_url  |  Detail: first photo in photos[]
-    var rawImageUrl = json['primary_photo_url']?.toString() ?? '';
+    var rawImageUrl = json['primary_photo_url']?.toString() ??
+        json['primary_image_url']?.toString() ??
+        json['image_url']?.toString() ??
+        json['image']?.toString() ??
+        '';
     if (rawImageUrl.isEmpty) {
       final photos = json['photos'] as List<dynamic>?;
       if (photos != null && photos.isNotEmpty) {
-        rawImageUrl = (photos.first as Map<String, dynamic>)['photo_url'] as String? ?? '';
+        final firstPhoto = photos.first as Map<String, dynamic>;
+        rawImageUrl = firstPhoto['photo_url']?.toString() ??
+            firstPhoto['image_url']?.toString() ??
+            firstPhoto['url']?.toString() ??
+            firstPhoto['image']?.toString() ??
+            '';
       }
     }
 
-    String normalizeUrl(String url) {
-      if (url.isEmpty) return '';
-
-      // Check for known broken Unsplash URLs from mock data or backend
-      if (url.contains('photo-1610832958506-aa56338406cd') || 
-          url.contains('photo-1550583724-125581f77833')) {
-        return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
-      }
-      
-      // Get base URL without /api/v1/
-      final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
-      
-      if (url.startsWith('http')) {
-        // If it's a localhost/127.0.0.1 URL from the backend, 
-        // replace it with our configured baseAppUrl to ensure it works on emulators/devices.
-        if (url.contains('://127.0.0.1') || url.contains('://localhost')) {
-          final path = Uri.parse(url).path;
-          return '$baseAppUrl$path';
-        }
-        return url;
-      }
-      
-      final cleanUrl = url.startsWith('/') ? url : '/$url';
-      return '$baseAppUrl$cleanUrl';
-    }
-
-    final imageUrl = normalizeUrl(rawImageUrl);
+    final imageUrl = UrlHelper.normalize(rawImageUrl);
 
     // ── Merchant info (detail response only) ─────────────────────────────
     final merchantInfo = json['merchant_info'] as Map<String, dynamic>?;
@@ -214,7 +199,7 @@ class FoodListing {
     
     // Logo extraction
     var rawLogoUrl = merchantInfo?['logo_url']?.toString() ?? json['merchant_logo_url']?.toString() ?? '';
-    final merchantLogoUrl = normalizeUrl(rawLogoUrl);
+    final merchantLogoUrl = UrlHelper.normalize(rawLogoUrl);
 
     // Detail has average_rating inside merchant_info; list has merchant_rating at top level
     final rating = merchantInfo != null
@@ -237,6 +222,12 @@ class FoodListing {
     // ── Dietary flags (only present in detail response) ───────────────────
     final dietary = _extractDietaryLabels(json['dietary_flags']);
 
+    DateTime? pickupEndDateTime;
+    final rawPickupEnd = json['pickup_end']?.toString();
+    if (rawPickupEnd != null) {
+      pickupEndDateTime = DateTime.tryParse(rawPickupEnd);
+    }
+
     return FoodListing(
       id: _extractListingId(json),
       title: json['title']?.toString() ?? '',
@@ -254,6 +245,7 @@ class FoodListing {
       category: category,
       pickupStart: trimTime(json['pickup_start']?.toString()),
       pickupEnd: trimTime(json['pickup_end']?.toString()),
+      pickupEndDateTime: pickupEndDateTime,
       quantityLeft: _toDouble(json['quantity_available']).toInt(),
       dietary: dietary,
       lat: lat == 0 ? _toDouble(json['lat']) : lat,

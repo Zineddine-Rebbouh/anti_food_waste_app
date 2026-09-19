@@ -46,7 +46,7 @@ class _ListingCardState extends State<ListingCard> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isRtl = Directionality.of(context) == TextDirection.rtl;
-    final isExpired = _isPickupExpired(widget.listing.pickupEnd);
+    final isExpired = _isPickupExpired(widget.listing);
 
     return FadeInUp(
       duration: const Duration(milliseconds: 400),
@@ -449,7 +449,11 @@ class _ListingCardState extends State<ListingCard> {
   }
 
   /// Returns true when the current time has passed the listing's pickup end.
-  static bool _isPickupExpired(String pickupEnd) {
+  static bool _isPickupExpired(FoodListing listing) {
+    if (listing.pickupEndDateTime != null) {
+      return DateTime.now().isAfter(listing.pickupEndDateTime!);
+    }
+    final pickupEnd = listing.pickupEnd;
     if (pickupEnd.isEmpty) return false;
     try {
       final parts = pickupEnd.split(':');

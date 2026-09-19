@@ -1,4 +1,4 @@
-import 'package:anti_food_waste_app/core/config/app_config.dart';
+import 'package:anti_food_waste_app/core/utils/url_helper.dart';
 
 class ListingReview {
   final String id;
@@ -101,31 +101,6 @@ class ListingExtraDetails {
     final userHasReserved = json['user_has_reserved'] as bool? ?? false;
 
 
-    String normalizeUrl(String url) {
-      if (url.isEmpty) return '';
-      
-      // Check for known broken Unsplash URLs from mock data or backend
-      if (url.contains('photo-1610832958506-aa56338406cd') || 
-          url.contains('photo-1550583724-125581f77833')) {
-        return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
-      }
-
-      final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
-      
-      if (url.startsWith('http')) {
-        // If it's a localhost/127.0.0.1 URL from the backend, 
-        // replace it with our configured baseAppUrl to ensure it works on emulators/devices.
-        if (url.contains('://127.0.0.1') || url.contains('://localhost')) {
-          final path = Uri.parse(url).path;
-          return '$baseAppUrl$path';
-        }
-        return url;
-      }
-      
-      final cleanUrl = url.startsWith('/') ? url : '/$url';
-      return '$baseAppUrl$cleanUrl';
-    }
-
     List<String> extractDietaryLabels(dynamic value) {
       if (value is List) {
         return value
@@ -152,12 +127,12 @@ class ListingExtraDetails {
     var images = photosRaw
         .map((p) => (p as Map<String, dynamic>)['photo_url'] as String? ?? '')
         .where((url) => url.isNotEmpty)
-        .map(normalizeUrl)
+        .map(UrlHelper.normalize)
         .toList();
     if (images.isEmpty) {
       final fallback = json['primary_photo_url'] as String?;
       if (fallback != null && fallback.isNotEmpty) {
-        images = [normalizeUrl(fallback)];
+        images = [UrlHelper.normalize(fallback)];
       }
     }
 
@@ -218,7 +193,7 @@ class ListingExtraDetails {
                          getString(merchantInfo, 'name') ?? 
                          getString(json, 'merchant_name') ?? 
                          'Merchant';
-    final merchantLogo = normalizeUrl(getString(merchantInfo, 'logo_url') ?? 
+    final merchantLogo = UrlHelper.normalize(getString(merchantInfo, 'logo_url') ?? 
                                     getString(merchantInfo, 'logo') ?? 
                                     getString(merchantInfo, 'business_logo') ?? 
                                     getString(merchantInfo, 'avatar_url') ?? 
@@ -238,7 +213,7 @@ class ListingExtraDetails {
         id: merchantId,
         name: merchantName,
         logoUrl: merchantLogo,
-        coverImageUrl: normalizeUrl(getString(merchantInfo, 'cover_image_url') ?? 
+        coverImageUrl: UrlHelper.normalize(getString(merchantInfo, 'cover_image_url') ?? 
                                    getString(merchantInfo, 'cover_image') ?? 
                                    getString(merchantInfo, 'banner_url') ?? 
                                    ''),

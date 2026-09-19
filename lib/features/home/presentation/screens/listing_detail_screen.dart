@@ -624,25 +624,32 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 
   String _getCountdownText(AppLocalizations l10n) {
-    if (widget.listing.pickupEnd.isEmpty) return ' 2h 15m';
-    try {
-      final parts = widget.listing.pickupEnd.split(':');
-      if (parts.length < 2) return '';
-      final hour = int.parse(parts[0]);
-      final min = int.parse(parts[1]);
-      final now = DateTime.now();
-      final target = DateTime(now.year, now.month, now.day, hour, min);
-      if (now.isAfter(target)) {
-        return 'Pickup ended';
+    final now = DateTime.now();
+    DateTime target;
+    if (widget.listing.pickupEndDateTime != null) {
+      target = widget.listing.pickupEndDateTime!;
+    } else {
+      if (widget.listing.pickupEnd.isEmpty) return ' 2h 15m';
+      try {
+        final parts = widget.listing.pickupEnd.split(':');
+        if (parts.length < 2) return '';
+        final hour = int.parse(parts[0]);
+        final min = int.parse(parts[1]);
+        target = DateTime(now.year, now.month, now.day, hour, min);
+      } catch (_) {
+        return '';
       }
-      final diff = target.difference(now);
-      if (diff.inHours > 0) {
-        return ' h m';
-      } else {
-        return ' m';
-      }
-    } catch (_) {
-      return '';
+    }
+    if (now.isAfter(target)) {
+      return 'Pickup ended';
+    }
+    final diff = target.difference(now);
+    final hours = diff.inHours;
+    final minutes = diff.inMinutes % 60;
+    if (hours > 0) {
+      return ' ${hours}h ${minutes}m';
+    } else {
+      return ' ${minutes}m';
     }
   }
 
@@ -1297,6 +1304,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   /// Returns true if the current time is past the listing's pickup end time.
   bool _isPickupExpired() {
+    if (widget.listing.pickupEndDateTime != null) {
+      return DateTime.now().isAfter(widget.listing.pickupEndDateTime!);
+    }
     final endStr = widget.listing.pickupEnd; // "HH:MM"
     if (endStr.isEmpty) return false;
     try {

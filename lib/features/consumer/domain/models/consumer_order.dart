@@ -1,4 +1,4 @@
-import 'package:anti_food_waste_app/core/config/app_config.dart';
+import 'package:anti_food_waste_app/core/utils/url_helper.dart';
 
 /// Domain model for a consumer's order, mapped from OrderListSerializer /
 /// OrderDetailSerializer responses.
@@ -118,24 +118,10 @@ class ConsumerOrder {
     final shortRef = rawId.replaceAll('-', '').substring(0, rawId.replaceAll('-', '').length.clamp(0, 8)).toUpperCase();
     final orderNumber = '#SF-$shortRef';
 
-    String normalizeUrl(String url) {
-      if (url.isEmpty) return '';
-      final baseAppUrl = AppConfig.baseUrl.split('/api/').first;
-      if (url.startsWith('http')) {
-        if (url.contains('://127.0.0.1') || url.contains('://localhost')) {
-          final path = Uri.parse(url).path;
-          return '$baseAppUrl$path';
-        }
-        return url;
-      }
-      final cleanUrl = url.startsWith('/') ? url : '/$url';
-      return '$baseAppUrl$cleanUrl';
-    }
-
     return ConsumerOrder(
       id: rawId,
       merchantName: json['merchant_name'] as String? ?? '',
-      merchantImage: normalizeUrl(image),
+      merchantImage: UrlHelper.normalize(image),
       listingTitle: title,
       totalPrice: _toDoubleCO(json['total_price']),
       unitPrice: _toDoubleCO(json['unit_price']),
@@ -155,8 +141,8 @@ class ConsumerOrder {
       merchantPhone: json['merchant_phone'] as String? ?? '',
       merchantLatitude: _toNullableDouble(json['merchant_latitude']),
       merchantLongitude: _toNullableDouble(json['merchant_longitude']),
-      merchantLogoUrl: normalizeUrl(json['merchant_logo_url'] as String? ?? ''),
-      merchantCoverUrl: normalizeUrl(json['merchant_cover_url'] as String? ?? json['merchant_cover_image_url'] as String? ?? ''),
+      merchantLogoUrl: UrlHelper.normalize(json['merchant_logo_url'] as String? ?? ''),
+      merchantCoverUrl: UrlHelper.normalize(json['merchant_cover_url'] as String? ?? json['merchant_cover_image_url'] as String? ?? ''),
       cancellationReason: json['cancellation_reason'] as String? ?? '',
       notes: json['notes'] as String? ?? '',
       collectedAt: json['collected_at'] as String?,

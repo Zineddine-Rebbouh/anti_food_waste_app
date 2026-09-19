@@ -7,6 +7,17 @@ import 'package:anti_food_waste_app/features/notifications/presentation/cubits/n
 import 'package:animate_do/animate_do.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 
+String _tr(String en, String fr, String ar, BuildContext context) {
+  switch (Localizations.localeOf(context).languageCode) {
+    case 'fr':
+      return fr;
+    case 'ar':
+      return ar;
+    default:
+      return en;
+  }
+}
+
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
@@ -126,11 +137,12 @@ class NotificationsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: [
           BoxShadow(
-            color: primaryGreen.withOpacity(isUnread ? 0.08 : 0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -144,12 +156,13 @@ class NotificationsScreen extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: isUnread ? primaryGreen.withOpacity(0.08) : Colors.grey[50],
+              color: isUnread ? const Color(0xFFDCFCE7) : const Color(0xFFF9FAFB),
               shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE5E7EB)),
             ),
             child: Icon(
               _getNotificationIcon(notification.type),
-              color: isUnread ? primaryGreen : Colors.grey[400],
+              color: isUnread ? primaryGreen : Colors.grey[500],
               size: 20,
             ),
           ),
@@ -176,7 +189,7 @@ class NotificationsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Just now', // Ideally formatted time
+                _tr('Just now', 'À l\'instant', 'الآن', context), // Ideally formatted time
                 style: TextStyle(
                   fontSize: 10,
                   color: textNavy.withOpacity(0.3),

@@ -110,25 +110,49 @@ class BillingCubit extends Cubit<BillingState> {
   }
 
   /// Request to upgrade/renew subscription.
-  Future<void> requestUpgrade({
+  /// Returns the created [SubscriptionPayment] so callers can display
+  /// the server-generated [referenceCode] on the pending confirmation screen.
+  Future<SubscriptionPayment> requestUpgrade({
     required int planId,
     required DateTime periodStart,
     required DateTime periodEnd,
     required String paymentMethod,
     required String referenceNumber,
+    String receiptImageUrl = '',
     String notes = '',
   }) async {
-    if (state is! BillingLoaded) return;
+    if (state is! BillingLoaded) throw Exception('Billing not loaded.');
     try {
-      await _repository.createPaymentRequest(
+      final payment = await _repository.createPaymentRequest(
         planId: planId,
         periodStart: periodStart,
         periodEnd: periodEnd,
         paymentMethod: paymentMethod,
         referenceNumber: referenceNumber,
+        receiptImageUrl: receiptImageUrl,
         notes: notes,
       );
       await load();
+      return payment;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Cancel a pending subscription payment request.
+  Future<void> cancelRequest(String paymentId) async {
+    try {
+      await _repository.cancelPaymentRequest(paymentId);
+      await load();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Upload a receipt image file.
+  Future<String> uploadReceipt(String filePath) async {
+    try {
+      return await _repository.uploadReceipt(filePath);
     } catch (e) {
       rethrow;
     }

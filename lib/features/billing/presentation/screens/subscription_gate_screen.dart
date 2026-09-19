@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/features/billing/presentation/cubits/billing_cubit.dart';
-import 'package:anti_food_waste_app/features/billing/presentation/screens/subscription_screen.dart';
+import 'package:anti_food_waste_app/features/billing/presentation/screens/plan_selection_screen.dart';
 
 class SubscriptionGateScreen {
   static void show(
@@ -64,8 +64,8 @@ class SubscriptionGateScreen {
                   context,
                   MaterialPageRoute(
                     builder: (_) => BlocProvider(
-                      create: (_) => BillingCubit(),
-                      child: const SubscriptionScreen(),
+                      create: (_) => BillingCubit()..load(),
+                      child: const PlanSelectionScreen(),
                     ),
                   ),
                 );

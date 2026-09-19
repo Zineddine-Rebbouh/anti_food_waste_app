@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:anti_food_waste_app/features/billing/domain/models/billing_models.dart';
 import 'package:anti_food_waste_app/features/billing/presentation/cubits/billing_cubit.dart';
 import 'package:anti_food_waste_app/features/billing/presentation/screens/invoice_history_screen.dart';
+import 'package:anti_food_waste_app/features/billing/presentation/screens/plan_selection_screen.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -20,6 +21,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   DateTime _startDate = DateTime.now();
   late DateTime _endDate;
   String _paymentMethod = 'bank_transfer';
+
+  String _t(BuildContext context, String en, String fr, String ar) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'fr':
+        return fr;
+      case 'ar':
+        return ar;
+      default:
+        return en;
+    }
+  }
 
   @override
   void initState() {
@@ -88,8 +100,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       _referenceController.clear();
       _notesController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Subscription upgrade request submitted successfully!'),
+        SnackBar(
+          content: Text(_t(context,
+              'Subscription upgrade request submitted successfully!',
+              'Demande de mise à niveau de l\'abonnement envoyée avec succès !',
+              'تم إرسال طلب ترقية الاشتراك بنجاح!')),
           backgroundColor: Color(0xFF2D8659),
         ),
       );
@@ -98,12 +113,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Request Failed'),
+          title: Text(_t(context, 'Request Failed', 'Échec de la demande', 'فشل الطلب')),
           content: Text(err.toString()),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('OK', style: TextStyle(color: Color(0xFF2D8659))),
+              child: Text(_t(context, 'OK', 'OK', 'حسنًا'), style: const TextStyle(color: Color(0xFF2D8659))),
             ),
           ],
         ),
@@ -116,8 +131,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text(
-          'Billing & Subscription',
+        title: Text(
+          _t(context, 'Billing & Subscription', 'Facturation et abonnement', 'الفوترة والاشتراك'),
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
@@ -153,7 +168,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         backgroundColor: const Color(0xFF2D8659),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Retry', style: TextStyle(color: Colors.white)),
+                      child: Text(_t(context, 'Retry', 'Réessayer', 'إعادة المحاولة'), style: const TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -192,7 +207,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildCurrentPlanCard(subscription),
-                  if (showUpgradeForm) _buildUpgradeFormCard(state, standardPlan),
+                  if (showUpgradeForm) _buildUpgradeCTA(context, subscription),
                   _buildPaymentHistorySection(payments),
                   const SizedBox(height: 48),
                 ],
@@ -221,8 +236,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         : (sub.trialEndsAt != null ? DateFormat('MMMM d, yyyy').format(sub.trialEndsAt!) : 'N/A');
 
     final limitText = sub.plan.maxActiveListings == null
-        ? 'Unlimited Listings'
-        : '${sub.activeListingCount} / ${sub.plan.maxActiveListings} Active Listings';
+        ? _t(context, 'Unlimited Listings', 'Annonces illimitées', 'إعلانات غير محدودة')
+        : '${sub.activeListingCount} / ${sub.plan.maxActiveListings} ${_t(context, 'Active Listings', 'Annonces actives', 'إعلانات نشطة')}';
 
     final percent = sub.plan.maxActiveListings == null
         ? 0.0
@@ -299,7 +314,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isTrial ? 'Trial Period Ends' : 'Renewal Date',
+                isTrial
+                    ? _t(context, 'Trial Period Ends', 'Fin de la période d\'essai', 'نهاية الفترة التجريبية')
+                    : _t(context, 'Renewal Date', 'Date de renouvellement', 'تاريخ التجديد'),
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.7),
                   fontSize: 14,
@@ -321,7 +338,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Days Remaining',
+                  _t(context, 'Days Remaining', 'Jours restants', 'الأيام المتبقية'),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 14,
@@ -366,7 +383,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  Widget _buildUpgradeFormCard(BillingLoaded state, SubscriptionPlan standardPlan) {
+  Widget _buildUpgradeCTA(BuildContext context, MerchantSubscription sub) {
+    final isTrial = sub.status == 'trial';
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
@@ -374,173 +393,60 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.rocket_launch_rounded, color: Color(0xFF2D8659), size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Upgrade to ${standardPlan.name}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.rocket_launch_rounded, color: Color(0xFF2D8659), size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    isTrial
+                        ? _t(context, 'Unlock Standard Plan', 'Débloquer le plan Standard', 'فتح الباقة القياسية')
+                        : _t(context, 'Renew Subscription', 'Renouveler l\'abonnement', 'تجديد الاشتراك'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Unlock unlimited active listings and accept donations directly from charity organizations for only ${standardPlan.monthlyPriceDzd.toStringAsFixed(0)} DZD per month.',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4),
-              ),
-              const SizedBox(height: 20),
-              InkWell(
-                onTap: _selectStartDate,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Desired Start Date',
-                            style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            DateFormat('MMMM d, yyyy').format(_startDate),
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                          ),
-                        ],
-                      ),
-                      const Icon(Icons.calendar_today_rounded, color: Color(0xFF2D8659), size: 20),
-                    ],
-                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  border: Border.all(color: Colors.grey.shade200),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'End Date (Auto-calculated, 30 days)',
-                          style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          DateFormat('MMMM d, yyyy').format(_endDate),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _t(context,
+                  'Get unlimited active listings, priority support, and accept charity donations directly.',
+                  'Bénéficiez d\'annonces actives illimitées, d\'un support prioritaire et acceptez directement les dons.',
+                  'احصل على إعلانات نشطة غير محدودة، ودعم ذو أولوية، واقبل التبرعات الخيرية مباشرة.'),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider.value(
+                      value: context.read<BillingCubit>(),
+                      child: const PlanSelectionScreen(),
                     ),
-                    const Icon(Icons.lock_clock_rounded, color: Colors.grey, size: 20),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _paymentMethod,
-                decoration: InputDecoration(
-                  labelText: 'Payment Method',
-                  labelStyle: TextStyle(color: Colors.grey.shade500),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2D8659), width: 2),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-                dropdownColor: Colors.white,
-                items: const [
-                  DropdownMenuItem(value: 'bank_transfer', child: Text('Bank / CCP Transfer')),
-                  DropdownMenuItem(value: 'cash', child: Text('Cash Payment')),
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _paymentMethod = val);
-                  }
-                },
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2D8659),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _referenceController,
-                decoration: InputDecoration(
-                  labelText: 'Transfer Reference / Receipt Number',
-                  labelStyle: TextStyle(color: Colors.grey.shade500),
-                  hintText: 'Enter bank transaction ID or receipt #',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2D8659), width: 2),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Please enter transaction/receipt reference';
-                  }
-                  return null;
-                },
+              child: Text(
+                _t(context, 'Subscribe / Renew Now', 'S\'abonner / Renouveler maintenant', 'الاشتراك / التجديد الآن'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _notesController,
-                maxLines: 2,
-                decoration: InputDecoration(
-                  labelText: 'Notes (Optional)',
-                  labelStyle: TextStyle(color: Colors.grey.shade500),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2D8659), width: 2),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => _submitUpgradeRequest(state, standardPlan),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2D8659),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Submit Upgrade Request',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

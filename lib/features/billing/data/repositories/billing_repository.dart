@@ -29,12 +29,14 @@ class BillingRepository {
   }
 
   /// Request a subscription upgrade or renewal by posting a pending payment.
+  /// Returns the created [SubscriptionPayment] including the server-generated [referenceCode].
   Future<SubscriptionPayment> createPaymentRequest({
     required int planId,
     required DateTime periodStart,
     required DateTime periodEnd,
     required String paymentMethod,
     required String referenceNumber,
+    String receiptImageUrl = '',
     String notes = '',
   }) async {
     final payload = {
@@ -43,7 +45,8 @@ class BillingRepository {
       'period_end': periodEnd.toIso8601String().substring(0, 10),
       'payment_method': paymentMethod,
       'reference_number': referenceNumber,
-      'notes': notes,
+      if (receiptImageUrl.isNotEmpty) 'receipt_image_url': receiptImageUrl,
+      if (notes.isNotEmpty) 'notes': notes,
     };
     final response = await _dio.post('billing/payments/', data: payload);
     return SubscriptionPayment.fromJson(response.data as Map<String, dynamic>);
@@ -86,6 +89,28 @@ class BillingRepository {
   /// Cancel/Remove a sponsored listing allocation.
   Future<void> cancelSponsoredListing(String id) async {
     await _dio.delete('billing/sponsored-listings/$id/');
+  }
+
+  /// Cancel a pending subscription payment request.
+  /// Only works while [SubscriptionPayment.status] == 'pending'.
+  Future<void> cancelPaymentRequest(String paymentId) async {
+    await _dio.delete('billing/payments/$paymentId/cancel_request/');
+  }
+
+  /// Upload a local receipt image file.
+  /// Returns the uploaded receipt URL on the server.
+  Future<String> uploadReceipt(String filePath) async {
+    final fileName = filePath.contains('/')
+        ? filePath.split('/').last
+        : filePath.split('\\').last;
+    final formData = FormData.fromMap({
+      'receipt': await MultipartFile.fromFile(filePath, filename: fileName),
+    });
+    final response = await _dio.post(
+      'billing/payments/upload_receipt/',
+      data: formData,
+    );
+    return (response.data as Map<String, dynamic>)['receipt_image_url'] as String? ?? '';
   }
 
   /// Normalises lists and cursor-paginated objects.

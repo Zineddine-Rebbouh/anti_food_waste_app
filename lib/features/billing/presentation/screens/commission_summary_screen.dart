@@ -21,6 +21,17 @@ class _CommissionSummaryScreenState extends State<CommissionSummaryScreen> {
   final _currencyFmt = NumberFormat('#,##0.00', 'fr_DZ');
   final _dateFmt = DateFormat('d MMM yyyy');
 
+  String _t(BuildContext context, String en, String fr, String ar) {
+    switch (Localizations.localeOf(context).languageCode) {
+      case 'fr':
+        return fr;
+      case 'ar':
+        return ar;
+      default:
+        return en;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -86,8 +97,8 @@ class _CommissionSummaryScreenState extends State<CommissionSummaryScreen> {
                 child: Icon(Icons.error_outline_rounded, size: 48, color: _red),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Failed to load commissions',
+              Text(
+                _t(context, 'Failed to load commissions', 'Échec du chargement des commissions', 'فشل تحميل العمولات'),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
               ),
               const SizedBox(height: 8),
@@ -96,7 +107,7 @@ class _CommissionSummaryScreenState extends State<CommissionSummaryScreen> {
               ElevatedButton.icon(
                 onPressed: () => context.read<BillingCubit>().load(),
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Try Again'),
+                label: Text(_t(context, 'Try Again', 'Réessayer', 'إعادة المحاولة')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _primaryGreen,
                   foregroundColor: Colors.white,
@@ -225,7 +236,7 @@ class _CommissionSummaryScreenState extends State<CommissionSummaryScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Pending commissions owed to Tawfir',
+                        _t(context, 'Pending commissions owed to Tawfir', 'Commissions en attente dues à Tawfir', 'العمولات المعلقة المستحقة لـ Tawfir'),
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.65),
                           fontSize: 13,
@@ -239,8 +250,8 @@ class _CommissionSummaryScreenState extends State<CommissionSummaryScreen> {
           ),
         ),
         titlePadding: const EdgeInsets.only(left: 56, bottom: 16),
-        title: const Text(
-          'My Commissions',
+        title: Text(
+          _t(context, 'My Commissions', 'Mes commissions', 'عمولاتي'),
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -298,7 +309,7 @@ class _CommissionSummaryScreenState extends State<CommissionSummaryScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Commission is auto-calculated when a consumer collects their order via QR scan.',
+                        _t(context, 'Commission is auto-calculated when a consumer collects their order via QR scan.', 'La commission est calculée automatiquement lorsqu\'un client récupère sa commande via le scan QR.', 'تُحسب العمولة تلقائيًا عندما يستلم العميل طلبه عبر مسح رمز QR.'),
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade600,
@@ -317,7 +328,7 @@ class _CommissionSummaryScreenState extends State<CommissionSummaryScreen> {
             children: [
               Expanded(
                 child: _StatCard(
-                  label: 'Pending',
+                  label: _t(context, 'Pending', 'En attente', 'معلقة'),
                   value: '${_currencyFmt.format(totalPending)} DZD',
                   icon: Icons.hourglass_top_rounded,
                   color: _amber,
@@ -326,7 +337,7 @@ class _CommissionSummaryScreenState extends State<CommissionSummaryScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _StatCard(
-                  label: 'Settled',
+                  label: _t(context, 'Settled', 'Réglée', 'مُسواة'),
                   value: '${_currencyFmt.format(totalSettled)} DZD',
                   icon: Icons.check_circle_rounded,
                   color: _primaryGreen,
@@ -335,7 +346,7 @@ class _CommissionSummaryScreenState extends State<CommissionSummaryScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _StatCard(
-                  label: 'Total Orders',
+                  label: _t(context, 'Total Orders', 'Total des commandes', 'إجمالي الطلبات'),
                   value: commissions.length.toString(),
                   icon: Icons.receipt_long_rounded,
                   color: _blue,
@@ -354,7 +365,7 @@ class _CommissionSummaryScreenState extends State<CommissionSummaryScreen> {
       child: Row(
         children: [
           Text(
-            'ALL ENTRIES',
+            _t(context, 'ALL ENTRIES', 'TOUTES LES ENTRÉES', 'كل السجلات'),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w900,
@@ -399,8 +410,8 @@ class _CommissionSummaryScreenState extends State<CommissionSummaryScreen> {
               child: Icon(Icons.account_balance_wallet_outlined, size: 56, color: _primaryGreen.withOpacity(0.5)),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'No commissions yet',
+            Text(
+              _t(context, 'No commissions yet', 'Aucune commission pour le moment', 'لا توجد عمولات بعد'),
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
             ),
             const SizedBox(height: 10),

@@ -5,6 +5,17 @@ import 'package:anti_food_waste_app/features/billing/presentation/cubits/billing
 import 'package:anti_food_waste_app/features/billing/domain/models/billing_models.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
 
+String _tr(String en, String fr, String ar, BuildContext context) {
+  switch (Localizations.localeOf(context).languageCode) {
+    case 'fr':
+      return fr;
+    case 'ar':
+      return ar;
+    default:
+      return en;
+  }
+}
+
 /// Merchant screen for managing sponsored listing slots and active sponsorships.
 /// Read + soft-cancel only (promoting a listing requires a SponsoredSlot).
 class SponsoredListingsScreen extends StatefulWidget {
@@ -162,7 +173,7 @@ class _SponsoredListingsScreenState extends State<SponsoredListingsScreen>
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            'SPONSORED LISTINGS',
+                            _tr('SPONSORED LISTINGS', 'LISTINGS SPONSORISÉES', 'الإعلانات الممولة', context),
                             style: TextStyle(
                               color: _gold,
                               fontSize: 10,
@@ -173,8 +184,8 @@ class _SponsoredListingsScreenState extends State<SponsoredListingsScreen>
                         ],
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Boost Your Reach',
+                      Text(
+                        _tr('Boost Your Reach', 'Augmentez votre visibilité', 'عزّز وصولك', context),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 28,
@@ -198,8 +209,8 @@ class _SponsoredListingsScreenState extends State<SponsoredListingsScreen>
           ),
         ),
         titlePadding: const EdgeInsets.only(left: 56, bottom: 16),
-        title: const Text(
-          'Sponsored Listings',
+        title: Text(
+          _tr('Sponsored Listings', 'Listings sponsorisées', 'الإعلانات الممولة', context),
           style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
         ),
       ),
@@ -232,7 +243,7 @@ class _SponsoredListingsScreenState extends State<SponsoredListingsScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Sponsored listings appear at the top of consumer feeds with a ⭐ Featured badge, boosting your order rate.',
+                    _tr('Sponsored listings appear at the top of consumer feeds with a ⭐ Featured badge, boosting your order rate.', 'Les annonces sponsorisées apparaissent en haut des flux consommateurs avec un badge ⭐ Mis en avant, augmentant votre taux de commande.', 'تظهر الإعلانات الممولة في أعلى موجزات المستهلكين مع شارة ⭐ مميزة، مما يعزز معدل الطلبات.', context),
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade700, height: 1.4),
                   ),
                 ),
@@ -242,11 +253,11 @@ class _SponsoredListingsScreenState extends State<SponsoredListingsScreen>
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _MiniStatCard(icon: Icons.layers_rounded, label: 'Total Slots', value: '$totalSlots', color: _blue)),
+              Expanded(child: _MiniStatCard(icon: Icons.layers_rounded, label: _tr('Total Slots', 'Total des emplacements', 'إجمالي الخانات', context), value: '$totalSlots', color: _blue)),
               const SizedBox(width: 10),
-              Expanded(child: _MiniStatCard(icon: Icons.star_rounded, label: 'Active Now', value: '$active', color: _gold)),
+              Expanded(child: _MiniStatCard(icon: Icons.star_rounded, label: _tr('Active Now', 'Actifs maintenant', 'نشطة الآن', context), value: '$active', color: _gold)),
               const SizedBox(width: 10),
-              Expanded(child: _MiniStatCard(icon: Icons.payments_rounded, label: 'Invested', value: '${_currencyFmt.format(totalInvested)} DZD', color: _green)),
+              Expanded(child: _MiniStatCard(icon: Icons.payments_rounded, label: _tr('Invested', 'Investi', 'المستثمر', context), value: '${_currencyFmt.format(totalInvested)} DZD', color: _green)),
             ],
           ),
         ],
@@ -289,19 +300,19 @@ class _SponsoredListingsScreenState extends State<SponsoredListingsScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Remove Sponsorship?', style: TextStyle(fontWeight: FontWeight.w900)),
-        content: const Text('This will deactivate the sponsored boost for this listing. The slot will be freed up for reuse.'),
+        title: Text(_tr('Remove Sponsorship?', 'Retirer le sponsoring ?', 'إزالة الرعاية؟', context), style: const TextStyle(fontWeight: FontWeight.w900)),
+        content: Text(_tr('This will deactivate the sponsored boost for this listing. The slot will be freed up for reuse.', 'Cela désactivera la promotion sponsorisée de cette annonce. L\'emplacement sera libéré pour être réutilisé.', 'سيؤدي ذلك إلى إيقاف الترويج الممول لهذه الإعلانات، وسيتم تحرير الخانة لإعادة استخدامها.', context)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900)),
+            child: Text(_tr('CANCEL', 'ANNULER', 'إلغاء', context), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w900)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.read<BillingCubit>().removeSponsorship(sponsoredListingId);
             },
-            child: const Text('REMOVE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w900)),
+            child: Text(_tr('REMOVE', 'RETIRER', 'إزالة', context), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w900)),
           ),
         ],
       ),
@@ -323,8 +334,8 @@ class _SlotsTab extends StatelessWidget {
     if (slots.isEmpty) {
       return _EmptyState(
         icon: Icons.layers_outlined,
-        title: 'No slot packages yet',
-        subtitle: 'Contact Tawfir to purchase sponsored listing slots and boost your listings.',
+        title: _tr('No slot packages yet', 'Aucun forfait d\'emplacements pour le moment', 'لا توجد باقات خانات بعد', context),
+        subtitle: _tr('Contact Tawfir to purchase sponsored listing slots and boost your listings.', 'Contactez Tawfir pour acheter des emplacements sponsorisés et booster vos annonces.', 'تواصل مع Tawfir لشراء خانات إعلانية وتعزيز ظهور إعلاناتك.', context),
       );
     }
     return ListView.separated(
@@ -415,7 +426,7 @@ class _SlotCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Slots used', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                        Text(_tr('Slots used', 'Emplacements utilisés', 'الخانات المستخدمة', context), style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
                         Text('${slot.slotsUsed} / ${slot.quantity}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
                       ],
                     ),
@@ -465,8 +476,8 @@ class _ActiveSponsorshipsTab extends StatelessWidget {
     if (listings.isEmpty) {
       return _EmptyState(
         icon: Icons.star_border_rounded,
-        title: 'No active sponsorships',
-        subtitle: 'Once you assign a listing to a slot, it will appear here with its boost status.',
+        title: _tr('No active sponsorships', 'Aucun sponsoring actif', 'لا توجد رعاية نشطة', context),
+        subtitle: _tr('Once you assign a listing to a slot, it will appear here with its boost status.', 'Une fois une annonce attribuée à un emplacement, elle apparaîtra ici avec son statut de boost.', 'عندما تخصص إعلانًا لخانة، سيظهر هنا مع حالة التعزيز.', context),
       );
     }
     return ListView.separated(
@@ -690,7 +701,7 @@ class _ErrorScaffold extends StatelessWidget {
               ElevatedButton(
                 onPressed: () => context.read<BillingCubit>().load(),
                 style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                child: const Text('Try Again'),
+                child: Text(_tr('Try Again', 'Réessayer', 'إعادة المحاولة', context)),
               ),
             ],
           ),

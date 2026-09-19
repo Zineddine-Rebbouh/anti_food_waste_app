@@ -99,6 +99,11 @@ class SubscriptionPayment {
   final String status;
   final String paymentMethod;
   final String referenceNumber;
+  /// System-generated unique reference code (e.g. MERCH-00123-JUN26).
+  /// Merchant must include this in their bank transfer so admin can match it.
+  final String referenceCode;
+  /// Optional URL of the uploaded receipt screenshot.
+  final String receiptImageUrl;
   final DateTime? paidAt;
   final String notes;
   final DateTime createdAt;
@@ -114,6 +119,8 @@ class SubscriptionPayment {
     required this.status,
     required this.paymentMethod,
     required this.referenceNumber,
+    this.referenceCode = '',
+    this.receiptImageUrl = '',
     this.paidAt,
     required this.notes,
     required this.createdAt,
@@ -131,6 +138,8 @@ class SubscriptionPayment {
       status: json['status']?.toString() ?? 'pending',
       paymentMethod: json['payment_method']?.toString() ?? '',
       referenceNumber: json['reference_number']?.toString() ?? '',
+      referenceCode: json['reference_code']?.toString() ?? '',
+      receiptImageUrl: json['receipt_image_url']?.toString() ?? '',
       paidAt: json['paid_at'] != null ? DateTime.parse(json['paid_at']?.toString() ?? '') : null,
       notes: json['notes']?.toString() ?? '',
       createdAt: DateTime.parse(json['created_at']?.toString() ?? ''),

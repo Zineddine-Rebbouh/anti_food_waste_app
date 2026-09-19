@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:anti_food_waste_app/features/billing/domain/models/billing_models.dart';
 import 'package:anti_food_waste_app/features/billing/presentation/cubits/billing_cubit.dart';
-import 'package:anti_food_waste_app/features/billing/presentation/screens/subscription_screen.dart';
+import 'package:anti_food_waste_app/features/billing/presentation/screens/plan_selection_screen.dart';
+import 'package:anti_food_waste_app/features/billing/presentation/screens/payment_instructions_screen.dart';
 
 class SubscriptionBanner extends StatelessWidget {
   const SubscriptionBanner({super.key});
@@ -48,12 +50,28 @@ class SubscriptionBanner extends StatelessWidget {
           color: backgroundColor,
           child: InkWell(
             onTap: () {
+              final standardPlan = state.plans.firstWhere(
+                (p) => p.slug == 'standard',
+                orElse: () => SubscriptionPlan(
+                  id: 2,
+                  name: 'Standard Plan',
+                  slug: 'standard',
+                  monthlyPriceDzd: 2000.0,
+                  canReceiveDonations: true,
+                  isActive: true,
+                ),
+              );
+
+              final isExistingSubscriber = sub.plan.slug == 'standard';
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => BlocProvider.value(
                     value: context.read<BillingCubit>(),
-                    child: const SubscriptionScreen(),
+                    child: isExistingSubscriber
+                        ? PaymentInstructionsScreen(plan: standardPlan)
+                        : const PlanSelectionScreen(),
                   ),
                 ),
               );

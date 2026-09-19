@@ -1,4 +1,4 @@
-import 'package:anti_food_waste_app/core/config/app_config.dart';
+import 'package:anti_food_waste_app/core/utils/url_helper.dart';
 enum ListingStatus { draft, active, soldOut, expired, paused }
 
 enum MerchantFoodCategory { bakery, restaurant, supermarket, cafe, other }
@@ -83,6 +83,22 @@ class MerchantListing {
     // When the list serializer omits quantity_total, fall back to available.
     final total = quantityTotal > 0 ? quantityTotal : quantityAvailable;
     final reserved = (total - quantityAvailable).clamp(0, total);
+    final pickupStart = DateTime.parse(json['pickup_start'] as String);
+    final pickupEnd = DateTime.parse(json['pickup_end'] as String);
+    final now = DateTime.now();
+    final effectiveStatus = () {
+      if (status == ListingStatus.draft) return status;
+      if (status == ListingStatus.soldOut || status == ListingStatus.expired) {
+        return status;
+      }
+      if (pickupEnd.isBefore(now)) {
+        return ListingStatus.expired;
+      }
+      if (total > 0 && quantityAvailable <= 0) {
+        return ListingStatus.soldOut;
+      }
+      return status;
+    }();
 
     // -- dietary flags --------------------------------------------------------
     final dietaryFlags = json['dietary_flags'];
@@ -92,16 +108,16 @@ class MerchantListing {
       id: json['id']?.toString() ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      imageUrl: _normalizeUrl(imageUrl),
+      imageUrl: UrlHelper.normalize(imageUrl),
       category: category,
       dietaryTags: dietaryTags,
       originalPrice: double.tryParse(json['original_price'].toString()) ?? 0,
       discountedPrice: double.tryParse(json['discounted_price'].toString()) ?? 0,
       totalQuantity: total,
       reservedQuantity: reserved,
-      pickupStart: DateTime.parse(json['pickup_start'] as String),
-      pickupEnd: DateTime.parse(json['pickup_end'] as String),
-      status: status,
+      pickupStart: pickupStart,
+      pickupEnd: pickupEnd,
+      status: effectiveStatus,
       grade: _gradeFromString(json['freshness_grade'] as String? ?? 'a'),
       views: 0,
       createdAt: json['created_at'] != null
@@ -109,24 +125,6 @@ class MerchantListing {
           : DateTime.now(),
       isDonation: json['is_donation'] as bool? ?? false,
     );
-  }
-
-  static String _normalizeUrl(String url) {
-    if (url.isEmpty) return '';
-    
-    // If it's already a full URL that's not localhost, keep it
-    if (url.startsWith('http') && !url.contains('://127.0.0.1') && !url.contains('://localhost')) {
-      return url;
-    }
-    
-    // Import AppConfig inside the method to avoid top-level issues if needed, 
-    // but better to just use the constant if it's available.
-    // We'll need to add the import at the top.
-    
-    final baseUrl = AppConfig.baseUrl.split('/api/').first;
-    final path = url.startsWith('http') ? Uri.parse(url).path : (url.startsWith('/') ? url : '/$url');
-    
-    return '$baseUrl$path';
   }
 
   /// Payload for POST /listings/  (create).
@@ -337,6 +335,3 @@ class MerchantListing {
     );
   }
 }
-
-
-

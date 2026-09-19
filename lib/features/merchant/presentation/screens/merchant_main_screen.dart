@@ -42,7 +42,7 @@ class _MerchantMainScreenState extends State<MerchantMainScreen> {
       child: BlocBuilder<MerchantCubit, MerchantState>(
         builder: (context, state) {
         final pendingCount =
-            state is MerchantLoaded ? state.pendingOrderCount : 0;
+            state is MerchantLoaded ? state.pendingAcceptanceCount : 0;
 
         return Scaffold(
           body: Stack(

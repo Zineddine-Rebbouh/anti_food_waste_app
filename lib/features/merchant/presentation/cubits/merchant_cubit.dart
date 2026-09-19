@@ -51,6 +51,7 @@ class MerchantLoaded extends MerchantState {
   });
 
   int get pendingOrderCount => pendingOrders.length + activeOrders.length;
+  int get pendingAcceptanceCount => pendingOrders.length;
 
   MerchantLoaded copyWith({
     MerchantProfile? profile,
@@ -368,6 +369,36 @@ class MerchantCubit extends Cubit<MerchantState> {
       ));
     } catch (e, st) {
       AppLogger.error('MerchantCubit.fulfillOrderAsync', e, st);
+      rethrow;
+    }
+  }
+
+  /// Accepts a pending order as merchant.
+  Future<void> acceptOrderAsync(String orderId) async {
+    if (state is! MerchantLoaded) return;
+    final s = state as MerchantLoaded;
+    try {
+      final accepted = await _repository.acceptOrder(orderId);
+      emit(s.copyWith(
+        pendingOrders:
+            s.pendingOrders.where((o) => o.id != orderId).toList(),
+        activeOrders: [accepted, ...s.activeOrders],
+      ));
+    } catch (e, st) {
+      AppLogger.error('MerchantCubit.acceptOrderAsync', e, st);
+      rethrow;
+    }
+  }
+
+  /// Restores a donation listing back to active.
+  Future<void> restoreDonationAsActiveAsync(String listingId) async {
+    if (state is! MerchantLoaded) return;
+    try {
+      await _repository.unmarkAsDonation(listingId);
+      await _repository.updateListing(listingId, {'status': 'active'});
+      await load();
+    } catch (e, st) {
+      AppLogger.error('MerchantCubit.restoreDonationAsActiveAsync', e, st);
       rethrow;
     }
   }

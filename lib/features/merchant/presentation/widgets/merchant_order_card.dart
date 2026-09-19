@@ -7,6 +7,7 @@ class MerchantOrderCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onScanTap;
   final VoidCallback? onCallTap;
+  final VoidCallback? onAcceptTap;
 
   const MerchantOrderCard({
     super.key,
@@ -14,6 +15,7 @@ class MerchantOrderCard extends StatelessWidget {
     this.onTap,
     this.onScanTap,
     this.onCallTap,
+    this.onAcceptTap,
   });
 
   static const Color primaryGreen = Color(0xFF2D8659);
@@ -57,7 +59,7 @@ class MerchantOrderCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(100)),
                         child: Text(
-                          _statusLabel(order.status, l10n).toUpperCase(),
+                           _statusLabel(order.status, l10n).toUpperCase(),
                           style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
                         ),
                       ),
@@ -96,31 +98,48 @@ class MerchantOrderCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (onScanTap != null)
+            if (onAcceptTap != null || onScanTap != null)
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: onScanTap,
-                        icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
-                        label: Text(l10n.scan_qr_code.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryGreen,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    if (onAcceptTap != null) ...[
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: onAcceptTap,
+                          icon: const Icon(Icons.check_circle_rounded, size: 18),
+                          label: const Text("APPROVE ORDER", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGreen,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
                         ),
                       ),
-                    ),
+                    ] else if (onScanTap != null) ...[
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: onScanTap,
+                          icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                          label: Text(l10n.scan_qr_code.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGreen,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                        ),
+                      ),
+                    ],
                     if (onCallTap != null) ...[
                       const SizedBox(width: 12),
                       Container(
                         decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(16)),
                         child: IconButton(
-                          icon: const Icon(Icons.phone_rounded, color: primaryGreen),
+                           icon: const Icon(Icons.phone_rounded, color: primaryGreen),
                           onPressed: onCallTap,
                         ),
                       ),

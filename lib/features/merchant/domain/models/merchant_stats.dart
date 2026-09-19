@@ -1,4 +1,4 @@
-import 'package:anti_food_waste_app/core/config/app_config.dart';
+import 'package:anti_food_waste_app/core/utils/url_helper.dart';
 
 // Safely parse a value that Django may return as String or num.
 double _toDouble(dynamic v, [double fallback = 0.0]) {
@@ -138,7 +138,7 @@ class MerchantProfile {
       id: profile['id']?.toString() ?? userMeJson['id'] as String? ?? '',
       businessName: profile['business_name'] as String? ?? '',
       businessType: profile['business_type'] as String? ?? '',
-      avatarUrl: normalizeUrl(profile['logo_url'] as String? ??
+      avatarUrl: UrlHelper.normalize(profile['logo_url'] as String? ??
           userMeJson['avatar_url'] as String? ??
           ''),
       trustScore: _toDouble(profile['trust_score']),
@@ -209,19 +209,7 @@ class MerchantProfile {
     );
   }
 
-  static String normalizeUrl(String url) {
-    if (url.isEmpty) return '';
-    if (url.startsWith('http') &&
-        !url.contains('://127.0.0.1') &&
-        !url.contains('://localhost')) {
-      return url;
-    }
-    final baseUrl = AppConfig.baseUrl.split('/api/').first;
-    final path = url.startsWith('http')
-        ? Uri.parse(url).path
-        : (url.startsWith('/') ? url : '/$url');
-    return '$baseUrl$path';
-  }
+  static String normalizeUrl(String url) => UrlHelper.normalize(url);
 }
 
 class ActivityItem {

@@ -13,9 +13,7 @@ class MerchantSettingsScreen extends StatefulWidget {
 
 class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
   bool _darkMode = false;
-  bool _compactView = false;
   bool _autoAccept = false;
-  bool _twoFactor = false;
   late bool _chatBubbleEnabled;
 
   static const Color primaryGreen = Color(0xFF2D8659);
@@ -76,32 +74,12 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
                 onChanged: (v) => setState(() => _darkMode = v),
               ),
               _SwitchTile(
-                icon: Icons.view_compact_outlined,
-                iconColor: const Color(0xFFF59E0B),
-                label: l10n.compact_view,
-                subtitle: l10n.compact_view_desc,
-                value: _compactView,
-                onChanged: (v) => setState(() => _compactView = v),
-              ),
-              _SwitchTile(
                 icon: Icons.auto_awesome_outlined,
                 iconColor: const Color(0xFF2D8659),
                 label: l10n.auto_accept,
                 subtitle: l10n.auto_accept_desc,
                 value: _autoAccept,
                 onChanged: (v) => setState(() => _autoAccept = v),
-              ),
-            ]),
-            const SizedBox(height: 24),
-            _buildSectionHeader(l10n.account_security.toUpperCase()),
-            _buildSectionCard([
-              _SwitchTile(
-                icon: Icons.security_outlined,
-                iconColor: primaryGreen,
-                label: l10n.two_factor,
-                subtitle: l10n.two_factor_desc,
-                value: _twoFactor,
-                onChanged: (v) => setState(() => _twoFactor = v),
               ),
               _SwitchTile(
                 icon: Icons.chat_bubble_outline_rounded,
@@ -114,6 +92,10 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
                   PreferencesService.setChatBubbleEnabled(v);
                 },
               ),
+            ]),
+            const SizedBox(height: 24),
+            _buildSectionHeader('ACCOUNT'),
+            _buildSectionCard([
               _ActionTile(
                 icon: Icons.lock_outline,
                 iconColor: const Color(0xFF374151),
@@ -194,7 +176,7 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
                   Padding(
                     padding: const EdgeInsets.only(left: 12),
                     child: Text(
-                      l10n.app_settings_title,
+                      'Settings',
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 28,
@@ -263,46 +245,122 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
 
   void _showChangePassword(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final currentCtrl = TextEditingController();
+    final newCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(l10n.change_password,
-            style: const TextStyle(fontWeight: FontWeight.w800)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-                decoration: InputDecoration(
-                    labelText: l10n.current_password,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)))),
-            const SizedBox(height: 16),
-            TextField(
-                decoration: InputDecoration(
-                    labelText: l10n.new_password,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)))),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.cancel,
-                  style: const TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: primaryGreen,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12))),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _showSnack(context, l10n.password_updated);
-            },
-            child: Text(l10n.update),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 30,
+                offset: const Offset(0, 16),
+              ),
+            ],
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.lock_outline, color: primaryGreen),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      l10n.change_password,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Choose a strong new password for your account.',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _ModernPasswordField(
+                controller: currentCtrl,
+                label: l10n.current_password,
+                obscureText: true,
+              ),
+              const SizedBox(height: 14),
+              _ModernPasswordField(
+                controller: newCtrl,
+                label: l10n.new_password,
+                obscureText: true,
+              ),
+              const SizedBox(height: 14),
+              _ModernPasswordField(
+                controller: confirmCtrl,
+                label: l10n.confirm_new_password,
+                obscureText: true,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade300),
+                        foregroundColor: const Color(0xFF111827),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _showSnack(context, l10n.password_updated);
+                      },
+                      child: Text(l10n.update),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -361,6 +419,44 @@ class _LanguageTile extends StatelessWidget {
       trailing: selected
           ? const Icon(Icons.check_circle, color: Color(0xFF2D8659), size: 22)
           : null,
+    );
+  }
+}
+
+class _ModernPasswordField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final bool obscureText;
+
+  const _ModernPasswordField({
+    required this.controller,
+    required this.label,
+    required this.obscureText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: const Color(0xFFF9FAFB),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+          borderSide: BorderSide(color: Color(0xFF2D8659), width: 1.5),
+        ),
+      ),
     );
   }
 }

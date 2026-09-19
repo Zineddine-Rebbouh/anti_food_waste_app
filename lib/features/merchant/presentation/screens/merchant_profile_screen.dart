@@ -9,7 +9,6 @@ import 'package:anti_food_waste_app/features/merchant/presentation/cubits/mercha
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_business_profile_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_earnings_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_help_support_screen.dart';
-import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_notification_settings_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_performance_analytics_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_settings_screen.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
@@ -18,6 +17,16 @@ import 'package:anti_food_waste_app/features/billing/presentation/screens/subscr
 import 'package:anti_food_waste_app/features/billing/presentation/screens/commission_summary_screen.dart';
 import 'package:anti_food_waste_app/features/billing/presentation/screens/sponsored_listings_screen.dart';
 
+String _tr(String en, String fr, String ar, BuildContext context) {
+  switch (Localizations.localeOf(context).languageCode) {
+    case 'fr':
+      return fr;
+    case 'ar':
+      return ar;
+    default:
+      return en;
+  }
+}
 
 class MerchantProfileScreen extends StatelessWidget {
   const MerchantProfileScreen({super.key});
@@ -131,10 +140,6 @@ class MerchantProfileScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(l10n.profile.toUpperCase(), style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2)),
-                  IconButton(
-                    icon: const Icon(Icons.settings_suggest_rounded, color: Colors.white),
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MerchantSettingsScreen())),
-                  ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -256,8 +261,14 @@ class MerchantProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _MenuTile(
+            icon: Icons.settings_suggest_rounded,
+            title: _tr('Settings', 'Paramètres', 'الإعدادات', context),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MerchantSettingsScreen())),
+          ),
+          const SizedBox(height: 12),
+          _MenuTile(
             icon: Icons.receipt_long_rounded,
-            title: 'Billing & Subscription',
+            title: _tr('Billing & Subscription', 'Facturation et abonnement', 'الفوترة والاشتراك', context),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -271,7 +282,7 @@ class MerchantProfileScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _MenuTile(
             icon: Icons.account_balance_wallet_rounded,
-            title: 'My Commissions',
+            title: _tr('My Commissions', 'Mes commissions', 'عمولاتي', context),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -285,7 +296,7 @@ class MerchantProfileScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _MenuTile(
             icon: Icons.star_rounded,
-            title: 'Sponsored Listings',
+            title: _tr('Sponsored Listings', 'Annonces sponsorisées', 'الإعلانات الممولة', context),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -301,8 +312,13 @@ class MerchantProfileScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _MenuTile(
             icon: Icons.help_outline_rounded,
-            title: l10n.help_center,
-            onTap: () {},
+            title: _tr('Help Center', 'Centre d\'aide', 'مركز المساعدة', context),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MerchantHelpSupportScreen(),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           _MenuTile(

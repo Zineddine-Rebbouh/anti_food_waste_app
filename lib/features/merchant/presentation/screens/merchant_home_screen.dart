@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:anti_food_waste_app/core/app_theme.dart';
+import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_order.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/cubits/merchant_cubit.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/create_listing/merchant_create_listing_screen.dart';
+import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_order_detail_screen.dart';
 import 'package:anti_food_waste_app/features/merchant/presentation/screens/merchant_qr_scanner_screen.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:anti_food_waste_app/core/utils/l10n_utils.dart';
-import 'package:anti_food_waste_app/core/navigation/app_router.dart';
 import 'package:anti_food_waste_app/features/billing/presentation/cubits/billing_cubit.dart';
 import 'package:anti_food_waste_app/features/billing/presentation/widgets/subscription_banner.dart';
 import 'package:anti_food_waste_app/features/billing/presentation/screens/subscription_gate_screen.dart';
+import 'package:anti_food_waste_app/shared/widgets/notification_panel.dart';
 
 
 
@@ -179,8 +181,12 @@ class MerchantHomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       InkWell(
-                        onTap: () => Navigator.pushNamed(
-                            context, AppRoutes.notifications),
+                        onTap: () => showModalBottomSheet<void>(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) => const NotificationPanel(),
+                        ),
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           width: 44,
@@ -273,11 +279,11 @@ class MerchantHomeScreen extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                   child: _StatCard(
-                      icon: Icons.eco_rounded,
+                      icon: Icons.pending_actions_rounded,
                       color: AppTheme.primary,
-                      value: "${stats.foodSavedKgToday.toInt()} kg",
-                      label: l10n.merchant_food_saved,
-                      delta: l10n.co2_avoided)),
+                      value: "${state.pendingAcceptanceCount}",
+                      label: 'Requests',
+                      delta: 'Pending approval')),
             ],
           ),
         ),
@@ -368,32 +374,90 @@ class MerchantHomeScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          _ActivityTile(
-              title: "Plat Chorba Frik",
-              status: "Picked up",
-              quantity: "1x",
-              price: "150 DZD",
-              time: "Just now",
-              color: const Color(0xFF2D8659)),
-          const SizedBox(height: 12),
-          _ActivityTile(
-              title: "Traditional Bread Basket",
-              status: "Reserved",
-              quantity: "1x",
-              price: "350 DZD",
-              time: "13h ago",
-              color: const Color(0xFFF59E0B)),
-          const SizedBox(height: 12),
-          _ActivityTile(
-              title: "Menu Loubia / Adas",
-              status: "Completed",
-              quantity: "1x",
-              price: "150 DZD",
-              time: "17d ago",
-              color: Colors.grey.shade200),
+          ...state.activityFeed.take(4).map((item) {
+            final order = _findOrderById(state, item.orderId);
+            final tile = _ActivityTile(
+              title: item.primaryText,
+              status: _activityStatusLabel(item.type, order?.status),
+              quantity: order != null ? '${order.quantity}x' : '1x',
+              price: order != null ? '${order.totalAmount.toInt()} DZD' : item.secondaryText,
+              time: _relativeTime(item.timestamp),
+              color: _activityColor(item.type, order?.status),
+            );
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: order == null
+                  ? tile
+                  : InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => MerchantOrderDetailScreen(order: order),
+                          ),
+                        );
+                      },
+                      child: tile,
+                    ),
+            );
+          }),
         ],
       ),
     );
+  }
+
+  MerchantOrder? _findOrderById(MerchantLoaded state, String? orderId) {
+    if (orderId == null) return null;
+    for (final order in [
+      ...state.pendingOrders,
+      ...state.activeOrders,
+      ...state.completedOrders,
+    ]) {
+      if (order.id == orderId) return order;
+    }
+    return null;
+  }
+
+  String _activityStatusLabel(String type, OrderStatus? status) {
+    if (status == null) return type == 'completed' ? 'Completed' : 'New';
+    switch (status) {
+      case OrderStatus.completed:
+        return 'Completed';
+      case OrderStatus.active:
+      case OrderStatus.accepted:
+        return 'Active';
+      case OrderStatus.pending:
+        return 'Pending';
+      case OrderStatus.cancelled:
+        return 'Cancelled';
+      case OrderStatus.noShow:
+        return 'No-show';
+    }
+  }
+
+  Color _activityColor(String type, OrderStatus? status) {
+    switch (status) {
+      case OrderStatus.completed:
+        return const Color(0xFF2D8659);
+      case OrderStatus.active:
+      case OrderStatus.accepted:
+        return const Color(0xFF2563EB);
+      case OrderStatus.pending:
+        return const Color(0xFFF59E0B);
+      case OrderStatus.cancelled:
+      case OrderStatus.noShow:
+        return const Color(0xFFEF4444);
+      case null:
+        return type == 'completed' ? const Color(0xFF2D8659) : const Color(0xFFF59E0B);
+    }
+  }
+
+  String _relativeTime(DateTime ts) {
+    final diff = DateTime.now().difference(ts);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 }
 

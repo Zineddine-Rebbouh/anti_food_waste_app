@@ -93,6 +93,9 @@ class _MerchantOrdersScreenState extends State<MerchantOrdersScreen>
                       emptyTitle: l10n.no_pending_orders,
                       emptySubtitle: l10n.no_pending_orders_desc,
                       onCall: _callCustomer,
+                      onAccept: (order) async {
+                        await context.read<MerchantCubit>().acceptOrderAsync(order.id);
+                      },
                       onOrderTap: (order) => _openDetail(context, order),
                     ),
                     _OrdersTab(
@@ -184,6 +187,7 @@ class _OrdersTab extends StatelessWidget {
   final String emptySubtitle;
   final Function(MerchantOrder)? onCall;
   final Function(MerchantOrder)? onScan;
+  final Function(MerchantOrder)? onAccept;
   final Function(MerchantOrder) onOrderTap;
 
   const _OrdersTab(
@@ -192,6 +196,7 @@ class _OrdersTab extends StatelessWidget {
       required this.emptySubtitle,
       this.onCall,
       this.onScan,
+      this.onAccept,
       required this.onOrderTap});
 
   @override
@@ -235,6 +240,7 @@ class _OrdersTab extends StatelessWidget {
           onTap: () => onOrderTap(order),
           onCallTap: onCall != null ? () => onCall!(order) : null,
           onScanTap: onScan != null ? () => onScan!(order) : null,
+          onAcceptTap: onAccept != null ? () => onAccept!(order) : null,
         );
       },
     );

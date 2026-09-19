@@ -250,6 +250,12 @@ class MerchantRemoteSource {
     return r.data as Map<String, dynamic>;
   }
 
+  /// POST /orders/{id}/accept/ — merchant accepts a pending order.
+  Future<Map<String, dynamic>> acceptOrder(String orderId) async {
+    final r = await _dio.post('orders/$orderId/accept/');
+    return r.data as Map<String, dynamic>;
+  }
+
   /// POST /orders/{id}/fulfill/ — merchant confirms pickup using the QR hash.
   Future<Map<String, dynamic>> fulfillOrder(
     String orderId,

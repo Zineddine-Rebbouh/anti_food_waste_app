@@ -215,11 +215,21 @@ class _MerchantListingsScreenState extends State<MerchantListingsScreen>
                     _openCreateListing(context, existingListing: listing);
                   },
                 ),
-                if (listing.status == ListingStatus.active) ...[
+                if (listing.isDonation) ...[
+                  _MenuAction(
+                    icon: Icons.storefront_rounded,
+                    label: 'Mark as active listing',
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      context
+                          .read<MerchantCubit>()
+                          .restoreDonationAsActiveAsync(listing.id);
+                    },
+                  ),
+                ] else if (listing.status == ListingStatus.active) ...[
                   _MenuAction(
                     icon: Icons.volunteer_activism_rounded,
-                    label: l10n
-                        .switch_to_donations, // Ensure this l10n key exists or use a fallback
+                    label: l10n.switch_to_donations,
                     onTap: () {
                       Navigator.pop(sheetCtx);
                       context.read<MerchantCubit>().markAsDonation(listing.id);

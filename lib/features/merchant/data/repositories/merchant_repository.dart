@@ -1,4 +1,5 @@
 import 'package:anti_food_waste_app/core/utils/app_logger.dart';
+import 'package:anti_food_waste_app/core/utils/url_helper.dart';
 import 'package:anti_food_waste_app/features/merchant/data/sources/merchant_remote_source.dart';
 import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_listing.dart';
 import 'package:anti_food_waste_app/features/merchant/domain/models/merchant_order.dart';
@@ -166,7 +167,7 @@ class MerchantRepository {
     final json = await _source.uploadListingPhoto(listingId, filePath);
     // The individual photo endpoint returns the newly created photo object. 
     // Usually { id: ..., photo: "http://...", is_primary: ... }
-    return json['photo'] as String? ?? json['photo_url'] as String? ?? '';
+    return UrlHelper.normalize(json['photo'] as String? ?? json['photo_url'] as String? ?? '');
   }
 
   Future<MerchantListing> markAsDonation(String id) async {
@@ -260,6 +261,12 @@ class MerchantRepository {
 
   Future<void> approveDonationRequest(String donationId, String requestId) async {
     await _source.approveDonationRequest(donationId, requestId);
+  }
+
+  /// Accepts a pending order as merchant.
+  Future<MerchantOrder> acceptOrder(String orderId) async {
+    final json = await _source.acceptOrder(orderId);
+    return MerchantOrder.fromJson(json);
   }
 
   /// Confirms a pickup by validating the consumer's QR code hash.

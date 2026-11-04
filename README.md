@@ -1,6 +1,6 @@
 <div align="center">
 
-# SaveFood — Anti Food Waste App
+# Tawifr App — Anti Food Waste App
 
 A Flutter marketplace app for Algeria that connects bakeries, restaurants, supermarkets, and cafes with nearby consumers and charities, so surplus food gets sold at a discount or donated instead of thrown away.
 
@@ -16,7 +16,7 @@ A Flutter marketplace app for Algeria that connects bakeries, restaurants, super
 
 ## Overview
 
-SaveFood is a three sided app built with Flutter: merchants list surplus food, consumers buy it at a reduced price, and charities can claim what's left as a donation. The mobile client talks to a Django REST API backend and uses Firebase for authentication, push notifications, and some real time data.
+Tawifr App is a three sided app built with Flutter: merchants list surplus food, consumers buy it at a reduced price, and charities can claim what's left as a donation. The mobile client talks to a Django REST API backend and uses Firebase for authentication, push notifications, and some real time data.
 
 The app leans into a specific market: prices are shown in Algerian Dinar (DZD), and the onboarding screens carry an Algerian flag accent, so this isn't a generic template project. It's built around a real workflow: a merchant posts a listing before it expires, a consumer reserves it and picks it up with a QR code, and unclaimed surplus can be routed to a charity instead of the bin.
 
@@ -176,7 +176,7 @@ flutter run --dart-define=BASE_URL=http://10.0.2.2:8000/api/v1/
 flutter run --dart-define=BASE_URL=http://<your-lan-ip>:8000/api/v1/
 
 # Production
-flutter run --dart-define=ENV=prod --dart-define=BASE_URL=https://api.savefood.dz/api/v1/
+flutter run --dart-define=ENV=prod --dart-define=BASE_URL=https://api.Tawifr App.dz/api/v1/
 ```
 
 ### 4. Configure Firebase
